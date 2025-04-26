@@ -71,3 +71,19 @@
   - Enabled data-driven insights through the reporting module
   - Simplified setup of demo environments for presentations and testing
   - Enhanced CLI capabilities for complex reporting and analysis tasks 
+
+## Analytics Module Architecture
+
+- **Decision**: Create a dedicated analytics module with separate reporting and display components
+- **Context**: The data generator module needed reporting capabilities with a clean separation of concerns
+- **Implementation**:
+  - Created `Analytics::Reporting` module for pure data processing and analytics calculations
+  - Created `Analytics::Display` module for formatting and presenting results
+  - Moved all analytics-related code from the generator command into these modules
+  - Used functional programming approach with stateless methods for better testability
+- **Consequences**:
+  - Improved code organization with clear separation of concerns
+  - Better testability with isolated components
+  - More maintainable reporting system
+  - Easier to extend with new analytics features in the future
+  - Consistent display formatting across command output 

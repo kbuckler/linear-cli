@@ -213,14 +213,14 @@ Commands for generating and analyzing Linear data.
 
 ### Populate Linear
 
-Populates your Linear workspace with test data for reporting and analysis.
+Populates your Linear workspace with test data for reporting and analysis. Instead of creating new teams, the command uses your existing teams and creates test projects and issues within them.
 
 ```
 linear generator populate [options]
 ```
 
 **Options:**
-- `--teams NUMBER`: Number of teams to create (default: 2)
+- `--teams NUMBER`: Number of teams to use from your workspace (default: 2)
 - `--projects-per-team NUMBER`: Number of projects per team (default: 2)
 - `--issues-per-project NUMBER`: Number of issues per project (default: 5)
 
@@ -233,9 +233,15 @@ linear generator populate
 linear generator populate --teams 3 --projects-per-team 3 --issues-per-project 8
 ```
 
+**Notes:**
+- The command requires at least one team to exist in your Linear workspace
+- If a team doesn't have any projects, the command will create them
+- Issues are created with random priorities and linked to the appropriate projects
+- If the system can't create projects due to permissions, it will attempt to create issues directly under the team
+
 ### Dump Linear Data
 
-Extracts detailed reporting data from your Linear workspace.
+Extracts detailed reporting data from your Linear workspace and provides analytics on the data. The command uses a modular analytics system to generate meaningful insights about your workspace.
 
 ```
 linear generator dump [options]
@@ -249,6 +255,30 @@ linear generator dump [options]
 # Display summary tables of Linear data
 linear generator dump
 
-# Export data as JSON
+# Export data as JSON for external analysis
 linear generator dump --format json
+```
+
+**Generated Analytics:**
+- **Summary Statistics**: Teams count, projects count, issues count
+- **Status Distribution**: Number of issues in each status category
+- **Team Distribution**: Number of issues assigned to each team
+- **Completion Rates**: Issue completion rate for each team with statistics
+
+**JSON Format:**
+When using the `--format json` option, the command outputs a comprehensive JSON structure containing:
+```json
+{
+  "teams": [...],         // Full team data
+  "projects": [...],      // Full project data
+  "issues": [...],        // Full issue data
+  "summary": {            // Aggregated analytics
+    "teams_count": 3,
+    "projects_count": 6,
+    "issues_count": 42,
+    "issues_by_status": {...},
+    "issues_by_team": {...},
+    "team_completion_rates": {...}
+  }
+}
 ``` 

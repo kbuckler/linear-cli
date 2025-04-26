@@ -11,7 +11,7 @@ A Ruby command-line tool that allows AI assistants (and humans) to interact dire
 - View issue details and add comments
 - List teams and projects
 - Generate test data for reporting and analysis
-- Export detailed reports on your Linear workspace
+- Export detailed reports on your Linear workspace with analytics
 - Simple configuration and authentication
 
 ## Installation
@@ -94,7 +94,7 @@ Linear CLI can be configured using environment variables or a `.env` file. For d
 
 ## Data Generation and Reporting
 
-Linear CLI provides tools to populate your Linear workspace with test data and generate reports:
+Linear CLI provides tools to populate your Linear workspace with test data and generate reports with advanced analytics:
 
 ### Generating Test Data
 
@@ -108,21 +108,23 @@ linear generator populate --teams 3 --projects-per-team 4 --issues-per-project 1
 
 The data generator uses your existing teams and adds test projects and issues to them, making it easy to set up demo environments or test data for reporting.
 
-### Analyzing Workspace Data
+### Analytics and Reporting
 
 ```
-# View summary tables of your Linear data
+# View summary tables of your Linear data with analytics
 linear generator dump
 
 # Export complete data in JSON format for further analysis
 linear generator dump --format json
 ```
 
-The reporting tool provides insights into:
-- Issue counts by status
-- Issue counts by team
-- Team completion rates
-- Overall workspace metrics
+The reporting system provides detailed analytics including:
+- Issue distribution by status
+- Issue distribution by team
+- Team completion rates and productivity metrics
+- Overall workspace analytics and insights
+
+The analytics engine uses a modular architecture for extensibility and is designed to help teams gain valuable insights from their Linear data.
 
 ## Development
 
@@ -169,6 +171,15 @@ end
 ```
 
 This approach is simpler than using WebMock stubs and avoids issues with HTTP request mocking.
+
+### Project Architecture
+
+The Linear CLI follows a modular architecture with clear separation of concerns:
+
+- **Commands**: Thor-based CLI interface (`lib/linear_cli/commands/`)
+- **API**: Client and data models for Linear API interaction (`lib/linear_cli/api/`)
+- **Analytics**: Reporting and data visualization modules (`lib/linear_cli/analytics/`)
+- **Utilities**: Helper functions and shared utilities
 
 ### Building the Gem
 
