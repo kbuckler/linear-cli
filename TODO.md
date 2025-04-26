@@ -61,9 +61,13 @@
 - [x] Add dedicated display formatting for reports
 - [x] Implement team completion rate metrics
 - [x] Add software capitalization analysis and reporting
+- [x] Add sophisticated analytics for capitalization tracking
 - [x] Add enhanced capitalization reporting with project and engineer workload metrics
 - [x] Enhance test data generator for workload analysis testing
 - [x] Add support for assigning generated issues to actual users on the Linear account
+- [x] Add support for generating historical completed issues with past dates
+- [x] Remove generator command and data generation code
+- [ ] Add enhanced error reporting for data generation
 - [ ] Add visualization for burndown charts
 - [ ] Support exporting reports to CSV/Excel
 

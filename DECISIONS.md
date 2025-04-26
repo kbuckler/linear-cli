@@ -57,29 +57,13 @@
   - Improved reliability of the CLI tool
   - Enhanced security when processing user-provided data 
 
-## Data Generator Module
-
-- **Decision**: Create a dedicated data generator module for populating Linear instances and enabling complex reporting
-- **Context**: There is a need to efficiently populate Linear instances with test data for analysis and reporting
-- **Implementation**:
-  - Created a DataGenerator class to handle bulk creation of teams, projects, and issues
-  - Added support for flexible configuration of data generation (number of teams, projects, issues, etc.)
-  - Implemented a reporting command to analyze and visualize the Linear instance data
-  - Provided both tabular and JSON output formats for data analysis
-- **Consequences**:
-  - Easier testing and development of Linear workflows with populated data
-  - Enabled data-driven insights through the reporting module
-  - Simplified setup of demo environments for presentations and testing
-  - Enhanced CLI capabilities for complex reporting and analysis tasks 
-
 ## Analytics Module Architecture
 
 - **Decision**: Create a dedicated analytics module with separate reporting and display components
-- **Context**: The data generator module needed reporting capabilities with a clean separation of concerns
+- **Context**: The project needed strong reporting capabilities with a clean separation of concerns
 - **Implementation**:
   - Created `Analytics::Reporting` module for pure data processing and analytics calculations
   - Created `Analytics::Display` module for formatting and presenting results
-  - Moved all analytics-related code from the generator command into these modules
   - Used functional programming approach with stateless methods for better testability
 - **Consequences**:
   - Improved code organization with clear separation of concerns
@@ -135,32 +119,15 @@
 ## Dedicated Analytics Module
 
 - **Decision**: Move analytics and reporting functionality to a dedicated command class
-- **Context**: Previously, reporting functionality was mixed with data generation in the generator command, but these are conceptually separate concerns
+- **Context**: Analytics and reporting are core features that needed their own command focus
 - **Implementation**:
-  - Created a new `Commands::Analytics` class with focused reporting methods
+  - Created a `Commands::Analytics` class with focused reporting methods
   - Added a dedicated `capitalization` command for targeted capitalization reporting
-  - Moved common reporting code from generator to the analytics command
-  - Added deprecation notice to the old `generator dump` command
-  - Added a `dump` command to analytics as an alias for `report` to maintain backward compatibility
+  - Added comprehensive reporting features
 - **Consequences**:
-  - Better separation of concerns between data generation and reporting
   - More intuitive CLI structure for users
   - Easier to extend reporting capabilities in the future
-  - Deprecation approach ensures backward compatibility during transition
-  - Full compatibility with existing scripts that used `generator dump` is maintained via the alias
-
-## Removal of Backward Compatibility for Dump Command
-
-- **Decision**: Remove the backward compatibility dump command from analytics module
-- **Context**: After introducing the separate analytics command module with a backward compatibility alias for the old generator dump command, we decided to simplify the API surface
-- **Implementation**:
-  - Removed the `dump` command from the analytics module
-  - Updated the deprecation message in generator's dump command to point only to `analytics report`
-  - Removed mentions of the dump command from the help text
-- **Consequences**:
-  - Cleaner, more focused command structure
-  - Simplified mental model for users (report vs capitalization rather than dump vs report)
-  - Minor breaking change for any scripts using the temporary `analytics dump` command
+  - Focused approach to analytics functionality
   - Better aligned with the principle of having a single, obvious way to accomplish a task
 
 ## Enhanced Capitalization Reporting
@@ -210,57 +177,18 @@
   - Enhanced decision-making for project staffing and resource allocation
   - Improved tracking of engineer productivity and project investment 
 
-## Enhanced Test Data Generator for Workload Analysis
+## Removal of Generator Command and Data Generator Client Code
 
-- **Decision**: Enhance the data generator to create realistic test data for engineer workload reporting
-- **Context**: The engineer workload report requires historical data with story points and consistent patterns to properly test and demonstrate the feature
+- **Decision**: Remove the generator command and associated data generator client code
+- **Context**: The data generator module has been superseded by more focused analytics tooling and is no longer needed as a separate command
 - **Implementation**:
-  - Updated the generator to create issues with story point estimates
-  - Added time-based generation spanning multiple months (up to 6 months of history)
-  - Created consistent distribution patterns of engineers across projects
-  - Generated varying story point values to simulate different issue complexities
-  - Added command-line options to control the volume and characteristics of generated data
+  - Removed `Commands::Generator` class
+  - Removed `API::DataGenerator` class
+  - Removed `API::Queries::Generator` module
+  - Created new `API::Queries::Analytics` module to support the analytics command
+  - Updated CLI registration and help text to remove generator command references
 - **Consequences**:
-  - Easier testing and demonstration of the engineer workload report
-  - More realistic data that mimics real-world work patterns
-  - Better ability to spot trends and patterns in the generated reports
-  - Improved ability to validate the workload analysis functionality
-  - More comprehensive test coverage for the analytics module 
-
-## Lifecycle-Aware Test Data Generation
-
-- **Decision**: Enhance the test data generator to simulate realistic issue lifecycle states
-- **Context**: Testing time-based analytics requires issues in various states (backlog, in progress, completed) with appropriate timestamps
-- **Implementation**:
-  - Added support for marking issues with appropriate workflow states (backlog, in-progress, completed)
-  - Created a realistic distribution where older issues are more likely to be completed
-  - Set appropriate workflow states based on issue status (backlog, in progress, done)
-  - Generated issues across multiple months to simulate project progress over time
-  - Added status information to issue descriptions for easier debugging and verification
-- **Consequences**:
-  - More realistic simulation of actual project activity over time
-  - Better testing for analytics that depend on issue completion status
-  - Improved ability to validate time-based reports and burndown charts
-  - More accurate representation of development team velocity over time
-  - Enhanced usefulness of generated test data for demonstrations 
-- **Implementation Notes**:
-  - Direct setting of `completedAt` and `startedAt` dates is not supported by the Linear API
-  - Instead, we set the issue to a "completed" workflow state which implicitly marks it as completed
-  - Status information is added to the issue description to maintain traceability 
-
-## Enhanced Test Data Generator with Actual User Assignments
-
-- **Decision**: Modify the test data generator to assign issues to actual users on the Linear account
-- **Context**: Previously, the generator created issues with fictional engineer assignments, which didn't allow for realistic testing of assignment-based reports and filters
-- **Implementation**:
-  - Added ability to assign issues to real users from the teams
-  - Implemented a configurable percentage (default 70%) of issues to assign to real users
-  - Added fallback to fictional engineers when no real users are available
-  - Maintained backward compatibility with fictional engineer assignments
-  - Added clear indication in issue descriptions of whether they are assigned to real or fictional users
-- **Consequences**:
-  - More realistic testing with actual user accounts
-  - Ability to test user-specific filters and reports with generated data
-  - Better simulation of real-world workflows
-  - Improved testing of assignment-based analytics
-  - Options to control the percentage of real vs. fictional assignments for flexibility 
+  - Simplified codebase with fewer commands to maintain
+  - More focused command structure (analytics for reporting, no separate data generation)
+  - Commands for generating test data have been removed
+  - Analytics module now handles all reporting functionality with its own query definitions 

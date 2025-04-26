@@ -27,7 +27,6 @@ module LinearCli
     register LinearCli::Commands::Issues, 'issues', 'issues [COMMAND]', 'Manage Linear issues'
     register LinearCli::Commands::Teams, 'teams', 'teams [COMMAND]', 'Manage Linear teams'
     register LinearCli::Commands::Projects, 'projects', 'projects [COMMAND]', 'Manage Linear projects'
-    register LinearCli::Commands::Generator, 'generator', 'generator [COMMAND]', 'Generate test data for Linear'
     register LinearCli::Commands::Analytics, 'analytics', 'analytics [COMMAND]',
              'Analytics and reporting for Linear data'
 
@@ -38,7 +37,6 @@ module LinearCli
         puts pastel.bold('Linear CLI - Command Line Interface for Linear')
         puts pastel.cyan('A powerful tool for interacting with Linear from your terminal')
         puts "\n#{pastel.dim('• Manage issues, teams, and projects')}"
-        puts "#{pastel.dim('• Generate test data for your workspace')}"
         puts "#{pastel.dim('• Run analytics and reporting on your Linear data')}"
         puts "#{pastel.dim('• Supports structured output for scripting')}"
         puts "\n#{pastel.underline('Available Commands:')}"
@@ -62,9 +60,6 @@ module LinearCli
         puts "\n#{pastel.bold('Project Commands:')}"
         puts '  linear projects list         # List Linear projects'
         puts '  linear projects view ID      # View details of a specific project'
-
-        puts "\n#{pastel.bold('Data Generator Commands:')}"
-        puts '  linear generator populate    # Populate Linear with test data'
 
         puts "\n#{pastel.bold('Analytics & Reporting Commands:')}"
         puts '  linear analytics report      # Generate comprehensive workspace report'

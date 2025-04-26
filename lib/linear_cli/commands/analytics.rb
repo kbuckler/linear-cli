@@ -2,11 +2,118 @@ require 'thor'
 require 'tty-table'
 require 'json'
 require_relative '../api/client'
-require_relative '../api/queries/generator'
 require_relative '../analytics/reporting'
 require_relative '../analytics/display'
 
 module LinearCli
+  module API
+    module Queries
+      # GraphQL queries for analytics and reporting
+      module Analytics
+        # Query to list teams for reporting
+        # @return [String] GraphQL query
+        def self.list_teams
+          <<~GRAPHQL
+            query Teams {
+              teams {
+                nodes {
+                  id
+                  name
+                  key
+                  description
+                }
+              }
+            }
+          GRAPHQL
+        end
+
+        # Query to get all projects for reporting
+        # @return [String] GraphQL query
+        def self.list_projects
+          <<~GRAPHQL
+            query Projects {
+              projects {
+                nodes {
+                  id
+                  name
+                  description
+                  state
+                  progress
+                  labels {
+                    nodes {
+                      id
+                      name
+                    }
+                  }
+                  teams {
+                    nodes {
+                      id
+                      name
+                    }
+                  }
+                  issues {
+                    nodes {
+                      id
+                      identifier
+                    }
+                  }
+                }
+              }
+            }
+          GRAPHQL
+        end
+
+        # Query to get all issues for reporting
+        # @return [String] GraphQL query
+        def self.list_issues
+          <<~GRAPHQL
+            query {
+              issues(first: 100) {
+                nodes {
+                  id
+                  identifier
+                  title
+                  description
+                  state {
+                    id
+                    name
+                    type
+                  }
+                  assignee {
+                    id
+                    name
+                    email
+                  }
+                  team {
+                    id
+                    name
+                    key
+                  }
+                  priority
+                  project {
+                    id
+                    name
+                  }
+                  labels {
+                    nodes {
+                      id
+                      name
+                    }
+                  }
+                  estimate
+                  startedAt
+                  completedAt
+                  createdAt
+                  updatedAt
+                }
+              }
+            }
+          GRAPHQL
+        end
+      end
+    end
+  end
+
   module Commands
     # Commands related to analytics and reporting for Linear data
     class Analytics < Thor
@@ -221,7 +328,7 @@ module LinearCli
       def fetch_teams(client)
         puts 'Fetching teams data...'
 
-        query = LinearCli::API::Queries::Generator.list_teams_for_generator
+        query = LinearCli::API::Queries::Analytics.list_teams
         result = client.query(query)
         result.dig('teams', 'nodes') || []
       end
@@ -229,7 +336,7 @@ module LinearCli
       def fetch_projects(client)
         puts 'Fetching projects data...'
 
-        query = LinearCli::API::Queries::Generator.list_projects_for_reporting
+        query = LinearCli::API::Queries::Analytics.list_projects
         result = client.query(query)
         result.dig('projects', 'nodes') || []
       end
@@ -237,7 +344,7 @@ module LinearCli
       def fetch_issues(client)
         puts 'Fetching issues data...'
 
-        query = LinearCli::API::Queries::Generator.list_issues_for_reporting
+        query = LinearCli::API::Queries::Analytics.list_issues
         result = client.query(query)
         result.dig('issues', 'nodes') || []
       end
