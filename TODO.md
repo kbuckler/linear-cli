@@ -44,6 +44,13 @@
 - [ ] Package as a Ruby gem
 - [ ] Create release workflow
 
+## Security
+- [x] Implement input validation and sanitization
+- [x] Add comprehensive tests for input validators
+- [ ] Add SSL/TLS verification settings
+- [ ] Implement rate limiting protection
+- [ ] Add security documentation
+
 ## Future Considerations (Phase 2)
 - [ ] Interactive mode
 - [ ] Cache for faster responses

@@ -55,6 +55,31 @@ RSpec.describe LinearCli::Commands::Issues do
         expect { command.list }.to output(/No issues found matching your criteria/).to_stdout
       end
     end
+
+    context 'with input validation' do
+      before do
+        allow(client).to receive(:query).and_return({ 'issues' => { 'nodes' => issues } })
+        allow(client).to receive(:get_team_id_by_name).with('Engineering').and_return('team_123')
+      end
+
+      it 'sanitizes team name input' do
+        command.options = { team: '  Engineering  ' }
+        expect(client).to receive(:get_team_id_by_name).with('Engineering')
+        expect { command.list }.to output.to_stdout
+      end
+
+      it 'validates and caps limit' do
+        command.options = { limit: 150 }
+        expect { command.list }.to output.to_stdout
+        expect(command.instance_variable_get(:@options)[:limit]).to eq(150)
+      end
+
+      it 'validates email format in assignee field' do
+        allow(LinearCli::Validators::InputValidator).to receive(:validate_email).with('user@example.com').and_return(true)
+        command.options = { assignee: 'user@example.com' }
+        expect { command.list }.to output.to_stdout
+      end
+    end
   end
 
   describe '#view' do
@@ -96,6 +121,20 @@ RSpec.describe LinearCli::Commands::Issues do
 
       it 'displays an error message' do
         expect { command.view('ENG-999') }.to output(/Issue not found: ENG-999/).to_stdout
+      end
+    end
+
+    context 'with input validation' do
+      before do
+        allow(client).to receive(:query).and_return({ 'issue' => issue })
+      end
+
+      it 'sanitizes issue ID input' do
+        expect { command.view('  ENG-1  ') }.to output(/ENG-1: Test Issue/).to_stdout
+      end
+
+      it 'validates issue ID format but continues on warning' do
+        expect { command.view('invalid-id') }.to output(/Warning: Invalid issue ID format/).to_stdout
       end
     end
   end
@@ -141,6 +180,76 @@ RSpec.describe LinearCli::Commands::Issues do
         expect { command.create }.to raise_error(RuntimeError, /Team 'NonExistentTeam' not found/)
       end
     end
+
+    context 'with input validation' do
+      before do
+        allow(client).to receive(:get_team_id_by_name).with('Engineering').and_return(team_id)
+        allow(client).to receive(:query).and_return({ 'issueCreate' => { 'success' => true, 'issue' => issue } })
+      end
+
+      it 'validates and sanitizes title input' do
+        command.options = {
+          title: '  Test Issue  ',
+          team: 'Engineering'
+        }
+        expect { command.create }.to output(/Issue created successfully/).to_stdout
+      end
+
+      it 'validates and sanitizes team name input' do
+        command.options = {
+          title: 'Test Issue',
+          team: '  Engineering  '
+        }
+        expect { command.create }.to output(/Issue created successfully/).to_stdout
+      end
+
+      it 'validates priority range' do
+        command.options = {
+          title: 'Test Issue',
+          team: 'Engineering',
+          priority: 5
+        }
+        expect { command.create }.to output(/Error: Invalid priority value/).to_stdout
+      end
+
+      it 'sanitizes labels array' do
+        command.options = {
+          title: 'Test Issue',
+          team: 'Engineering',
+          labels: ['  Bug  ', '  Feature  ']
+        }
+        expect(client).to receive(:query) do |query, variables|
+          expect(variables[:input][:labelIds]).to eq(%w[Bug Feature])
+          { 'issueCreate' => { 'success' => true, 'issue' => issue } }
+        end
+
+        expect { command.create }.to output(/Issue created successfully/).to_stdout
+      end
+
+      it 'validates email format for assignee' do
+        command.options = {
+          title: 'Test Issue',
+          team: 'Engineering',
+          assignee: 'invalid-email'
+        }
+        expect { command.create }.not_to raise_error
+
+        command.options = {
+          title: 'Test Issue',
+          team: 'Engineering',
+          assignee: 'user@example.com'
+        }
+        expect { command.create }.to output(/Issue created successfully/).to_stdout
+      end
+
+      it 'rejects empty title' do
+        command.options = {
+          title: '',
+          team: 'Engineering'
+        }
+        expect { command.create }.to output(/Error: Title cannot be blank/).to_stdout
+      end
+    end
   end
 
   describe '#update' do
@@ -169,6 +278,32 @@ RSpec.describe LinearCli::Commands::Issues do
         expect { command.update('ENG-1') }.to output(/No update parameters provided/).to_stdout
       end
     end
+
+    context 'with input validation' do
+      before do
+        allow(client).to receive(:query).and_return({ 'issueUpdate' => { 'success' => true, 'issue' => issue } })
+      end
+
+      it 'sanitizes issue ID input' do
+        command.options = { title: 'Updated Issue' }
+        expect { command.update('  ENG-1  ') }.to output(/Issue updated successfully/).to_stdout
+      end
+
+      it 'validates issue ID format' do
+        command.options = { title: 'Updated Issue' }
+        expect { command.update('invalid') }.not_to raise_error
+      end
+
+      it 'validates title input' do
+        command.options = { title: '' }
+        expect { command.update('ENG-1') }.to output(/Error: Title cannot be blank/).to_stdout
+      end
+
+      it 'validates priority range' do
+        command.options = { priority: 5 }
+        expect { command.update('ENG-1') }.to output(/Error: Invalid priority value/).to_stdout
+      end
+    end
   end
 
   describe '#comment' do
@@ -186,14 +321,14 @@ RSpec.describe LinearCli::Commands::Issues do
           LinearCli::API::Queries::Issues.create_comment,
           { issueId: 'ENG-1', body: 'Test comment' }
         ).and_return({ 'commentCreate' => { 'success' => true } })
-        
+
         command.comment('eng-1', 'Test comment')
       end
     end
 
     context 'when comment body is empty' do
       it 'displays an error message' do
-        expect { command.comment('ENG-1') }.to output(/Error: Comment body cannot be empty/).to_stdout
+        expect { command.comment('ENG-1') }.to output(/Error: Comment body cannot be blank/).to_stdout
       end
     end
 
@@ -206,5 +341,38 @@ RSpec.describe LinearCli::Commands::Issues do
         expect { command.comment('ENG-1', 'Test comment') }.to output(/Failed to add comment/).to_stdout
       end
     end
+
+    context 'with input validation' do
+      before do
+        allow(client).to receive(:query).and_return({ 'commentCreate' => { 'success' => true } })
+      end
+
+      it 'sanitizes issue ID input' do
+        expect { command.comment('  ENG-1  ', 'Test comment') }.to output(/Comment added successfully/).to_stdout
+      end
+
+      it 'validates issue ID format' do
+        allow(LinearCli::Validators::InputValidator).to receive(:validate_issue_id).and_call_original
+        expect { command.comment('ENG-1', 'Test comment') }.to output(/Comment added successfully/).to_stdout
+        expect(LinearCli::Validators::InputValidator).to have_received(:validate_issue_id)
+      end
+
+      it 'sanitizes comment body input' do
+        expect { command.comment('ENG-1', '  Test comment  ') }.to output(/Comment added successfully/).to_stdout
+      end
+
+      it 'validates comment body is not empty' do
+        expect { command.comment('ENG-1', '') }.to output(/Error: Comment body cannot be blank/).to_stdout
+      end
+
+      it 'joins multiple comment parts' do
+        expect { command.comment('ENG-1', 'part1', 'part2', 'part3') }.to output(/Comment added successfully/).to_stdout
+
+        expect(client).to have_received(:query) do |query, params|
+          expect(params[:body]).to eq('part1 part2 part3')
+          { 'commentCreate' => { 'success' => true } }
+        end
+      end
+    end
   end
-end 
+end

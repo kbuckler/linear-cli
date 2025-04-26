@@ -41,3 +41,18 @@
   - Tests can run without terminal-related errors
   - Test output is still readable and verifiable
   - Production environment maintains rich terminal formatting 
+
+## Security Practices
+
+- **Decision**: Implement input validation and sanitization for all user-provided data
+- **Context**: User inputs can contain malicious data or unintended characters that could lead to security issues
+- **Implementation**: 
+  - Created a dedicated InputValidator module for validating and sanitizing all user inputs
+  - Added validation for issue IDs, email addresses, priorities, and other input types
+  - Implemented sanitization to remove control characters and trim whitespace
+  - Added bounds checking for numeric inputs to prevent abuse
+- **Consequences**:
+  - Reduced risk of injection attacks against the Linear API
+  - Better error handling for malformed inputs
+  - Improved reliability of the CLI tool
+  - Enhanced security when processing user-provided data 
