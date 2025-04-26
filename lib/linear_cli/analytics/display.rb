@@ -69,6 +69,9 @@ module LinearCli
 
         # Team completion rates
         display_completion_table(summary[:team_completion_rates]) if summary[:team_completion_rates].any?
+
+        # Capitalization metrics
+        display_capitalization_metrics(summary[:capitalization_metrics]) if summary[:capitalization_metrics]
       end
 
       # Display status distribution table
@@ -127,6 +130,45 @@ module LinearCli
             ['Team', 'Completed', 'Total', 'Rate (%)'],
             completion_data.map do |team, data|
               [team, data[:completed], data[:total], data[:rate]]
+            end
+          )
+          puts table.render(:unicode, padding: [0, 1])
+        end
+      end
+
+      # Display capitalization metrics
+      # @param capitalization_data [Hash] Capitalization metrics data
+      # @return [void]
+      def self.display_capitalization_metrics(capitalization_data)
+        return unless capitalization_data
+
+        puts "\nSoftware Capitalization Metrics:"
+        puts "Capitalized Issues: #{capitalization_data[:capitalized_count]}"
+        puts "Non-Capitalized Issues: #{capitalization_data[:non_capitalized_count]}"
+        puts "Total Issues: #{capitalization_data[:total_issues]}"
+        puts "Overall Capitalization Rate: #{capitalization_data[:capitalization_rate]}%"
+
+        return unless capitalization_data[:team_capitalization].any?
+
+        display_team_capitalization_table(capitalization_data[:team_capitalization])
+      end
+
+      # Display team capitalization table
+      # @param team_capitalization [Hash] Team capitalization data
+      # @return [void]
+      def self.display_team_capitalization_table(team_capitalization)
+        puts "\nTeam Capitalization Breakdown:"
+        if in_test_environment?
+          puts 'Team | Capitalized | Non-Capitalized | Total | Rate (%)'
+          puts '------+-------------+----------------+-------+--------'
+          team_capitalization.each do |team, data|
+            puts "#{team} | #{data[:capitalized]} | #{data[:non_capitalized]} | #{data[:total]} | #{data[:capitalization_rate]}"
+          end
+        else
+          table = TTY::Table.new(
+            ['Team', 'Capitalized', 'Non-Capitalized', 'Total', 'Rate (%)'],
+            team_capitalization.map do |team, data|
+              [team, data[:capitalized], data[:non_capitalized], data[:total], data[:capitalization_rate]]
             end
           )
           puts table.render(:unicode, padding: [0, 1])

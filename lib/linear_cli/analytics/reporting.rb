@@ -39,6 +39,49 @@ module LinearCli
         end
       end
 
+      # Calculate software capitalization metrics
+      # @param issues [Array<Hash>] List of issues
+      # @param labels [Array<String>] List of capitalization labels to identify capitalized issues
+      # @return [Hash] Capitalization metrics
+      def self.calculate_capitalization_metrics(issues, labels = ['capitalization', 'capex', 'fixed asset'])
+        capitalized_issues = issues.select do |issue|
+          next false unless issue['labels']
+
+          issue['labels'].any? do |label|
+            labels.any? { |cap_label| label['name'].downcase.include?(cap_label.downcase) }
+          end
+        end
+
+        non_capitalized_issues = issues - capitalized_issues
+
+        team_capitalization = issues
+                              .group_by { |i| i.dig('team', 'name') || 'Unknown' }
+                              .transform_values do |team_issues|
+          capitalized = team_issues.count do |issue|
+            next false unless issue['labels']
+
+            issue['labels'].any? do |label|
+              labels.any? { |cap_label| label['name'].downcase.include?(cap_label.downcase) }
+            end
+          end
+
+          {
+            capitalized: capitalized,
+            non_capitalized: team_issues.size - capitalized,
+            total: team_issues.size,
+            capitalization_rate: team_issues.size > 0 ? (capitalized.to_f / team_issues.size * 100).round(2) : 0
+          }
+        end
+
+        {
+          capitalized_count: capitalized_issues.size,
+          non_capitalized_count: non_capitalized_issues.size,
+          total_issues: issues.size,
+          capitalization_rate: issues.size > 0 ? (capitalized_issues.size.to_f / issues.size * 100).round(2) : 0,
+          team_capitalization: team_capitalization
+        }
+      end
+
       # Generate complete report from workspace data
       # @param teams [Array<Hash>] Teams data
       # @param projects [Array<Hash>] Projects data
@@ -55,7 +98,8 @@ module LinearCli
             issues_count: issues.size,
             issues_by_status: count_issues_by_status(issues),
             issues_by_team: count_issues_by_team(issues),
-            team_completion_rates: calculate_team_completion_rates(issues)
+            team_completion_rates: calculate_team_completion_rates(issues),
+            capitalization_metrics: calculate_capitalization_metrics(issues)
           }
         }
       end

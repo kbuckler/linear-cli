@@ -11,6 +11,16 @@ module LinearCli
     # Commands related to generating data for Linear
     class Generator < Thor
       desc 'populate', 'Populate Linear with generated test data'
+      long_desc <<-LONGDESC
+        Populates your Linear workspace with test data for development and testing purposes.
+
+        This command creates projects and issues for existing teams in your Linear workspace.
+        You can control the amount of data generated with options to specify the number of teams,
+        projects per team, and issues per project.
+
+        Example:
+          linear generator populate --teams=3 --projects_per_team=2 --issues_per_project=10
+      LONGDESC
       option :teams,
              type: :numeric,
              desc: 'Number of teams to create',
@@ -112,6 +122,22 @@ module LinearCli
       end
 
       desc 'dump', 'Dump detailed reporting data from Linear'
+      long_desc <<-LONGDESC
+        Generates a comprehensive report of your Linear workspace data.
+
+        This command fetches all teams, projects, and issues from your Linear workspace
+        and provides detailed analytics including:
+        - Team and project counts
+        - Issue distribution by status and team
+        - Team completion rates
+        - Software capitalization metrics (identifies capitalized vs. expensed work)
+
+        You can output the report in table format (human-readable) or JSON format (for further processing).
+
+        Examples:
+          linear generator dump                # Output in table format
+          linear generator dump --format=json  # Output in JSON format
+      LONGDESC
       option :format,
              type: :string,
              desc: 'Output format (json or table)',

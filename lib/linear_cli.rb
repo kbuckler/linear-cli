@@ -56,11 +56,17 @@ module LinearCli
         puts '  linear projects list         # List Linear projects'
         puts '  linear projects view ID      # View details of a specific project'
 
-        puts "\n#{pastel.bold('Data Generator Commands:')}"
+        puts "\n#{pastel.bold('Data Generator & Analytics Commands:')}"
         puts '  linear generator populate    # Populate Linear with test data'
-        puts '  linear generator dump        # Export detailed reporting data'
+        puts '  linear generator dump        # Generate comprehensive workspace report'
+        puts '    - Provides team completion rates'
+        puts '    - Displays software capitalization metrics'
+        puts '    - Shows issue distribution by status and team'
+        puts '    - Supports table or JSON output format'
 
         puts "\nFor more information on a specific command, run 'linear help COMMAND'"
+        puts "For detailed help on a subcommand, run 'linear help COMMAND SUBCOMMAND'"
+        puts "Example: 'linear help generator dump'"
       else
         super
       end

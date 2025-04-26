@@ -87,3 +87,18 @@
   - More maintainable reporting system
   - Easier to extend with new analytics features in the future
   - Consistent display formatting across command output 
+
+## Software Capitalization Analysis
+
+- **Decision**: Add software capitalization analysis to the analytics module
+- **Context**: Organizations need to track which software development efforts are capitalized vs. expensed for financial reporting
+- **Implementation**:
+  - Added `calculate_capitalization_metrics` method to the Reporting module
+  - Created display methods for capitalization metrics in the Display module
+  - Used label-based identification for capitalized issues (e.g., 'capitalization', 'capex', 'fixed asset')
+  - Implemented team-level breakdown of capitalization rates
+- **Consequences**:
+  - Enables financial reporting on development efforts
+  - Provides visibility into capitalization rates by team
+  - Helps track capitalized vs. non-capitalized work
+  - Simplifies financial auditing and compliance reporting 
