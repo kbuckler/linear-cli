@@ -2,6 +2,8 @@
 
 A Ruby command-line tool that allows AI assistants (and humans) to interact directly with the Linear issue tracking system.
 
+> **Note:** This is an independent project and is not officially associated with, supported, or endorsed by Linear. This tool is maintained by community contributors.
+
 ## Features
 
 - Create, update, list, and manage Linear issues from the command line
