@@ -68,9 +68,6 @@ module LinearCli
 
         puts "\n#{pastel.bold('Analytics & Reporting Commands:')}"
         puts '  linear analytics report      # Generate comprehensive workspace report'
-        puts '    - Provides team completion rates'
-        puts '    - Displays software capitalization metrics'
-        puts '    - Shows issue distribution by status and team'
         puts '  linear analytics capitalization # Generate capitalization metrics report'
         puts '  linear analytics dump        # Alias for report (backward compatibility)'
 
