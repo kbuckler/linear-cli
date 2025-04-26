@@ -147,4 +147,18 @@
   - More intuitive CLI structure for users
   - Easier to extend reporting capabilities in the future
   - Deprecation approach ensures backward compatibility during transition
-  - Full compatibility with existing scripts that used `generator dump` is maintained via the alias 
+  - Full compatibility with existing scripts that used `generator dump` is maintained via the alias
+
+## Removal of Backward Compatibility for Dump Command
+
+- **Decision**: Remove the backward compatibility dump command from analytics module
+- **Context**: After introducing the separate analytics command module with a backward compatibility alias for the old generator dump command, we decided to simplify the API surface
+- **Implementation**:
+  - Removed the `dump` command from the analytics module
+  - Updated the deprecation message in generator's dump command to point only to `analytics report`
+  - Removed mentions of the dump command from the help text
+- **Consequences**:
+  - Cleaner, more focused command structure
+  - Simplified mental model for users (report vs capitalization rather than dump vs report)
+  - Minor breaking change for any scripts using the temporary `analytics dump` command
+  - Better aligned with the principle of having a single, obvious way to accomplish a task 
