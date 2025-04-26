@@ -17,7 +17,7 @@ module LinearCli
         @api_key = api_key || ENV['LINEAR_API_KEY']
         @api_url = api_url || ENV['LINEAR_API_URL'] || API_URL
         
-        raise 'Linear API key is required!' unless @api_key
+        raise 'Linear API key is required! Please set LINEAR_API_KEY in your .env file.' unless @api_key
         
         self.class.base_uri @api_url
       end
@@ -37,6 +37,41 @@ module LinearCli
         )
         
         handle_response(response)
+      end
+
+      # Get team ID by name (case insensitive)
+      # @param team_name [String] Name of the team
+      # @return [String] Team ID
+      # @raise [RuntimeError] If team is not found
+      def get_team_id_by_name(team_name)
+        query = <<~GRAPHQL
+          query Teams {
+            teams {
+              nodes {
+                id
+                name
+                key
+              }
+            }
+          }
+        GRAPHQL
+
+        result = query(query)
+        teams = result['teams']['nodes']
+
+        if teams.empty?
+          raise "No teams found in your Linear workspace. Please create a team first."
+        end
+
+        # Find team by case-insensitive name match
+        team = teams.find { |t| t['name'].downcase == team_name.downcase }
+        
+        if team.nil?
+          available_teams = teams.map { |t| "#{t['name']} (#{t['key']})" }.join(', ')
+          raise "Team '#{team_name}' not found. Available teams: #{available_teams}"
+        end
+
+        team['id']
       end
       
       private
@@ -72,7 +107,18 @@ module LinearCli
         errors = body['errors'] || []
         messages = errors.map { |e| e['message'] }.join(', ')
         
-        raise "Linear API Error (#{code}): #{messages}"
+        case code
+        when 401
+          raise "Authentication failed. Please check your Linear API key."
+        when 403
+          raise "Access denied. Your API key doesn't have permission to perform this action."
+        when 404
+          raise "Resource not found. Please check the ID or name you provided."
+        when 429
+          raise "Rate limit exceeded. Please try again in a few minutes."
+        else
+          raise "Linear API Error (#{code}): #{messages}"
+        end
       end
     end
   end
