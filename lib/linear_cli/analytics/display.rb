@@ -147,7 +147,7 @@ module LinearCli
         puts "Non-Capitalized Issues: #{capitalization_data[:non_capitalized_count]}"
         puts "Total Issues: #{capitalization_data[:total_issues]}"
         puts "Overall Capitalization Rate: #{capitalization_data[:capitalization_rate]}%"
-        puts '(Capitalization now determined by project labels, with issue labels for backward compatibility)'
+        puts '(Capitalization determined by project labels only)'
 
         return unless capitalization_data[:team_capitalization].any?
 

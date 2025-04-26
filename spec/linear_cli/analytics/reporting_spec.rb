@@ -137,39 +137,24 @@ RSpec.describe LinearCli::Analytics::Reporting do
       result = described_class.calculate_capitalization_metrics(issues, projects)
 
       # Project A has capitalization label, so its 2 issues should be capitalized
-      # Issue4 has capitalization label directly, so it should be capitalized too
-      expect(result[:capitalized_count]).to eq(3)
-      expect(result[:non_capitalized_count]).to eq(1) # Only issue3 isn't capitalized
+      expect(result[:capitalized_count]).to eq(2)
+      expect(result[:non_capitalized_count]).to eq(2) # issue3 and issue4 aren't capitalized
       expect(result[:total_issues]).to eq(4)
-      expect(result[:capitalization_rate]).to eq(75.0)
+      expect(result[:capitalization_rate]).to eq(50.0)
     end
 
     it 'correctly calculates team capitalization metrics' do
       result = described_class.calculate_capitalization_metrics(issues, projects)
 
-      expect(result[:team_capitalization]['Engineering'][:capitalized]).to eq(3)
-      expect(result[:team_capitalization]['Engineering'][:non_capitalized]).to eq(0)
+      expect(result[:team_capitalization]['Engineering'][:capitalized]).to eq(2)
+      expect(result[:team_capitalization]['Engineering'][:non_capitalized]).to eq(1)
       expect(result[:team_capitalization]['Engineering'][:total]).to eq(3)
-      expect(result[:team_capitalization]['Engineering'][:capitalization_rate]).to eq(100.0)
+      expect(result[:team_capitalization]['Engineering'][:capitalization_rate]).to eq(66.67)
 
       expect(result[:team_capitalization]['Design'][:capitalized]).to eq(0)
       expect(result[:team_capitalization]['Design'][:non_capitalized]).to eq(1)
       expect(result[:team_capitalization]['Design'][:total]).to eq(1)
       expect(result[:team_capitalization]['Design'][:capitalization_rate]).to eq(0)
-    end
-
-    it 'falls back to issue labels when project labels are not available' do
-      # Remove project information to test fallback
-      issues_without_projects = issues.map do |issue|
-        issue.delete('project')
-        issue
-      end
-
-      result = described_class.calculate_capitalization_metrics(issues_without_projects, [])
-
-      # Only issue4 has capitalization label
-      expect(result[:capitalized_count]).to eq(1)
-      expect(result[:capitalization_rate]).to eq(25.0)
     end
   end
 

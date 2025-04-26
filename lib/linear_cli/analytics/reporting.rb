@@ -60,18 +60,6 @@ module LinearCli
           issue.dig('project', 'id') && capitalized_project_ids.include?(issue.dig('project', 'id'))
         end
 
-        # For backward compatibility, also check issue labels
-        capitalized_issues += issues.select do |issue|
-          next false unless issue['labels'] && issue['labels']['nodes']
-          next false if issue.dig('project', 'id') && capitalized_project_ids.include?(issue.dig('project', 'id'))
-
-          issue['labels']['nodes'].any? do |label|
-            labels.any? { |cap_label| label['name'].downcase.include?(cap_label.downcase) }
-          end
-        end
-
-        # Ensure uniqueness
-        capitalized_issues.uniq! { |issue| issue['id'] }
         non_capitalized_issues = issues - capitalized_issues
 
         # Calculate team capitalization metrics

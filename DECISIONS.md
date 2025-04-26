@@ -117,3 +117,17 @@
   - Streamlines capitalization labeling (apply once at project level instead of on every issue)
   - Reduces inconsistencies in capitalization reporting
   - Maintains backward compatibility with existing issue-level labels 
+
+## Removal of Issue-Level Capitalization Support
+
+- **Decision**: Remove backward compatibility for issue-level capitalization
+- **Context**: After transitioning to project-based capitalization tracking, maintaining backward compatibility with issue-level capitalization increased code complexity
+- **Implementation**:
+  - Removed code that checks for capitalization labels on individual issues
+  - Updated display text to indicate capitalization is determined only by project labels
+  - Modified tests to reflect the exclusive use of project-level capitalization
+- **Consequences**:
+  - Simplified code with a single source of truth for capitalization status
+  - Clearer mental model for users (capitalization is only a project property)
+  - Better alignment with financial tracking practices in organizations
+  - Note: Existing issues with capitalization labels but no capitalized project will no longer be counted as capitalized 
