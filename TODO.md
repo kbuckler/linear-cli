@@ -50,6 +50,7 @@
 ## Security
 - [x] Implement input validation and sanitization
 - [x] Add comprehensive tests for input validators
+- [x] Implement read-only safe mode to prevent accidental mutations
 - [ ] Add SSL/TLS verification settings
 - [ ] Implement rate limiting protection
 - [ ] Add security documentation

@@ -13,10 +13,33 @@ Dotenv.load
 Dir[File.join(__dir__, 'linear_cli', '**', '*.rb')].sort.each { |file| require file }
 
 module LinearCli
+  # Global configuration for read-only safe mode
+  @safe_mode = true
+
+  # Getter for safe mode
+  def self.safe_mode?
+    @safe_mode
+  end
+
+  # Setter for safe mode
+  def self.safe_mode=(value)
+    @safe_mode = value
+  end
+
   # Main CLI application class
   class CLI < Thor
     # Set the application name for help text
     package_name 'linear'
+
+    # Global options for all commands
+    class_option :allow_mutations, type: :boolean, default: false,
+                                   desc: 'Disable read-only safe mode (allows mutations)'
+
+    def initialize(*args)
+      super
+      # Disable safe mode if allow_mutations flag is provided
+      LinearCli.safe_mode = !options[:allow_mutations] if options[:allow_mutations]
+    end
 
     desc 'version', 'Display the Linear CLI version'
     def version
@@ -42,8 +65,9 @@ module LinearCli
         puts "\n#{pastel.underline('Available Commands:')}"
 
         puts "\n#{pastel.bold('Global Commands:')}"
-        puts '  linear version               # Display the Linear CLI version'
-        puts '  linear help [COMMAND]        # Show help for all commands or a specific command'
+        puts '  linear version                 # Display the Linear CLI version'
+        puts '  linear help [COMMAND]          # Show help for all commands or a specific command'
+        puts '  linear --allow-mutations <CMD> # Disable read-only safe mode to allow mutations'
 
         puts "\n#{pastel.bold('Issue Commands:')}"
         puts '  linear issues list           # List Linear issues'

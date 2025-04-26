@@ -192,3 +192,34 @@
   - More focused command structure (analytics for reporting, no separate data generation)
   - Commands for generating test data have been removed
   - Analytics module now handles all reporting functionality with its own query definitions 
+
+## Read-Only Safe Mode
+
+- **Decision**: Add a read-only safe mode to prevent accidental mutations
+- **Context**: Users sometimes need to ensure they won't accidentally modify data when exploring or running reports
+- **Implementation**:
+  - Added a global `--safe-mode` flag to the CLI
+  - Implemented detection of mutation operations in the API client
+  - Added immediate termination with clear error messages when mutations are attempted in safe mode
+  - Safe mode is disabled by default to maintain backward compatibility
+- **Consequences**:
+  - Provides a safety mechanism to prevent accidental data modification
+  - Allows users to confidently run the CLI for reporting and exploration without risk
+  - Simplifies creation of read-only integration scripts using the CLI
+  - Helps prevent accidental changes in production environments
+  - Maintains backward compatibility with existing workflow by being off by default
+
+## Safe Mode Default Change
+
+- **Decision**: Change safe mode to be enabled by default
+- **Context**: After initial implementation of safe mode, we decided that a safer approach is to require explicit authorization for mutations
+- **Implementation**:
+  - Changed `--safe-mode` flag to `--allow-mutations` with reversed logic
+  - Made safe mode enabled by default
+  - Updated error messages to reflect the new flag for disabling safe mode
+  - Updated tests and documentation to reflect this change
+- **Consequences**:
+  - Improved safety by requiring explicit consent for data-changing operations
+  - Reduces risk of accidental mutations when running CLI commands
+  - Better aligns with the principle of "safe by default"
+  - Note: This is a breaking change from previous behavior where mutations were allowed by default 

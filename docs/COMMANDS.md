@@ -7,6 +7,9 @@ This document provides detailed information about all commands available in the 
 These options can be used with any command:
 
 - `--help`: Display help for a specific command
+- `--allow-mutations`: Disable read-only safe mode to allow data-modifying operations
+
+By default, the CLI operates in a read-only safe mode to prevent accidental data modifications. Any command that would modify data in Linear (create, update, delete operations) will be blocked unless the `--allow-mutations` flag is provided.
 
 ## Issues
 
@@ -81,10 +84,10 @@ linear issues create [options]
 **Examples:**
 ```bash
 # Create a basic issue
-linear issues create --title "Fix login bug" --team "Engineering"
+linear issues create --allow-mutations --title "Fix login bug" --team "Engineering"
 
 # Create an issue with more details
-linear issues create --title "Fix login bug" --team "Engineering" --description "Users cannot log in using SSO" --priority 2 --assignee "john@example.com"
+linear issues create --allow-mutations --title "Fix login bug" --team "Engineering" --description "Users cannot log in using SSO" --priority 2 --assignee "john@example.com"
 ```
 
 ### Update Issue
@@ -108,13 +111,13 @@ linear issues update ID [options]
 **Examples:**
 ```bash
 # Update issue title
-linear issues update ENG-123 --title "Updated title"
+linear issues update --allow-mutations ENG-123 --title "Updated title"
 
 # Update issue status
-linear issues update ENG-123 --status "In Progress"
+linear issues update --allow-mutations ENG-123 --status "In Progress"
 
 # Update multiple fields
-linear issues update ENG-123 --priority 1 --assignee "jane@example.com"
+linear issues update --allow-mutations ENG-123 --priority 1 --assignee "jane@example.com"
 ```
 
 ### Comment on Issue
@@ -132,13 +135,13 @@ linear issues comment ID [COMMENT]
 **Examples:**
 ```bash
 # Add a comment (quoted)
-linear issues comment ENG-123 "This is my comment"
+linear issues comment --allow-mutations ENG-123 "This is my comment"
 
 # Add a comment (unquoted)
-linear issues comment ENG-123 This is also a valid comment
+linear issues comment --allow-mutations ENG-123 This is also a valid comment
 
 # Multi-word comments work without quotes
-linear issues comment ENG-123 I fixed this in PR #456
+linear issues comment --allow-mutations ENG-123 I fixed this in PR #456
 ```
 
 ## Teams
@@ -289,10 +292,10 @@ linear generator populate [options]
 **Examples:**
 ```bash
 # Create default test data (2 teams, 2 projects per team, 5 issues per project)
-linear generator populate
+linear generator populate --allow-mutations
 
 # Create a larger dataset
-linear generator populate --teams 3 --projects-per-team 3 --issues-per-project 8
+linear generator populate --allow-mutations --teams 3 --projects-per-team 3 --issues-per-project 8
 ```
 
 **Notes:**

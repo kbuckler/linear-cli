@@ -52,14 +52,14 @@ linear issues list --team "Engineering"
 # View a specific issue
 linear issues view ABC-123
 
-# Create a new issue
-linear issues create --title "Fix login bug" --team "Engineering" --description "Users can't login using SSO"
+# Create a new issue (requires --allow-mutations flag)
+linear issues create --allow-mutations --title "Fix login bug" --team "Engineering" --description "Users can't login using SSO"
 
-# Update an issue
-linear issues update ABC-123 --status "In Progress" --assignee "user@example.com"
+# Update an issue (requires --allow-mutations flag)
+linear issues update --allow-mutations ABC-123 --status "In Progress" --assignee "user@example.com"
 
-# Add a comment to an issue
-linear issues comment ABC-123 "This is fixed in PR #456"
+# Add a comment to an issue (requires --allow-mutations flag)
+linear issues comment --allow-mutations ABC-123 "This is fixed in PR #456"
 
 # List all teams
 linear teams list
@@ -67,15 +67,14 @@ linear teams list
 # List all projects
 linear projects list
 
-# Generate test data in your Linear workspace
-linear generator populate
-
-# Get a detailed report on your Linear workspace
-linear generator dump
+# Generate a detailed report on your Linear workspace
+linear analytics report
 
 # Export report data in JSON format
-linear generator dump --format json
+linear analytics report --format json
 ```
+
+By default, the CLI operates in read-only safe mode to prevent accidental data modifications. Use the `--allow-mutations` flag to enable write operations.
 
 For detailed documentation on all commands and options, see the [Command Reference](docs/COMMANDS.md).
 
@@ -100,10 +99,10 @@ Linear CLI provides tools to populate your Linear workspace with test data and g
 
 ```
 # Create default test data (2 teams, 2 projects per team, 5 issues per project)
-linear generator populate
+linear generator populate --allow-mutations
 
 # Customize the amount of data generated
-linear generator populate --teams 3 --projects-per-team 4 --issues-per-project 10
+linear generator populate --allow-mutations --teams 3 --projects-per-team 4 --issues-per-project 10
 ```
 
 The data generator uses your existing teams and adds test projects and issues to them, making it easy to set up demo environments or test data for reporting.
@@ -112,10 +111,10 @@ The data generator uses your existing teams and adds test projects and issues to
 
 ```
 # View summary tables of your Linear data with analytics
-linear generator dump
+linear analytics report
 
 # Export complete data in JSON format for further analysis
-linear generator dump --format json
+linear analytics report --format json
 ```
 
 The reporting system provides detailed analytics including:
@@ -189,4 +188,4 @@ bundle exec rake build
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details. 
+This project is licensed under the MIT License - see the LICENSE file for details.

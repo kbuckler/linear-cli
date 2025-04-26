@@ -3,12 +3,14 @@ require 'spec_helper'
 RSpec.describe LinearCli::API::Client do
   let(:api_key) { 'test_api_key' }
   let(:client) { described_class.new(api_key) }
-  
+
   # Reset mock response before each test
   before do
     LinearCli::API::Client.mock_response = nil
+    # Reset safe mode to default (true) before each test
+    allow(LinearCli).to receive(:safe_mode?).and_return(true)
   end
-  
+
   after do
     LinearCli::API::Client.mock_response = nil
   end
@@ -100,13 +102,17 @@ RSpec.describe LinearCli::API::Client do
 
       it 'raises an error with available teams' do
         expect { client.get_team_id_by_name(team_name) }
-          .to raise_error(RuntimeError, /Team 'Engineering' not found. Available teams: Product \(PROD\), Design \(DESIGN\)/)
+          .to raise_error(RuntimeError,
+                          /Team 'Engineering' not found. Available teams: Product \(PROD\), Design \(DESIGN\)/)
       end
     end
   end
 
   describe '#query' do
-    let(:query) { 'query { viewer { id } }' }
+    let(:read_query) { 'query { viewer { id } }' }
+    let(:mutation_query) do
+      'mutation CreateIssue($input: IssueCreateInput!) { issueCreate(input: $input) { success } }'
+    end
     let(:variables) { {} }
 
     context 'when the request is successful' do
@@ -115,19 +121,50 @@ RSpec.describe LinearCli::API::Client do
       end
 
       it 'returns the response data' do
-        expect(client.query(query, variables)).to eq({ 'viewer' => { 'id' => 'user_123' } })
+        expect(client.query(read_query, variables)).to eq({ 'viewer' => { 'id' => 'user_123' } })
       end
     end
 
     context 'when the request fails' do
       it 'raises an error with the message' do
-        # We need to modify the handle_response method to handle this case in tests
-        # For now, we'll just test that it raises an error
-        allow_any_instance_of(LinearCli::API::Client).to receive(:query).and_raise("Authentication failed. Please check your Linear API key.")
-        
-        expect { client.query(query, variables) }
+        allow_any_instance_of(LinearCli::API::Client).to receive(:query).and_raise('Authentication failed. Please check your Linear API key.')
+
+        expect { client.query(read_query, variables) }
           .to raise_error(RuntimeError, /Authentication failed/)
       end
     end
+
+    context 'when safe mode is enabled (default)' do
+      it 'allows read queries' do
+        LinearCli::API::Client.mock_response = { 'viewer' => { 'id' => 'user_123' } }
+        expect { client.query(read_query, variables) }.not_to raise_error
+      end
+
+      it 'blocks mutation queries' do
+        expect { client.query(mutation_query, variables) }
+          .to raise_error(RuntimeError, /Operation blocked: Safe mode is enabled/)
+      end
+
+      it 'provides instructions to disable safe mode in the error message' do
+        expect { client.query(mutation_query, variables) }
+          .to raise_error(RuntimeError, /Use the --allow-mutations flag/)
+      end
+    end
+
+    context 'when safe mode is disabled' do
+      before do
+        allow(LinearCli).to receive(:safe_mode?).and_return(false)
+      end
+
+      it 'allows read queries' do
+        LinearCli::API::Client.mock_response = { 'viewer' => { 'id' => 'user_123' } }
+        expect { client.query(read_query, variables) }.not_to raise_error
+      end
+
+      it 'allows mutation queries' do
+        LinearCli::API::Client.mock_response = { 'issueCreate' => { 'success' => true } }
+        expect { client.query(mutation_query, variables) }.not_to raise_error
+      end
+    end
   end
-end 
+end
