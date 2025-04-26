@@ -60,6 +60,7 @@
 - [x] Add dedicated display formatting for reports
 - [x] Implement team completion rate metrics
 - [x] Add software capitalization analysis and reporting
+- [x] Add enhanced capitalization reporting with project and engineer workload metrics
 - [ ] Add visualization for burndown charts
 - [ ] Support exporting reports to CSV/Excel
 
