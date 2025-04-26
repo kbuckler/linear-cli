@@ -51,9 +51,18 @@
 - [ ] Implement rate limiting protection
 - [ ] Add security documentation
 
+## Data Generation and Reporting
+- [x] Create data generator module for populating Linear with test data
+- [x] Implement reporting commands for data analysis
+- [ ] Add visualization for burndown charts
+- [ ] Support exporting reports to CSV/Excel
+
 ## Future Considerations (Phase 2)
 - [ ] Interactive mode
 - [ ] Cache for faster responses
 - [ ] Webhook support for notifications
 - [ ] Support for additional Linear entities (cycles, roadmaps, etc.)
-- [ ] Visualization of issue relationships 
+- [ ] Visualization of issue relationships
+- [ ] Advanced filtering and query capabilities
+- [ ] Custom report templates
+- [ ] Integration with other tools (GitHub, Slack, etc.) 

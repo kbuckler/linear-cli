@@ -10,6 +10,8 @@ A Ruby command-line tool that allows AI assistants (and humans) to interact dire
 - Filter issues by team, status, assignee, and more
 - View issue details and add comments
 - List teams and projects
+- Generate test data for reporting and analysis
+- Export detailed reports on your Linear workspace
 - Simple configuration and authentication
 
 ## Installation
@@ -64,6 +66,15 @@ linear teams list
 
 # List all projects
 linear projects list
+
+# Generate test data in your Linear workspace
+linear generator populate
+
+# Get a detailed report on your Linear workspace
+linear generator dump
+
+# Export report data in JSON format
+linear generator dump --format json
 ```
 
 For detailed documentation on all commands and options, see the [Command Reference](docs/COMMANDS.md).
@@ -80,6 +91,38 @@ For detailed step-by-step instructions with screenshots, see [How to Obtain a Li
 ## Configuration
 
 Linear CLI can be configured using environment variables or a `.env` file. For details on all configuration options, see the [Configuration Guide](docs/CONFIGURATION.md).
+
+## Data Generation and Reporting
+
+Linear CLI provides tools to populate your Linear workspace with test data and generate reports:
+
+### Generating Test Data
+
+```
+# Create default test data (2 teams, 2 projects per team, 5 issues per project)
+linear generator populate
+
+# Customize the amount of data generated
+linear generator populate --teams 3 --projects-per-team 4 --issues-per-project 10
+```
+
+The data generator uses your existing teams and adds test projects and issues to them, making it easy to set up demo environments or test data for reporting.
+
+### Analyzing Workspace Data
+
+```
+# View summary tables of your Linear data
+linear generator dump
+
+# Export complete data in JSON format for further analysis
+linear generator dump --format json
+```
+
+The reporting tool provides insights into:
+- Issue counts by status
+- Issue counts by team
+- Team completion rates
+- Overall workspace metrics
 
 ## Development
 

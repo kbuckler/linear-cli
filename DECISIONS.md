@@ -56,3 +56,18 @@
   - Better error handling for malformed inputs
   - Improved reliability of the CLI tool
   - Enhanced security when processing user-provided data 
+
+## Data Generator Module
+
+- **Decision**: Create a dedicated data generator module for populating Linear instances and enabling complex reporting
+- **Context**: There is a need to efficiently populate Linear instances with test data for analysis and reporting
+- **Implementation**:
+  - Created a DataGenerator class to handle bulk creation of teams, projects, and issues
+  - Added support for flexible configuration of data generation (number of teams, projects, issues, etc.)
+  - Implemented a reporting command to analyze and visualize the Linear instance data
+  - Provided both tabular and JSON output formats for data analysis
+- **Consequences**:
+  - Easier testing and development of Linear workflows with populated data
+  - Enabled data-driven insights through the reporting module
+  - Simplified setup of demo environments for presentations and testing
+  - Enhanced CLI capabilities for complex reporting and analysis tasks 

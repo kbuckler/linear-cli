@@ -205,4 +205,50 @@ linear projects view ID
 **Example:**
 ```bash
 linear projects view project_123
+```
+
+## Data Generator
+
+Commands for generating and analyzing Linear data.
+
+### Populate Linear
+
+Populates your Linear workspace with test data for reporting and analysis.
+
+```
+linear generator populate [options]
+```
+
+**Options:**
+- `--teams NUMBER`: Number of teams to create (default: 2)
+- `--projects-per-team NUMBER`: Number of projects per team (default: 2)
+- `--issues-per-project NUMBER`: Number of issues per project (default: 5)
+
+**Examples:**
+```bash
+# Create default test data (2 teams, 2 projects per team, 5 issues per project)
+linear generator populate
+
+# Create a larger dataset
+linear generator populate --teams 3 --projects-per-team 3 --issues-per-project 8
+```
+
+### Dump Linear Data
+
+Extracts detailed reporting data from your Linear workspace.
+
+```
+linear generator dump [options]
+```
+
+**Options:**
+- `--format TEXT`: Output format, either 'json' or 'table' (default: 'table')
+
+**Examples:**
+```bash
+# Display summary tables of Linear data
+linear generator dump
+
+# Export data as JSON
+linear generator dump --format json
 ``` 
