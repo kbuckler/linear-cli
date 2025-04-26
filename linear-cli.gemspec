@@ -3,12 +3,12 @@ require_relative 'lib/linear_cli/version'
 Gem::Specification.new do |spec|
   spec.name          = 'linear-cli'
   spec.version       = LinearCli::VERSION
-  spec.authors       = ['Your Name']
-  spec.email         = ['your.email@example.com']
+  spec.authors       = ['Linear CLI Contributors']
+  spec.email         = ['support@example.com']
 
   spec.summary       = 'Command-line interface for Linear issue tracking'
   spec.description   = 'A Ruby CLI tool that allows AI assistants (and humans) to interact with the Linear issue tracking system'
-  spec.homepage      = 'https://github.com/yourusername/linear-cli'
+  spec.homepage      = 'https://github.com/yourusername/linear-integration'
   spec.license       = 'MIT'
   spec.required_ruby_version = '>= 2.7.0'
 
