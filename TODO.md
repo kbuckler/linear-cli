@@ -1,4 +1,4 @@
-# Linear Integration - Phase 1 Tasks
+# Linear CLI - Phase 1 Tasks
 
 ## Setup and Configuration
 - [x] Initialize Ruby project with Bundler

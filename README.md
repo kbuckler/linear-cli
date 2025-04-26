@@ -1,4 +1,4 @@
-# Linear CLI Integration
+# Linear CLI
 
 A Ruby command-line tool that allows AI assistants (and humans) to interact directly with the Linear issue tracking system.
 
@@ -21,8 +21,8 @@ A Ruby command-line tool that allows AI assistants (and humans) to interact dire
 
 1. Clone this repository:
    ```
-   git clone https://github.com/yourusername/linear-integration.git
-   cd linear-integration
+   git clone https://github.com/kbuckler/linear-cli.git
+   cd linear-cli
    ```
 
 2. Install dependencies:

@@ -1,7 +1,7 @@
 {
-  "name": "linear-integration",
+  "name": "linear-cli",
   "version": "1.0.0",
-  "description": "This project provides an integration between AI assistants and the Linear issue tracking system, allowing AI to interact directly with Linear to manage issues, tasks, and projects.",
+  "description": "This project provides a command-line interface for the Linear issue tracking system, allowing AI assistants and humans to interact directly with Linear to manage issues, tasks, and projects.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

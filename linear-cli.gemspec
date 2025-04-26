@@ -8,7 +8,7 @@ Gem::Specification.new do |spec|
 
   spec.summary       = 'Command-line interface for Linear issue tracking'
   spec.description   = 'A Ruby CLI tool that allows AI assistants (and humans) to interact with the Linear issue tracking system'
-  spec.homepage      = 'https://github.com/yourusername/linear-integration'
+  spec.homepage      = 'https://github.com/kbuckler/linear-cli'
   spec.license       = 'MIT'
   spec.required_ruby_version = '>= 2.7.0'
 
