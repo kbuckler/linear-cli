@@ -131,3 +131,18 @@
   - Clearer mental model for users (capitalization is only a project property)
   - Better alignment with financial tracking practices in organizations
   - Note: Existing issues with capitalization labels but no capitalized project will no longer be counted as capitalized 
+
+## Dedicated Analytics Module
+
+- **Decision**: Move analytics and reporting functionality to a dedicated command class
+- **Context**: Previously, reporting functionality was mixed with data generation in the generator command, but these are conceptually separate concerns
+- **Implementation**:
+  - Created a new `Commands::Analytics` class with focused reporting methods
+  - Added a dedicated `capitalization` command for targeted capitalization reporting
+  - Moved common reporting code from generator to the analytics command
+  - Added deprecation notice to the old `generator dump` command
+- **Consequences**:
+  - Better separation of concerns between data generation and reporting
+  - More intuitive CLI structure for users
+  - Easier to extend reporting capabilities in the future
+  - Deprecation approach ensures backward compatibility during transition 

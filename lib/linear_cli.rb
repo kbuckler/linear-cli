@@ -27,7 +27,9 @@ module LinearCli
     register LinearCli::Commands::Issues, 'issues', 'issues [COMMAND]', 'Manage Linear issues'
     register LinearCli::Commands::Teams, 'teams', 'teams [COMMAND]', 'Manage Linear teams'
     register LinearCli::Commands::Projects, 'projects', 'projects [COMMAND]', 'Manage Linear projects'
-    register LinearCli::Commands::Generator, 'generator', 'generator [COMMAND]', 'Generate and analyze Linear data'
+    register LinearCli::Commands::Generator, 'generator', 'generator [COMMAND]', 'Generate test data for Linear'
+    register LinearCli::Commands::Analytics, 'analytics', 'analytics [COMMAND]',
+             'Analytics and reporting for Linear data'
 
     # Override help to provide a more comprehensive menu
     def help(command = nil, subcommand = true)
@@ -56,17 +58,19 @@ module LinearCli
         puts '  linear projects list         # List Linear projects'
         puts '  linear projects view ID      # View details of a specific project'
 
-        puts "\n#{pastel.bold('Data Generator & Analytics Commands:')}"
+        puts "\n#{pastel.bold('Data Generator Commands:')}"
         puts '  linear generator populate    # Populate Linear with test data'
-        puts '  linear generator dump        # Generate comprehensive workspace report'
+
+        puts "\n#{pastel.bold('Analytics & Reporting Commands:')}"
+        puts '  linear analytics report      # Generate comprehensive workspace report'
         puts '    - Provides team completion rates'
         puts '    - Displays software capitalization metrics'
         puts '    - Shows issue distribution by status and team'
-        puts '    - Supports table or JSON output format'
+        puts '  linear analytics capitalization # Generate capitalization metrics report'
 
         puts "\nFor more information on a specific command, run 'linear help COMMAND'"
         puts "For detailed help on a subcommand, run 'linear help COMMAND SUBCOMMAND'"
-        puts "Example: 'linear help generator dump'"
+        puts "Example: 'linear help analytics report'"
       else
         super
       end

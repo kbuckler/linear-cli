@@ -3,7 +3,6 @@ require 'tty-table'
 require 'json'
 require_relative '../api/data_generator'
 require_relative '../api/queries/generator'
-require_relative '../analytics/reporting'
 require_relative '../analytics/display'
 
 module LinearCli
@@ -121,22 +120,12 @@ module LinearCli
         puts 'For example, you can list all issues with: linear issues list'
       end
 
-      desc 'dump', 'Dump detailed reporting data from Linear'
+      desc 'dump', 'Dump detailed reporting data from Linear (DEPRECATED)'
       long_desc <<-LONGDESC
-        Generates a comprehensive report of your Linear workspace data.
+        DEPRECATED: This command has been moved to 'linear analytics report'.
 
-        This command fetches all teams, projects, and issues from your Linear workspace
-        and provides detailed analytics including:
-        - Team and project counts
-        - Issue distribution by status and team
-        - Team completion rates
-        - Software capitalization metrics (identifies capitalized vs. expensed work)
-
-        You can output the report in table format (human-readable) or JSON format (for further processing).
-
-        Examples:
-          linear generator dump                # Output in table format
-          linear generator dump --format=json  # Output in JSON format
+        Please use 'linear analytics report' instead for all reporting needs.
+        This command will be removed in a future version.
       LONGDESC
       option :format,
              type: :string,
@@ -144,33 +133,11 @@ module LinearCli
              default: 'table',
              required: false
       def dump
-        format = options[:format]&.downcase || 'table'
-        validate_format(format)
-
-        client = LinearCli::API::Client.new
-
-        # Get all teams
-        teams_data = fetch_teams(client)
-
-        # Get all projects
-        projects_data = fetch_projects(client)
-
-        # Get all issues
-        issues_data = fetch_issues(client)
-
-        # Create reporting data structure
-        report_data = LinearCli::Analytics::Reporting.generate_report(
-          teams_data,
-          projects_data,
-          issues_data
-        )
-
-        # Output based on requested format
-        if format == 'json'
-          puts JSON.pretty_generate(report_data)
-        else
-          LinearCli::Analytics::Display.display_summary_tables(report_data[:summary])
-        end
+        puts 'DEPRECATED: The dump command has been moved to the analytics module.'
+        puts 'Please use one of the following commands instead:'
+        puts '  linear analytics report           # For comprehensive reports'
+        puts '  linear analytics capitalization   # For capitalization metrics'
+        puts "\nThis command will be removed in a future version."
       end
 
       private
@@ -186,30 +153,6 @@ module LinearCli
         teams
       end
 
-      def fetch_teams(client)
-        puts 'Fetching teams data...'
-
-        query = LinearCli::API::Queries::Generator.list_teams_for_generator
-        result = client.query(query)
-        result.dig('teams', 'nodes') || []
-      end
-
-      def fetch_projects(client)
-        puts 'Fetching projects data...'
-
-        query = LinearCli::API::Queries::Generator.list_projects_for_reporting
-        result = client.query(query)
-        result.dig('projects', 'nodes') || []
-      end
-
-      def fetch_issues(client)
-        puts 'Fetching issues data...'
-
-        query = LinearCli::API::Queries::Generator.list_issues_for_reporting
-        result = client.query(query)
-        result.dig('issues', 'nodes') || []
-      end
-
       def sanitize_integer(value, min, max)
         value = value.to_i
         if value < min
@@ -219,12 +162,6 @@ module LinearCli
         else
           value
         end
-      end
-
-      def validate_format(format)
-        return if %w[json table].include?(format)
-
-        raise "Invalid format: #{format}. Must be 'json' or 'table'."
       end
     end
   end
