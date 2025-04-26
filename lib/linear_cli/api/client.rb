@@ -91,7 +91,7 @@ module LinearCli
       def headers
         {
           'Content-Type' => 'application/json',
-          'Authorization' => "Bearer #{@api_key}"
+          'Authorization' => @api_key
         }
       end
       
