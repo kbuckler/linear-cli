@@ -39,6 +39,18 @@ module LinearCli
                     name
                   }
                   priority
+                  estimate
+                  startedAt
+                  completedAt
+                  cycle {
+                    id
+                    name
+                  }
+                  labels {
+                    nodes {
+                      name
+                    }
+                  }
                   createdAt
                   updatedAt
                 }

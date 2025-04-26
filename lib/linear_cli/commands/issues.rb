@@ -13,6 +13,7 @@ module LinearCli
       option :assignee, type: :string, desc: 'Filter by assignee email or name'
       option :status, type: :string, desc: 'Filter by status name'
       option :limit, type: :numeric, default: 20, desc: 'Number of issues to fetch'
+      option :detail, type: :boolean, default: false, desc: 'Show detailed view with more attributes'
       def list
         client = LinearCli::API::Client.new
         
@@ -21,8 +22,8 @@ module LinearCli
         
         # Add team filter if provided
         if options[:team]
-          # TODO: Implement resolving team name to ID
-          variables[:teamId] = options[:team]
+          team_id = client.get_team_id_by_name(options[:team])
+          variables[:teamId] = team_id
         end
         
         # Add assignee filter if provided
@@ -46,10 +47,40 @@ module LinearCli
           return
         end
         
-        # Create a table for display
-        table = TTY::Table.new(
-          header: ['ID', 'Title', 'Status', 'Assignee', 'Team'],
-          rows: issues.map do |issue|
+        pastel = Pastel.new
+        puts pastel.bold("Linear Issues (#{issues.size}):")
+        
+        # Determine if we should show the detailed view
+        detailed_view = options[:detail]
+        
+        # Prepare the data
+        rows = issues.map do |issue|
+          if detailed_view
+            # For detailed view - include priority, estimate, cycle, etc.
+            priority_values = { 0 => "No priority", 1 => "Urgent", 2 => "High", 3 => "Medium", 4 => "Low" }
+            priority = issue['priority'] ? priority_values[issue['priority']] : 'Not set'
+            
+            cycle = issue['cycle'] ? issue['cycle']['name'] : 'No cycle'
+            
+            labels = if issue['labels'] && issue['labels']['nodes']
+              issue['labels']['nodes'].map { |l| l['name'] }.join(', ')
+            else
+              ''
+            end
+            
+            [
+              issue['identifier'],
+              issue['title'],
+              issue['state']['name'],
+              issue['assignee'] ? issue['assignee']['name'] : 'Unassigned',
+              priority,
+              issue['estimate'] || 'Not set',
+              cycle,
+              labels,
+              issue['team']['name']
+            ]
+          else
+            # For basic view
             [
               issue['identifier'],
               issue['title'],
@@ -58,11 +89,38 @@ module LinearCli
               issue['team']['name']
             ]
           end
-        )
+        end
         
-        pastel = Pastel.new
-        puts pastel.bold("Linear Issues (#{issues.size}):")
-        puts table.render(:unicode, padding: [0, 1, 0, 1])
+        # Use simple output in test environments or when not in a terminal
+        if !$stdout.tty? || ENV['RACK_ENV'] == 'test' || ENV['RAILS_ENV'] == 'test'
+          if detailed_view
+            puts "ID | Title | Status | Assignee | Priority | Estimate | Cycle | Labels | Team"
+          else
+            puts "ID | Title | Status | Assignee | Team"
+          end
+          puts "-" * 80
+          rows.each do |row|
+            puts row.join(" | ")
+          end
+        else
+          # Create a table for display with fixed width
+          if detailed_view
+            header = ['ID', 'Title', 'Status', 'Assignee', 'Priority', 'Estimate', 'Cycle', 'Labels', 'Team']
+            
+            # Use a compact format for detailed view
+            table = TTY::Table.new(header: header, rows: rows)
+            puts table.render(:unicode, width: 180, resize: true) do |renderer|
+              renderer.border.separator = :each_row
+              renderer.width = [10, 30, 12, 15, 10, 10, 15, 20, 10]
+            end
+          else 
+            header = ['ID', 'Title', 'Status', 'Assignee', 'Team']
+            table = TTY::Table.new(header: header, rows: rows)
+            
+            # Use basic renderer with minimal formatting for standard view
+            puts table.render(:basic, padding: [0, 1, 0, 1], resize: false)
+          end
+        end
       end
       
       desc 'view ID', 'View details of a specific issue'
@@ -108,10 +166,13 @@ module LinearCli
       def create
         client = LinearCli::API::Client.new
         
+        # Get team ID from name
+        team_id = client.get_team_id_by_name(options[:team])
+        
         # Build input for the mutation
         input = {
           title: options[:title],
-          teamId: options[:team], # TODO: Implement resolving team name to ID
+          teamId: team_id,
           description: options[:description]
         }
         
