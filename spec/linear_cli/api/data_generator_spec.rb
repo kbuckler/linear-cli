@@ -311,70 +311,79 @@ RSpec.describe LinearCli::API::DataGenerator do
   end
 
   describe '#generate_dataset' do
-    let(:team) do
-      {
-        'id' => 'team_123',
-        'name' => 'Test Team',
-        'key' => 'TEST'
-      }
+    it 'creates a complete dataset with teams, projects, and issues' do
+      # Mock the team, project, and issue creation methods
+      team = { 'id' => 'team_123', 'name' => 'Test Team' }
+      project = { 'id' => 'project_123', 'name' => 'Test Project' }
+      issue = { 'id' => 'issue_123', 'title' => 'Test Issue' }
+      states = [{ 'id' => 'state_123', 'name' => 'Todo' }]
+      members = [{ 'id' => 'user_123', 'name' => 'Test User' }]
+
+      allow(generator).to receive(:create_team).and_return(team)
+      allow(generator).to receive(:create_project).and_return(project)
+      allow(generator).to receive(:create_issue).and_return(issue)
+      allow(generator).to receive(:get_team_states).and_return(states)
+      allow(generator).to receive(:get_team_members).and_return(members)
+
+      result = generator.generate_dataset(1, 1, 1)
+
+      # Check structure
+      expect(result).to be_a(Hash)
+      expect(result[:summary]).to be_a(Hash)
+      expect(result[:data]).to be_a(Hash)
+
+      # Check summary
+      expect(result[:summary][:teams]).to eq(1)
+      expect(result[:summary][:projects]).to eq(1)
+      expect(result[:summary][:issues]).to eq(1)
+
+      # Check data
+      expect(result[:data][:teams]).to include(team)
+      expect(result[:data][:projects]).to include(project)
+      expect(result[:data][:issues]).to include(issue)
     end
 
-    let(:states) do
-      [
-        { 'id' => 'state_1', 'name' => 'Todo' }
-      ]
-    end
+    it 'handles errors when creating items' do
+      # Mock successful team creation but failed project creation
+      team = { 'id' => 'team_123', 'name' => 'Test Team' }
+      states = [{ 'id' => 'state_123', 'name' => 'Todo' }]
+      members = [{ 'id' => 'user_123', 'name' => 'Test User' }]
 
-    let(:members) do
-      [
-        { 'id' => 'user_1', 'name' => 'John Doe' }
-      ]
-    end
-
-    let(:project) do
-      {
-        'id' => 'project_123',
-        'name' => 'Test Project'
-      }
-    end
-
-    let(:issue) do
-      {
-        'id' => 'issue_123',
-        'title' => 'Test Issue'
-      }
-    end
-
-    before do
       allow(generator).to receive(:create_team).and_return(team)
       allow(generator).to receive(:get_team_states).and_return(states)
       allow(generator).to receive(:get_team_members).and_return(members)
+      allow(generator).to receive(:create_project).and_raise('Project creation failed')
+
+      # Should still return results and not raise an exception
+      allow(generator).to receive(:puts) # Suppress error output
+      result = generator.generate_dataset(1, 1, 1)
+
+      expect(result[:summary][:teams]).to eq(1)
+      expect(result[:summary][:projects]).to eq(0)
+      expect(result[:summary][:issues]).to eq(0)
+    end
+
+    it 'uses custom counts based on parameters' do
+      # Mock the necessary methods
+      team = { 'id' => 'team_123', 'name' => 'Test Team' }
+      project = { 'id' => 'project_123', 'name' => 'Test Project' }
+      issue = { 'id' => 'issue_123', 'title' => 'Test Issue' }
+      states = [{ 'id' => 'state_123', 'name' => 'Todo' }]
+      members = [{ 'id' => 'user_123', 'name' => 'Test User' }]
+
+      allow(generator).to receive(:create_team).and_return(team)
       allow(generator).to receive(:create_project).and_return(project)
       allow(generator).to receive(:create_issue).and_return(issue)
-    end
+      allow(generator).to receive(:get_team_states).and_return(states)
+      allow(generator).to receive(:get_team_members).and_return(members)
 
-    it 'generates dataset with default parameters' do
-      result = generator.generate_dataset
+      # Test with custom parameters
+      generator.generate_dataset(2, 3, 4)
 
+      # Expected calls: 2 teams, each with 3 projects, each with 4 issues
       expect(generator).to have_received(:create_team).exactly(2).times
-      expect(generator).to have_received(:create_project).exactly(4).times  # 2 teams * 2 projects
-      expect(generator).to have_received(:create_issue).exactly(20).times   # 4 projects * 5 issues
-
-      expect(result[:created][:teams]).to eq(2)
-      expect(result[:created][:projects]).to eq(4)
-      expect(result[:created][:issues]).to eq(20)
-    end
-
-    it 'uses the provided parameters' do
-      result = generator.generate_dataset(1, 1, 2)
-
-      expect(generator).to have_received(:create_team).exactly(1).times
-      expect(generator).to have_received(:create_project).exactly(1).times
-      expect(generator).to have_received(:create_issue).exactly(2).times
-
-      expect(result[:created][:teams]).to eq(1)
-      expect(result[:created][:projects]).to eq(1)
-      expect(result[:created][:issues]).to eq(2)
+      expect(generator).to have_received(:create_project).exactly(6).times # 2*3
+      expect(generator).to have_received(:create_issue).exactly(24).times # 2*3*4
     end
   end
 end
