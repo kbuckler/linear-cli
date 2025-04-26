@@ -1,6 +1,10 @@
 require 'thor'
 require 'tty-table'
 require 'json'
+require_relative '../api/data_generator'
+require_relative '../api/queries/generator'
+require_relative '../analytics/reporting'
+require_relative '../analytics/display'
 
 module LinearCli
   module Commands
@@ -100,7 +104,7 @@ module LinearCli
         puts "Used #{results[:teams].size} teams, created #{results[:projects].size} projects, and #{results[:issues].size} issues."
 
         # Display projects
-        display_projects(results[:projects]) if results[:projects].any?
+        LinearCli::Analytics::Display.display_projects(results[:projects]) if results[:projects].any?
 
         # Provide hint for querying the generated data
         puts "\nYou can now query the generated data using other Linear CLI commands."
@@ -129,25 +133,17 @@ module LinearCli
         issues_data = fetch_issues(client)
 
         # Create reporting data structure
-        report_data = {
-          teams: teams_data,
-          projects: projects_data,
-          issues: issues_data,
-          summary: {
-            teams_count: teams_data.size,
-            projects_count: projects_data.size,
-            issues_count: issues_data.size,
-            issues_by_status: count_issues_by_status(issues_data),
-            issues_by_team: count_issues_by_team(issues_data),
-            team_completion_rates: calculate_team_completion_rates(issues_data)
-          }
-        }
+        report_data = LinearCli::Analytics::Reporting.generate_report(
+          teams_data,
+          projects_data,
+          issues_data
+        )
 
         # Output based on requested format
         if format == 'json'
           puts JSON.pretty_generate(report_data)
         else
-          display_summary_tables(report_data[:summary])
+          LinearCli::Analytics::Display.display_summary_tables(report_data[:summary])
         end
       end
 
@@ -156,24 +152,36 @@ module LinearCli
       def fetch_existing_teams(client)
         puts 'Fetching existing teams from Linear...'
 
-        query = <<~GRAPHQL
-          query Teams {
-            teams {
-              nodes {
-                id
-                name
-                key
-                description
-              }
-            }
-          }
-        GRAPHQL
-
+        query = LinearCli::API::Queries::Generator.list_teams_for_generator
         result = client.query(query)
         teams = result.dig('teams', 'nodes') || []
 
         puts "Found #{teams.size} teams in your Linear workspace."
         teams
+      end
+
+      def fetch_teams(client)
+        puts 'Fetching teams data...'
+
+        query = LinearCli::API::Queries::Generator.list_teams_for_generator
+        result = client.query(query)
+        result.dig('teams', 'nodes') || []
+      end
+
+      def fetch_projects(client)
+        puts 'Fetching projects data...'
+
+        query = LinearCli::API::Queries::Generator.list_projects_for_reporting
+        result = client.query(query)
+        result.dig('projects', 'nodes') || []
+      end
+
+      def fetch_issues(client)
+        puts 'Fetching issues data...'
+
+        query = LinearCli::API::Queries::Generator.list_issues_for_reporting
+        result = client.query(query)
+        result.dig('issues', 'nodes') || []
       end
 
       def sanitize_integer(value, min, max)
@@ -191,248 +199,6 @@ module LinearCli
         return if %w[json table].include?(format)
 
         raise "Invalid format: #{format}. Must be 'json' or 'table'."
-      end
-
-      def display_teams(teams)
-        return if teams.empty?
-
-        puts "\nTeams:"
-        table = TTY::Table.new(
-          %w[Name Key ID],
-          teams.map { |t| [t['name'], t['key'], t['id']] }
-        )
-
-        # Use simple output in test environments
-        if in_test_environment?
-          puts 'Name | Key | ID'
-          puts '-----+-----+----'
-          teams.each do |team|
-            puts "#{team['name']} | #{team['key']} | #{team['id']}"
-          end
-        else
-          puts table.render(:unicode, padding: [0, 1])
-        end
-      end
-
-      def display_projects(projects)
-        return if projects.empty?
-
-        puts "\nProjects:"
-        table = TTY::Table.new(
-          %w[Name State ID],
-          projects.map { |p| [p['name'], p['state'], p['id']] }
-        )
-
-        # Use simple output in test environments
-        if in_test_environment?
-          puts 'Name | State | ID'
-          puts '-----+-------+----'
-          projects.each do |project|
-            puts "#{project['name']} | #{project['state']} | #{project['id']}"
-          end
-        else
-          puts table.render(:unicode, padding: [0, 1])
-        end
-      end
-
-      def fetch_teams(client)
-        puts 'Fetching teams data...'
-
-        query = <<~GRAPHQL
-          query Teams {
-            teams {
-              nodes {
-                id
-                name
-                key
-                description
-                states {
-                  nodes {
-                    id
-                    name
-                    type
-                  }
-                }
-              }
-            }
-          }
-        GRAPHQL
-
-        result = client.query(query)
-        result.dig('teams', 'nodes') || []
-      end
-
-      def fetch_projects(client)
-        puts 'Fetching projects data...'
-
-        query = <<~GRAPHQL
-          query Projects {
-            projects {
-              nodes {
-                id
-                name
-                description
-                state
-                progress
-                teams {
-                  nodes {
-                    id
-                    name
-                  }
-                }
-                issues {
-                  nodes {
-                    id
-                    identifier
-                  }
-                }
-              }
-            }
-          }
-        GRAPHQL
-
-        result = client.query(query)
-        result.dig('projects', 'nodes') || []
-      end
-
-      def fetch_issues(client)
-        puts 'Fetching issues data...'
-
-        query = <<~GRAPHQL
-          query Issues($first: Int) {
-            issues(first: $first) {
-              nodes {
-                id
-                identifier
-                title
-                description
-                state {
-                  id
-                  name
-                  type
-                }
-                assignee {
-                  id
-                  name
-                }
-                team {
-                  id
-                  name
-                  key
-                }
-                priority
-                project {
-                  id
-                  name
-                }
-                createdAt
-                updatedAt
-                completedAt
-              }
-            }
-          }
-        GRAPHQL
-
-        result = client.query(query, { first: 100 })
-        result.dig('issues', 'nodes') || []
-      end
-
-      def count_issues_by_status(issues)
-        issues.each_with_object(Hash.new(0)) do |issue, counts|
-          status = issue.dig('state', 'name') || 'Unknown'
-          counts[status] += 1
-        end
-      end
-
-      def count_issues_by_team(issues)
-        issues.each_with_object(Hash.new(0)) do |issue, counts|
-          team = issue.dig('team', 'name') || 'Unknown'
-          counts[team] += 1
-        end
-      end
-
-      def calculate_team_completion_rates(issues)
-        team_issues = issues.group_by { |i| i.dig('team', 'name') || 'Unknown' }
-
-        team_issues.transform_values do |team_issues_list|
-          total = team_issues_list.size
-          completed = team_issues_list.count { |i| i['completedAt'] }
-          {
-            total: total,
-            completed: completed,
-            rate: total > 0 ? (completed.to_f / total * 100).round(2) : 0
-          }
-        end
-      end
-
-      def display_summary_tables(summary)
-        puts "\nSummary:"
-        puts "Teams: #{summary[:teams_count]}"
-        puts "Projects: #{summary[:projects_count]}"
-        puts "Issues: #{summary[:issues_count]}"
-
-        # Issues by status
-        if summary[:issues_by_status].any?
-          puts "\nIssues by Status:"
-
-          if in_test_environment?
-            puts 'Status | Count'
-            puts '-------+------'
-            summary[:issues_by_status].each do |status, count|
-              puts "#{status} | #{count}"
-            end
-          else
-            table = TTY::Table.new(
-              %w[Status Count],
-              summary[:issues_by_status].map { |status, count| [status, count] }
-            )
-            puts table.render(:unicode, padding: [0, 1])
-          end
-        end
-
-        # Issues by team
-        if summary[:issues_by_team].any?
-          puts "\nIssues by Team:"
-
-          if in_test_environment?
-            puts 'Team | Count'
-            puts '------+------'
-            summary[:issues_by_team].each do |team, count|
-              puts "#{team} | #{count}"
-            end
-          else
-            table = TTY::Table.new(
-              %w[Team Count],
-              summary[:issues_by_team].map { |team, count| [team, count] }
-            )
-            puts table.render(:unicode, padding: [0, 1])
-          end
-        end
-
-        # Team completion rates
-        return unless summary[:team_completion_rates].any?
-
-        puts "\nTeam Completion Rates:"
-
-        if in_test_environment?
-          puts 'Team | Completed | Total | Rate (%)'
-          puts '------+-----------+-------+--------'
-          summary[:team_completion_rates].each do |team, data|
-            puts "#{team} | #{data[:completed]} | #{data[:total]} | #{data[:rate]}"
-          end
-        else
-          table = TTY::Table.new(
-            ['Team', 'Completed', 'Total', 'Rate (%)'],
-            summary[:team_completion_rates].map do |team, data|
-              [team, data[:completed], data[:total], data[:rate]]
-            end
-          )
-          puts table.render(:unicode, padding: [0, 1])
-        end
-      end
-
-      def in_test_environment?
-        defined?(RSpec) || ENV['RACK_ENV'] == 'test' || ENV['RAILS_ENV'] == 'test' || !$stdout.tty?
       end
     end
   end

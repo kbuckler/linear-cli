@@ -1,3 +1,5 @@
+require_relative 'queries/generator'
+
 module LinearCli
   module API
     # Data generator for populating Linear with test data
@@ -17,19 +19,7 @@ module LinearCli
       # @param description [String] Team description (optional)
       # @return [Hash] Created team data
       def create_team(name, key = nil, description = nil)
-        query = <<~GRAPHQL
-          mutation CreateTeam($input: TeamCreateInput!) {
-            teamCreate(input: $input) {
-              success
-              team {
-                id
-                name
-                key
-                description
-              }
-            }
-          }
-        GRAPHQL
+        query = LinearCli::API::Queries::Generator.create_team
 
         variables = {
           input: {
@@ -57,25 +47,7 @@ module LinearCli
       # @param state [String] Project state (optional)
       # @return [Hash] Created project data
       def create_project(name, team_id, description = nil, state = 'started')
-        query = <<~GRAPHQL
-          mutation CreateProject($input: ProjectCreateInput!) {
-            projectCreate(input: $input) {
-              success
-              project {
-                id
-                name
-                description
-                state
-                teams {
-                  nodes {
-                    id
-                    name
-                  }
-                }
-              }
-            }
-          }
-        GRAPHQL
+        query = LinearCli::API::Queries::Generator.create_project
 
         variables = {
           input: {
@@ -109,36 +81,7 @@ module LinearCli
       # @option options [String] :project_id Project ID
       # @return [Hash] Created issue data
       def create_issue(title, team_id, options = {})
-        query = <<~GRAPHQL
-          mutation CreateIssue($input: IssueCreateInput!) {
-            issueCreate(input: $input) {
-              success
-              issue {
-                id
-                identifier
-                title
-                description
-                state {
-                  id
-                  name
-                }
-                assignee {
-                  id
-                  name
-                }
-                team {
-                  id
-                  name
-                }
-                priority
-                project {
-                  id
-                  name
-                }
-              }
-            }
-          }
-        GRAPHQL
+        query = LinearCli::API::Queries::Generator.create_issue
 
         variables = {
           input: {
@@ -181,22 +124,7 @@ module LinearCli
       # @param team_id [String] Team ID
       # @return [Array<Hash>] Team workflow states
       def get_team_states(team_id)
-        query = <<~GRAPHQL
-          query TeamWorkflowStates($teamId: String!) {
-            team(id: $teamId) {
-              states {
-                nodes {
-                  id
-                  name
-                  description
-                  color
-                  type
-                }
-              }
-            }
-          }
-        GRAPHQL
-
+        query = LinearCli::API::Queries::Generator.get_team_states
         response = @client.query(query, { teamId: team_id })
 
         response.dig('team', 'states', 'nodes') || []
@@ -206,20 +134,7 @@ module LinearCli
       # @param team_id [String] Team ID
       # @return [Array<Hash>] Team members
       def get_team_members(team_id)
-        query = <<~GRAPHQL
-          query TeamMembers($teamId: String!) {
-            team(id: $teamId) {
-              members {
-                nodes {
-                  id
-                  name
-                  email
-                }
-              }
-            }
-          }
-        GRAPHQL
-
+        query = LinearCli::API::Queries::Generator.get_team_members
         response = @client.query(query, { teamId: team_id })
 
         response.dig('team', 'members', 'nodes') || []
@@ -253,34 +168,36 @@ module LinearCli
 
             # Create issues for this project
             issues_per_project.times do |k|
-              # Assign to random team member if available
-              assignee_id = members.sample['id'] if members.any?
+              # Assign to a random team member if available
+              assignee_id = members.sample&.dig('id') if members.any?
 
-              # Use random state if available
-              state_id = states.sample['id'] if states.any?
-
-              # Random priority between 0-4
-              priority = rand(5)
+              # Use a random state if available
+              state_id = states.sample&.dig('id') if states.any?
 
               issue = create_issue(
                 "Test Issue #{i + 1}-#{j + 1}-#{k + 1}",
                 team['id'],
                 {
-                  description: "Generated test issue #{k + 1} for project #{j + 1} in team #{i + 1}",
+                  description: "Generated test issue #{k + 1} for project #{j + 1}",
+                  project_id: project['id'],
                   assignee_id: assignee_id,
                   state_id: state_id,
-                  priority: priority,
-                  project_id: project['id']
+                  priority: rand(5)
                 }
               )
               results[:issues] << issue
+            rescue StandardError => e
+              puts "Error creating issue: #{e.message}"
             end
+          rescue StandardError => e
+            puts "Error creating project: #{e.message}"
           end
+        rescue StandardError => e
+          puts "Error creating team: #{e.message}"
         end
 
-        # Return summary
         {
-          created: {
+          summary: {
             teams: results[:teams].size,
             projects: results[:projects].size,
             issues: results[:issues].size
