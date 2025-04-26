@@ -1,0 +1,12 @@
+{
+  "name": "linear-integration",
+  "version": "1.0.0",
+  "description": "This project provides an integration between AI assistants and the Linear issue tracking system, allowing AI to interact directly with Linear to manage issues, tasks, and projects.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

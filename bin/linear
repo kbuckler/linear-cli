@@ -1,0 +1,6 @@
+#!/usr/bin/env ruby
+
+require 'bundler/setup'
+require_relative '../lib/linear_cli'
+
+LinearCli::CLI.start(ARGV) 
