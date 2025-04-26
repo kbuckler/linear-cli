@@ -4,59 +4,61 @@ RSpec.describe LinearCli::Analytics::Reporting do
   let(:issues) do
     [
       {
-        'id' => 'issue1',
-        'title' => 'Bug fix',
-        'state' => { 'name' => 'In Progress' },
-        'team' => { 'name' => 'Engineering' },
-        'completedAt' => nil,
-        'project' => { 'id' => 'proj1', 'name' => 'Project A' }
+        id: 'issue1',
+        title: 'Bug fix',
+        state: { name: 'Done' },
+        team: { name: 'Engineering' },
+        completedAt: '2023-01-01T00:00:00Z',
+        project: { id: 'proj1', name: 'Project A' },
+        labels: { nodes: [{ name: 'bug' }] }
       },
       {
-        'id' => 'issue2',
-        'title' => 'New feature',
-        'state' => { 'name' => 'Done' },
-        'team' => { 'name' => 'Engineering' },
-        'completedAt' => '2023-05-15T10:00:00Z',
-        'project' => { 'id' => 'proj1', 'name' => 'Project A' }
+        id: 'issue2',
+        title: 'Feature implementation',
+        state: { name: 'In Progress' },
+        team: { name: 'Engineering' },
+        completedAt: nil,
+        project: { id: 'proj1', name: 'Project A' },
+        labels: { nodes: [{ name: 'feature' }] }
       },
       {
-        'id' => 'issue3',
-        'title' => 'Design update',
-        'state' => { 'name' => 'In Progress' },
-        'team' => { 'name' => 'Design' },
-        'completedAt' => nil,
-        'project' => { 'id' => 'proj2', 'name' => 'Project B' },
-        'labels' => { 'nodes' => [{ 'name' => 'bug' }] }
+        id: 'issue3',
+        title: 'Design update',
+        state: { name: 'In Progress' },
+        team: { name: 'Design' },
+        completedAt: nil,
+        project: { id: 'proj2', name: 'Project B' },
+        labels: { nodes: [{ name: 'bug' }] }
       },
       {
-        'id' => 'issue4',
-        'title' => 'Refactoring',
-        'state' => { 'name' => 'Backlog' },
-        'team' => { 'name' => 'Engineering' },
-        'completedAt' => nil,
-        'labels' => { 'nodes' => [{ 'name' => 'capitalization' }] }
+        id: 'issue4',
+        title: 'Refactoring',
+        state: { name: 'Backlog' },
+        team: { name: 'Engineering' },
+        completedAt: nil,
+        labels: { nodes: [{ name: 'capitalization' }] }
       }
     ]
   end
 
   let(:teams) do
     [
-      { 'id' => 'team1', 'name' => 'Engineering', 'key' => 'ENG' },
-      { 'id' => 'team2', 'name' => 'Design', 'key' => 'DES' }
+      { id: 'team1', name: 'Engineering', key: 'ENG' },
+      { id: 'team2', name: 'Design', key: 'DES' }
     ]
   end
 
   let(:projects) do
     [
       {
-        'id' => 'proj1',
-        'name' => 'Project A',
-        'labels' => { 'nodes' => [{ 'name' => 'capitalization' }] }
+        id: 'proj1',
+        name: 'Project A',
+        labels: { nodes: [{ name: 'capitalization' }] }
       },
       {
-        'id' => 'proj2',
-        'name' => 'Project B',
-        'labels' => { 'nodes' => [{ 'name' => 'feature' }] }
+        id: 'proj2',
+        name: 'Project B',
+        labels: { nodes: [{ name: 'feature' }] }
       }
     ]
   end
@@ -79,7 +81,7 @@ RSpec.describe LinearCli::Analytics::Reporting do
     end
 
     it 'uses "Unknown" for issues with no state' do
-      issues_with_no_state = [{ 'id' => 'issue5', 'title' => 'No state' }]
+      issues_with_no_state = [{ id: 'issue5', title: 'No state' }]
 
       result = described_class.count_issues_by_status(issues_with_no_state)
 
@@ -104,7 +106,7 @@ RSpec.describe LinearCli::Analytics::Reporting do
     end
 
     it 'uses "Unknown" for issues with no team' do
-      issues_with_no_team = [{ 'id' => 'issue5', 'title' => 'No team' }]
+      issues_with_no_team = [{ id: 'issue5', title: 'No team' }]
 
       result = described_class.count_issues_by_team(issues_with_no_team)
 
@@ -149,12 +151,12 @@ RSpec.describe LinearCli::Analytics::Reporting do
       expect(result[:team_capitalization]['Engineering'][:capitalized]).to eq(2)
       expect(result[:team_capitalization]['Engineering'][:non_capitalized]).to eq(1)
       expect(result[:team_capitalization]['Engineering'][:total]).to eq(3)
-      expect(result[:team_capitalization]['Engineering'][:capitalization_rate]).to eq(66.67)
+      expect(result[:team_capitalization]['Engineering'][:percentage]).to eq(66.67)
 
       expect(result[:team_capitalization]['Design'][:capitalized]).to eq(0)
       expect(result[:team_capitalization]['Design'][:non_capitalized]).to eq(1)
       expect(result[:team_capitalization]['Design'][:total]).to eq(1)
-      expect(result[:team_capitalization]['Design'][:capitalization_rate]).to eq(0)
+      expect(result[:team_capitalization]['Design'][:percentage]).to eq(0)
     end
   end
 

@@ -192,3 +192,75 @@
   - Better visual distinction between different types of data
   - Improved user experience with color-coded metrics
   - More professional presentation of capitalization metrics 
+
+## Engineer Workload Analysis
+
+- **Decision**: Add engineer workload analysis showing project contributions over time
+- **Context**: Organizations need to track how engineers are distributing their time across projects for better resource planning
+- **Implementation**:
+  - Created a dedicated `engineer_workload` command in the Analytics module
+  - Designed a data structure that organizes by team → project → engineer
+  - Calculated contribution percentages based on story point estimates
+  - Implemented monthly view going back 6 months for trend analysis
+  - Used Terminal::Table for clear tabular presentation
+- **Consequences**:
+  - Better visibility into how engineers distribute their work across projects
+  - Historical trend data to analyze resource allocation changes
+  - Ability to identify engineers' focus areas and project contributions
+  - Enhanced decision-making for project staffing and resource allocation
+  - Improved tracking of engineer productivity and project investment 
+
+## Enhanced Test Data Generator for Workload Analysis
+
+- **Decision**: Enhance the data generator to create realistic test data for engineer workload reporting
+- **Context**: The engineer workload report requires historical data with story points and consistent patterns to properly test and demonstrate the feature
+- **Implementation**:
+  - Updated the generator to create issues with story point estimates
+  - Added time-based generation spanning multiple months (up to 6 months of history)
+  - Created consistent distribution patterns of engineers across projects
+  - Generated varying story point values to simulate different issue complexities
+  - Added command-line options to control the volume and characteristics of generated data
+- **Consequences**:
+  - Easier testing and demonstration of the engineer workload report
+  - More realistic data that mimics real-world work patterns
+  - Better ability to spot trends and patterns in the generated reports
+  - Improved ability to validate the workload analysis functionality
+  - More comprehensive test coverage for the analytics module 
+
+## Lifecycle-Aware Test Data Generation
+
+- **Decision**: Enhance the test data generator to simulate realistic issue lifecycle states
+- **Context**: Testing time-based analytics requires issues in various states (backlog, in progress, completed) with appropriate timestamps
+- **Implementation**:
+  - Added support for marking issues with appropriate workflow states (backlog, in-progress, completed)
+  - Created a realistic distribution where older issues are more likely to be completed
+  - Set appropriate workflow states based on issue status (backlog, in progress, done)
+  - Generated issues across multiple months to simulate project progress over time
+  - Added status information to issue descriptions for easier debugging and verification
+- **Consequences**:
+  - More realistic simulation of actual project activity over time
+  - Better testing for analytics that depend on issue completion status
+  - Improved ability to validate time-based reports and burndown charts
+  - More accurate representation of development team velocity over time
+  - Enhanced usefulness of generated test data for demonstrations 
+- **Implementation Notes**:
+  - Direct setting of `completedAt` and `startedAt` dates is not supported by the Linear API
+  - Instead, we set the issue to a "completed" workflow state which implicitly marks it as completed
+  - Status information is added to the issue description to maintain traceability 
+
+## Enhanced Test Data Generator with Actual User Assignments
+
+- **Decision**: Modify the test data generator to assign issues to actual users on the Linear account
+- **Context**: Previously, the generator created issues with fictional engineer assignments, which didn't allow for realistic testing of assignment-based reports and filters
+- **Implementation**:
+  - Added ability to assign issues to real users from the teams
+  - Implemented a configurable percentage (default 70%) of issues to assign to real users
+  - Added fallback to fictional engineers when no real users are available
+  - Maintained backward compatibility with fictional engineer assignments
+  - Added clear indication in issue descriptions of whether they are assigned to real or fictional users
+- **Consequences**:
+  - More realistic testing with actual user accounts
+  - Ability to test user-specific filters and reports with generated data
+  - Better simulation of real-world workflows
+  - Improved testing of assignment-based analytics
+  - Options to control the percentage of real vs. fictional assignments for flexibility 

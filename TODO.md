@@ -62,6 +62,8 @@
 - [x] Implement team completion rate metrics
 - [x] Add software capitalization analysis and reporting
 - [x] Add enhanced capitalization reporting with project and engineer workload metrics
+- [x] Enhance test data generator for workload analysis testing
+- [x] Add support for assigning generated issues to actual users on the Linear account
 - [ ] Add visualization for burndown charts
 - [ ] Support exporting reports to CSV/Excel
 
@@ -81,4 +83,5 @@
 - [ ] Cycle time and lead time analysis
 - [ ] Advanced team performance metrics
 - [ ] Issue aging reports
-- [ ] Custom analytics dashboards 
+- [ ] Custom analytics dashboards
+- [x] Engineer workload analysis and project contribution metrics 

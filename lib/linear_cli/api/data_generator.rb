@@ -1,4 +1,5 @@
 require_relative 'queries/generator'
+require_relative 'queries/issues'
 
 module LinearCli
   module API
@@ -74,11 +75,14 @@ module LinearCli
       # @param team_id [String] Team ID
       # @param options [Hash] Additional issue options
       # @option options [String] :description Issue description
-      # @option options [String] :assignee_id Assignee ID
+      # @option options [String] :assignee_id Assignee ID (can be an actual user ID from the Linear account)
       # @option options [String] :state_id State ID
       # @option options [Integer] :priority Priority (0-4)
       # @option options [Array<String>] :label_ids Label IDs
       # @option options [String] :project_id Project ID
+      # @option options [Integer] :estimate Story points estimate
+      # @option options [String] :completed_at ISO8601 formatted completion date
+      # @option options [String] :started_at ISO8601 formatted start date (Note: Not directly supported by Linear API)
       # @return [Hash] Created issue data
       def create_issue(title, team_id, options = {})
         query = LinearCli::API::Queries::Generator.create_issue
@@ -97,15 +101,78 @@ module LinearCli
         variables[:input][:priority] = options[:priority] if options[:priority]
         variables[:input][:labelIds] = options[:label_ids] if options[:label_ids]
         variables[:input][:projectId] = options[:project_id] if options[:project_id]
+        variables[:input][:estimate] = options[:estimate] if options[:estimate]
+        variables[:input][:completedAt] = options[:completed_at] if options[:completed_at]
+        # startedAt is not directly supported by the Linear API
+        # We'll include the start date in the description instead
 
-        response = @client.query(query, variables)
+        # Log the variables being sent to aid in debugging
+        puts "DEBUG: Creating issue with variables: #{variables.inspect}" if ENV['LINEAR_CLI_DEBUG']
 
-        raise "Failed to create issue: #{response.inspect}" unless response.dig('issueCreate', 'success')
+        begin
+          response = @client.query(query, variables)
 
-        issue = response.dig('issueCreate', 'issue')
-        @created_issues << issue
+          unless response.dig('issueCreate', 'success')
+            error_message = response.dig('issueCreate', 'errors')&.first
+            raise "Failed to create issue: API reported failure. #{error_message ? "Error: #{error_message}" : ''} Response: #{response.inspect}"
+          end
 
-        issue
+          issue = response.dig('issueCreate', 'issue')
+          @created_issues << issue
+
+          issue
+        rescue StandardError => e
+          puts "DEBUG: Exception details: #{e.class}: #{e.message}" if ENV['LINEAR_CLI_DEBUG']
+          puts "DEBUG: Full API request: #{variables.inspect}" if ENV['LINEAR_CLI_DEBUG']
+          raise e
+        end
+      end
+
+      # Update an existing issue
+      # @param id [String] Issue ID
+      # @param options [Hash] Update options
+      # @option options [String] :title Issue title
+      # @option options [String] :description Issue description
+      # @option options [String] :assignee_id Assignee ID
+      # @option options [String] :state_id State ID
+      # @option options [Integer] :priority Priority (0-4)
+      # @option options [Integer] :estimate Story points estimate
+      # @option options [String] :completed_at ISO8601 formatted completion date
+      # @return [Hash] Updated issue data
+      def update_issue(id, options = {})
+        query = LinearCli::API::Queries::Issues.update_issue
+
+        variables = {
+          id: id,
+          input: {}
+        }
+
+        # Add fields to update
+        variables[:input][:title] = options[:title] if options[:title]
+        variables[:input][:description] = options[:description] if options[:description]
+        variables[:input][:assigneeId] = options[:assignee_id] if options[:assignee_id]
+        variables[:input][:stateId] = options[:state_id] if options[:state_id]
+        variables[:input][:priority] = options[:priority] if options[:priority]
+        variables[:input][:estimate] = options[:estimate] if options[:estimate]
+        variables[:input][:completedAt] = options[:completed_at] if options[:completed_at]
+
+        # Log the variables being sent to aid in debugging
+        puts "DEBUG: Updating issue with variables: #{variables.inspect}" if ENV['LINEAR_CLI_DEBUG']
+
+        begin
+          response = @client.query(query, variables)
+
+          unless response.dig('issueUpdate', 'success')
+            error_message = response.dig('issueUpdate', 'errors')&.first
+            raise "Failed to update issue: API reported failure. #{error_message ? "Error: #{error_message}" : ''} Response: #{response.inspect}"
+          end
+
+          response.dig('issueUpdate', 'issue')
+        rescue StandardError => e
+          puts "DEBUG: Exception details: #{e.class}: #{e.message}" if ENV['LINEAR_CLI_DEBUG']
+          puts "DEBUG: Full API request: #{variables.inspect}" if ENV['LINEAR_CLI_DEBUG']
+          raise e
+        end
       end
 
       # Get all created teams
