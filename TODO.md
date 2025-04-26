@@ -37,8 +37,8 @@
 
 ## Documentation
 - [x] Create README with installation and usage instructions
-- [ ] Add command reference documentation
-- [ ] Document configuration options
+- [x] Add command reference documentation
+- [x] Document configuration options
 
 ## Packaging and Distribution
 - [ ] Package as a Ruby gem
