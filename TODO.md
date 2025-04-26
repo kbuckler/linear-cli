@@ -25,7 +25,7 @@
   - [ ] Optional fields: description, assignee, status, priority, labels
 - [ ] Update issues (`linear issues update <id>`)
   - [ ] Support updating any field
-- [ ] Comment on issues (`linear issues comment <id>`)
+- [x] Comment on issues (`linear issues comment <id>`)
 - [ ] List teams (`linear teams list`)
 - [ ] List projects (`linear projects list`)
 
