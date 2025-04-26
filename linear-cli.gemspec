@@ -3,8 +3,8 @@ require_relative 'lib/linear_cli/version'
 Gem::Specification.new do |spec|
   spec.name          = 'linear-cli'
   spec.version       = LinearCli::VERSION
-  spec.authors       = ['Linear CLI Contributors']
-  spec.email         = ['support@example.com']
+  spec.authors       = ['Kenny Buckler']
+  spec.email         = ['kbuckler@gmail.com']
 
   spec.summary       = 'Command-line interface for Linear issue tracking'
   spec.description   = 'A Ruby CLI tool that allows AI assistants (and humans) to interact with the Linear issue tracking system'
@@ -17,7 +17,7 @@ Gem::Specification.new do |spec|
   spec.metadata['changelog_uri'] = "#{spec.homepage}/blob/main/CHANGELOG.md"
 
   # Specify which files should be added to the gem when it is released.
-  spec.files = Dir.glob('{bin,lib}/**/*') + %w[README.md LICENSE.txt]
+  spec.files = Dir.glob('{bin,lib}/**/*') + %w[README.md LICENSE]
   spec.bindir        = 'bin'
   spec.executables   = ['linear']
   spec.require_paths = ['lib']
