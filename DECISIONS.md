@@ -223,3 +223,17 @@
   - Reduces risk of accidental mutations when running CLI commands
   - Better aligns with the principle of "safe by default"
   - Note: This is a breaking change from previous behavior where mutations were allowed by default 
+
+## Table Rendering Orientation
+
+- **Decision**: Ensure all TTY::Table renderings maintain horizontal orientation
+- **Context**: Tables were exceeding the set width, causing errors with message "the table size exceeds the currently set width"
+- **Implementation**:
+  - Added `resize: false` to all TTY::Table render calls
+  - Removed explicit width constraints but kept column width specifications
+  - Maintained existing padding for consistent visual appearance
+- **Consequences**:
+  - Tables will always display in horizontal orientation
+  - Column sizes will adapt to content while maintaining minimum widths
+  - Consistent display across all table rendering in the application
+  - Improved user experience with more readable tabular data 

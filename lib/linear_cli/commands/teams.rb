@@ -7,27 +7,27 @@ module LinearCli
     # Command group for managing Linear teams
     class Teams < Thor
       package_name 'linear teams'
-      
+
       desc 'list', 'List Linear teams'
       def list
         client = LinearCli::API::Client.new
-        
+
         # Execute the query
         result = client.query(LinearCli::API::Queries::Teams.list_teams)
         teams = result['teams']['nodes']
-        
+
         if teams.empty?
-          puts "No teams found."
+          puts 'No teams found.'
           return
         end
-        
+
         # Create a table for display
         table = TTY::Table.new(
-          header: ['Key', 'Name', 'Members', 'States'],
+          header: %w[Key Name Members States],
           rows: teams.map do |team|
             members_count = team['members']['nodes'].size
             states_count = team['states']['nodes'].size
-            
+
             [
               team['key'],
               team['name'],
@@ -36,29 +36,29 @@ module LinearCli
             ]
           end
         )
-        
+
         pastel = Pastel.new
         puts pastel.bold("Linear Teams (#{teams.size}):")
-        puts table.render(:unicode, padding: [0, 1, 0, 1])
+        puts table.render(:unicode, padding: [0, 1, 0, 1], resize: false)
       end
-      
+
       desc 'view ID', 'View details of a specific team'
       def view(id)
         client = LinearCli::API::Client.new
-        
+
         # Execute the query
         result = client.query(LinearCli::API::Queries::Teams.get_team, { id: id })
         team = result['team']
-        
+
         if team.nil?
           puts "Team not found: #{id}"
           return
         end
-        
+
         pastel = Pastel.new
         puts pastel.bold("#{team['key']}: #{team['name']}")
         puts "Description: #{team['description'] || 'No description provided.'}"
-        
+
         # Display members
         puts "\nMembers:"
         if team['members'] && !team['members']['nodes'].empty?
@@ -67,14 +67,14 @@ module LinearCli
             puts "- #{user['name']} (#{user['email']})"
           end
         else
-          puts "No members."
+          puts 'No members.'
         end
-        
+
         # Display states
         puts "\nStates:"
         if team['states'] && !team['states']['nodes'].empty?
           states_table = TTY::Table.new(
-            header: ['Name', 'Color', 'Position'],
+            header: %w[Name Color Position],
             rows: team['states']['nodes'].map do |state|
               [
                 state['name'],
@@ -83,16 +83,16 @@ module LinearCli
               ]
             end
           )
-          puts states_table.render(:unicode, padding: [0, 1, 0, 1])
+          puts states_table.render(:unicode, padding: [0, 1, 0, 1], resize: false)
         else
-          puts "No states."
+          puts 'No states.'
         end
-        
+
         # Display labels
         puts "\nLabels:"
         if team['labels'] && !team['labels']['nodes'].empty?
           labels_table = TTY::Table.new(
-            header: ['Name', 'Color'],
+            header: %w[Name Color],
             rows: team['labels']['nodes'].map do |label|
               [
                 label['name'],
@@ -100,11 +100,11 @@ module LinearCli
               ]
             end
           )
-          puts labels_table.render(:unicode, padding: [0, 1, 0, 1])
+          puts labels_table.render(:unicode, padding: [0, 1, 0, 1], resize: false)
         else
-          puts "No labels."
+          puts 'No labels.'
         end
-        
+
         # Display cycles
         puts "\nCycles:"
         if team['cycles'] && !team['cycles']['nodes'].empty?
@@ -118,11 +118,11 @@ module LinearCli
               ]
             end
           )
-          puts cycles_table.render(:unicode, padding: [0, 1, 0, 1])
+          puts cycles_table.render(:unicode, padding: [0, 1, 0, 1], resize: false)
         else
-          puts "No cycles."
+          puts 'No cycles.'
         end
       end
     end
   end
-end 
+end

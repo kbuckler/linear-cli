@@ -113,8 +113,9 @@ module LinearCli
 
           # Use a compact format for detailed view
           table = TTY::Table.new(header: header, rows: rows)
-          puts table.render(:unicode, width: 180, resize: true) do |renderer|
+          puts table.render(:unicode, resize: false) do |renderer|
             renderer.border.separator = :each_row
+            # Set minimum column widths but don't restrict maximum widths
             renderer.width = [10, 30, 12, 15, 10, 10, 15, 20, 10]
           end
         else

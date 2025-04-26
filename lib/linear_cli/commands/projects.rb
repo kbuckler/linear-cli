@@ -7,27 +7,27 @@ module LinearCli
     # Command group for managing Linear projects
     class Projects < Thor
       package_name 'linear projects'
-      
+
       desc 'list', 'List Linear projects'
       def list
         client = LinearCli::API::Client.new
-        
+
         # Execute the query
         result = client.query(LinearCli::API::Queries::Projects.list_projects)
         projects = result['projects']['nodes']
-        
+
         if projects.empty?
-          puts "No projects found."
+          puts 'No projects found.'
           return
         end
-        
+
         # Create a table for display
         table = TTY::Table.new(
-          header: ['Name', 'State', 'Progress', 'Teams', 'Lead'],
+          header: %w[Name State Progress Teams Lead],
           rows: projects.map do |project|
             lead_name = project['lead'] ? project['lead']['name'] : 'None'
             teams = project['teams']['nodes'].map { |t| t['name'] }.join(', ')
-            
+
             [
               project['name'],
               project['state'],
@@ -37,25 +37,25 @@ module LinearCli
             ]
           end
         )
-        
+
         pastel = Pastel.new
         puts pastel.bold("Linear Projects (#{projects.size}):")
-        puts table.render(:unicode, padding: [0, 1, 0, 1])
+        puts table.render(:unicode, padding: [0, 1, 0, 1], resize: false)
       end
-      
+
       desc 'view ID', 'View details of a specific project'
       def view(id)
         client = LinearCli::API::Client.new
-        
+
         # Execute the query
         result = client.query(LinearCli::API::Queries::Projects.get_project, { id: id })
         project = result['project']
-        
+
         if project.nil?
           puts "Project not found: #{id}"
           return
         end
-        
+
         pastel = Pastel.new
         puts pastel.bold(project['name'])
         puts "State: #{project['state']}"
@@ -65,7 +65,7 @@ module LinearCli
         puts "Target Date: #{project['targetDate'] || 'Not set'}"
         puts "\nDescription:"
         puts project['description'] || 'No description provided.'
-        
+
         # Display teams
         puts "\nTeams:"
         if project['teams'] && !project['teams']['nodes'].empty?
@@ -73,9 +73,9 @@ module LinearCli
             puts "- #{team['name']}"
           end
         else
-          puts "No teams."
+          puts 'No teams.'
         end
-        
+
         # Display members
         puts "\nMembers:"
         if project['members'] && !project['members']['nodes'].empty?
@@ -83,14 +83,14 @@ module LinearCli
             puts "- #{member['name']}"
           end
         else
-          puts "No members."
+          puts 'No members.'
         end
-        
+
         # Display issues
         puts "\nIssues:"
         if project['issues'] && !project['issues']['nodes'].empty?
           issues_table = TTY::Table.new(
-            header: ['ID', 'Title', 'Status'],
+            header: %w[ID Title Status],
             rows: project['issues']['nodes'].map do |issue|
               [
                 issue['identifier'],
@@ -99,11 +99,11 @@ module LinearCli
               ]
             end
           )
-          puts issues_table.render(:unicode, padding: [0, 1, 0, 1])
+          puts issues_table.render(:unicode, padding: [0, 1, 0, 1], resize: false)
         else
-          puts "No issues."
+          puts 'No issues.'
         end
       end
     end
   end
-end 
+end

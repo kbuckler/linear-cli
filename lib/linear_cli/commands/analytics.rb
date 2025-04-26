@@ -552,7 +552,7 @@ module LinearCli
                 rows
               )
 
-              puts table.render(:unicode, padding: [0, 1])
+              puts table.render(:unicode, padding: [0, 1], resize: false)
             end
           end
         end
