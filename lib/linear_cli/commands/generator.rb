@@ -122,9 +122,11 @@ module LinearCli
 
       desc 'dump', 'Dump detailed reporting data from Linear (DEPRECATED)'
       long_desc <<-LONGDESC
-        DEPRECATED: This command has been moved to 'linear analytics report'.
+        DEPRECATED: This command has been moved to 'linear analytics dump'.
 
-        Please use 'linear analytics report' instead for all reporting needs.
+        Please use 'linear analytics dump' instead for backward compatibility,
+        or 'linear analytics report' for the latest implementation.
+
         This command will be removed in a future version.
       LONGDESC
       option :format,
@@ -135,8 +137,9 @@ module LinearCli
       def dump
         puts 'DEPRECATED: The dump command has been moved to the analytics module.'
         puts 'Please use one of the following commands instead:'
-        puts '  linear analytics report           # For comprehensive reports'
-        puts '  linear analytics capitalization   # For capitalization metrics'
+        puts '  linear analytics dump           # Direct replacement (for compatibility)'
+        puts '  linear analytics report         # For comprehensive reports'
+        puts '  linear analytics capitalization # For capitalization metrics only'
         puts "\nThis command will be removed in a future version."
       end
 

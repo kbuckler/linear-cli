@@ -108,6 +108,24 @@ module LinearCli
         end
       end
 
+      desc 'dump', 'Alias for report (for backward compatibility)'
+      long_desc <<-LONGDESC
+        This is an alias for the 'report' command to maintain backward compatibility#{' '}
+        with workflows that previously used 'linear generator dump'.
+
+        For new scripts or workflows, please consider using 'linear analytics report' instead.
+
+        See 'linear analytics help report' for full documentation.
+      LONGDESC
+      option :format,
+             type: :string,
+             desc: 'Output format (json or table)',
+             default: 'table',
+             required: false
+      def dump
+        report
+      end
+
       private
 
       def fetch_teams(client)

@@ -141,8 +141,10 @@
   - Added a dedicated `capitalization` command for targeted capitalization reporting
   - Moved common reporting code from generator to the analytics command
   - Added deprecation notice to the old `generator dump` command
+  - Added a `dump` command to analytics as an alias for `report` to maintain backward compatibility
 - **Consequences**:
   - Better separation of concerns between data generation and reporting
   - More intuitive CLI structure for users
   - Easier to extend reporting capabilities in the future
-  - Deprecation approach ensures backward compatibility during transition 
+  - Deprecation approach ensures backward compatibility during transition
+  - Full compatibility with existing scripts that used `generator dump` is maintained via the alias 

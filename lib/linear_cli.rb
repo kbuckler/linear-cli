@@ -67,6 +67,7 @@ module LinearCli
         puts '    - Displays software capitalization metrics'
         puts '    - Shows issue distribution by status and team'
         puts '  linear analytics capitalization # Generate capitalization metrics report'
+        puts '  linear analytics dump        # Alias for report (backward compatibility)'
 
         puts "\nFor more information on a specific command, run 'linear help COMMAND'"
         puts "For detailed help on a subcommand, run 'linear help COMMAND SUBCOMMAND'"
