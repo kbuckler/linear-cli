@@ -64,12 +64,20 @@ linear teams list
 linear projects list
 ```
 
+For detailed documentation on all commands and options, see the [Command Reference](docs/COMMANDS.md).
+
 ## Getting a Linear API Key
 
 1. Log in to your Linear account
 2. Go to Settings > API > Personal API keys
 3. Create a new API key with appropriate scopes
 4. Copy the API key and add it to your `.env` file
+
+For detailed step-by-step instructions with screenshots, see [How to Obtain a Linear API Key](docs/API_KEY.md).
+
+## Configuration
+
+Linear CLI can be configured using environment variables or a `.env` file. For details on all configuration options, see the [Configuration Guide](docs/CONFIGURATION.md).
 
 ## Development
 
