@@ -149,9 +149,74 @@ module LinearCli
         puts "Overall Capitalization Rate: #{capitalization_data[:capitalization_rate]}%"
         puts '(Capitalization determined by project labels only)'
 
-        return unless capitalization_data[:team_capitalization].any?
+        # Display capitalized projects
+        if capitalization_data[:capitalized_projects]
+          display_capitalized_projects(capitalization_data[:capitalized_projects])
+        end
 
-        display_team_capitalization_table(capitalization_data[:team_capitalization])
+        # Display team capitalization breakdown
+        if capitalization_data[:team_capitalization].any?
+          display_team_capitalization_table(capitalization_data[:team_capitalization])
+        end
+
+        # Display engineer workload metrics
+        return unless capitalization_data[:engineer_workload]&.any?
+
+        display_engineer_workload(capitalization_data[:engineer_workload])
+      end
+
+      # Display capitalized projects
+      # @param capitalized_projects [Array] List of capitalized projects
+      # @return [void]
+      def self.display_capitalized_projects(capitalized_projects)
+        return if capitalized_projects.empty?
+
+        puts "\nCapitalized Projects:"
+        if in_test_environment?
+          puts 'ID | Name'
+          puts '---+------'
+          capitalized_projects.each do |project|
+            puts "#{project[:id]} | #{project[:name]}"
+          end
+        else
+          table = TTY::Table.new(
+            %w[ID Name],
+            capitalized_projects.map { |p| [p[:id], p[:name]] }
+          )
+          puts table.render(:unicode, padding: [0, 1])
+        end
+      end
+
+      # Display engineer workload table
+      # @param engineer_workload [Hash] Engineer workload data
+      # @return [void]
+      def self.display_engineer_workload(engineer_workload)
+        return if engineer_workload.empty?
+
+        puts "\nEngineer Capitalization Workload:"
+        if in_test_environment?
+          puts 'Engineer | Total Issues | Cap Issues | % of Issues | Total Est | Cap Est | % of Est'
+          puts '---------+---------------+----------- +-----------+-----------+----------+--------'
+          engineer_workload.each do |engineer, data|
+            puts "#{engineer} | #{data[:total_issues]} | #{data[:capitalized_issues]} | #{data[:percentage]}% | #{data[:total_estimate]} | #{data[:capitalized_estimate]} | #{data[:estimate_percentage]}%"
+          end
+        else
+          table = TTY::Table.new(
+            ['Engineer', 'Total Issues', 'Cap Issues', '% of Issues', 'Total Est', 'Cap Est', '% of Est'],
+            engineer_workload.map do |engineer, data|
+              [
+                engineer,
+                data[:total_issues],
+                data[:capitalized_issues],
+                "#{data[:percentage]}%",
+                data[:total_estimate],
+                data[:capitalized_estimate],
+                "#{data[:estimate_percentage]}%"
+              ]
+            end
+          )
+          puts table.render(:unicode, padding: [0, 1])
+        end
       end
 
       # Display team capitalization table

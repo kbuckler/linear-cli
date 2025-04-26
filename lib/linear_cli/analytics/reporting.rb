@@ -47,13 +47,16 @@ module LinearCli
       def self.calculate_capitalization_metrics(issues, projects = [],
                                                 labels = ['capitalization', 'capex', 'fixed asset'])
         # Identify capitalized projects by their labels
-        capitalized_project_ids = projects.select do |project|
+        capitalized_projects = projects.select do |project|
           next false unless project['labels'] && project['labels']['nodes']
 
           project['labels']['nodes'].any? do |label|
             labels.any? { |cap_label| label['name'].downcase.include?(cap_label.downcase) }
           end
-        end.map { |p| p['id'] }
+        end
+
+        capitalized_project_ids = capitalized_projects.map { |p| p['id'] }
+        capitalized_project_names = capitalized_projects.map { |p| p['name'] }
 
         # Filter issues based on whether they belong to capitalized projects
         capitalized_issues = issues.select do |issue|
@@ -81,12 +84,49 @@ module LinearCli
           }
         end
 
+        # Calculate engineer workload metrics
+        engineer_workload = {}
+
+        # Group issues by assignee
+        assignee_issues = issues.reject { |i| i['assignee'].nil? }
+                                .group_by { |i| i['assignee']['name'] }
+
+        assignee_issues.each do |engineer_name, eng_issues|
+          # Calculate how many issues are for capitalized projects
+          eng_capitalized_issues = eng_issues.select do |issue|
+            issue.dig('project', 'id') && capitalized_project_ids.include?(issue.dig('project', 'id'))
+          end
+
+          total_issues = eng_issues.size
+          capitalized_count = eng_capitalized_issues.size
+
+          # Calculate total estimates (if available)
+          total_estimate = eng_issues.sum { |i| i['estimate'].to_f }
+          capitalized_estimate = eng_capitalized_issues.sum { |i| i['estimate'].to_f }
+
+          # Determine percentage of work on capitalized projects
+          cap_percentage = total_issues > 0 ? (capitalized_count.to_f / total_issues * 100).round(2) : 0
+          estimate_percentage = total_estimate > 0 ? (capitalized_estimate / total_estimate * 100).round(2) : 0
+
+          engineer_workload[engineer_name] = {
+            total_issues: total_issues,
+            capitalized_issues: capitalized_count,
+            non_capitalized_issues: total_issues - capitalized_count,
+            percentage: cap_percentage,
+            total_estimate: total_estimate,
+            capitalized_estimate: capitalized_estimate,
+            estimate_percentage: estimate_percentage
+          }
+        end
+
         {
           capitalized_count: capitalized_issues.size,
           non_capitalized_count: non_capitalized_issues.size,
           total_issues: issues.size,
           capitalization_rate: issues.size > 0 ? (capitalized_issues.size.to_f / issues.size * 100).round(2) : 0,
-          team_capitalization: team_capitalization
+          team_capitalization: team_capitalization,
+          capitalized_projects: capitalized_projects.map { |p| { id: p['id'], name: p['name'] } },
+          engineer_workload: engineer_workload
         }
       end
 

@@ -161,4 +161,19 @@
   - Cleaner, more focused command structure
   - Simplified mental model for users (report vs capitalization rather than dump vs report)
   - Minor breaking change for any scripts using the temporary `analytics dump` command
-  - Better aligned with the principle of having a single, obvious way to accomplish a task 
+  - Better aligned with the principle of having a single, obvious way to accomplish a task
+
+## Enhanced Capitalization Reporting
+
+- **Decision**: Enhance the capitalization reporting to track projects and engineer workload
+- **Context**: Organizations need more detailed analysis of capitalization metrics to track financial data accurately
+- **Implementation**:
+  - Added list of specific capitalized projects to the report output
+  - Added engineer workload metrics showing time allocation on capitalized vs. non-capitalized work
+  - Added time-period filtering to allow monthly/quarterly/yearly analysis
+  - Enhanced GraphQL queries to include additional data needed for time and workload calculations
+- **Consequences**:
+  - More comprehensive capitalization tracking for financial reporting
+  - Better ability to analyze engineer time allocation across capitalized projects
+  - Ability to generate time-based reports for different financial periods
+  - Improved tracking of project-based capitalization metrics 

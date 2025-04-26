@@ -190,6 +190,7 @@ module LinearCli
                   assignee {
                     id
                     name
+                    email
                   }
                   team {
                     id
@@ -207,9 +208,11 @@ module LinearCli
                       name
                     }
                   }
+                  estimate
+                  startedAt
+                  completedAt
                   createdAt
                   updatedAt
-                  completedAt
                 }
               }
             }
