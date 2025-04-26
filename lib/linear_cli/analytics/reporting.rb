@@ -39,95 +39,187 @@ module LinearCli
         end
       end
 
-      # Calculate software capitalization metrics on a per-project basis
-      # @param issues [Array<Hash>] List of issues
-      # @param projects [Array<Hash>] List of projects
-      # @param labels [Array<String>] List of capitalization labels to identify capitalized projects
+      # Calculate capitalization metrics from issues
+      # @param issues [Array<Hash>] Array of issues to analyze
+      # @param capitalization_labels [Array<String>] Project labels that indicate capitalization
       # @return [Hash] Capitalization metrics
-      def self.calculate_capitalization_metrics(issues, projects = [],
-                                                labels = ['capitalization', 'capex', 'fixed asset'])
-        # Identify capitalized projects by their labels
-        capitalized_projects = projects.select do |project|
-          next false unless project['labels'] && project['labels']['nodes']
+      def self.calculate_capitalization_metrics(issues,
+                                                capitalization_labels = ['capitalization', 'capex', 'fixed asset'])
+        return {} unless issues&.any?
 
-          project['labels']['nodes'].any? do |label|
-            labels.any? { |cap_label| label['name'].downcase.include?(cap_label.downcase) }
+        # Extract projects that have capitalization labels
+        all_projects = issues.map { |i| i[:project] }.compact.uniq
+
+        capitalized_projects = all_projects.select do |project|
+          next false unless project[:labels]&.any?
+
+          project[:labels].any? do |label|
+            capitalization_labels.include?(label[:name].downcase)
           end
         end
 
-        capitalized_project_ids = capitalized_projects.map { |p| p['id'] }
-        capitalized_project_names = capitalized_projects.map { |p| p['name'] }
+        capitalized_project_ids = capitalized_projects.map { |p| p[:id] }
+        capitalized_project_names = capitalized_projects.map { |p| p[:name] }
 
-        # Filter issues based on whether they belong to capitalized projects
-        capitalized_issues = issues.select do |issue|
-          issue.dig('project', 'id') && capitalized_project_ids.include?(issue.dig('project', 'id'))
-        end
-
+        # Filter issues into capitalized vs non-capitalized
+        capitalized_issues = issues.select { |i| i[:project] && capitalized_project_ids.include?(i[:project][:id]) }
         non_capitalized_issues = issues - capitalized_issues
 
+        capitalized_count = capitalized_issues.size
+        non_capitalized_count = non_capitalized_issues.size
+        total_issues = issues.size
+        capitalization_rate = total_issues.zero? ? 0 : ((capitalized_count.to_f / total_issues) * 100).round(2)
+
         # Calculate team capitalization metrics
-        team_capitalization = issues
-                              .group_by { |i| i.dig('team', 'name') || 'Unknown' }
-                              .transform_values do |team_issues|
-          team_capitalized_issues = team_issues.select do |issue|
-            capitalized_issues.any? { |cap_issue| cap_issue['id'] == issue['id'] }
-          end
-
-          capitalized = team_capitalized_issues.size
-          total = team_issues.size
-
-          {
-            capitalized: capitalized,
-            non_capitalized: total - capitalized,
-            total: total,
-            capitalization_rate: total > 0 ? (capitalized.to_f / total * 100).round(2) : 0
-          }
-        end
+        team_capitalization = calculate_team_capitalization(capitalized_issues, non_capitalized_issues)
 
         # Calculate engineer workload metrics
-        engineer_workload = {}
+        engineer_workload = calculate_engineer_workload(issues, capitalized_project_ids)
 
-        # Group issues by assignee
-        assignee_issues = issues.reject { |i| i['assignee'].nil? }
-                                .group_by { |i| i['assignee']['name'] }
+        # Group engineers by capitalized project
+        project_engineer_workload = calculate_project_engineer_workload(issues, capitalized_projects)
 
-        assignee_issues.each do |engineer_name, eng_issues|
-          # Calculate how many issues are for capitalized projects
-          eng_capitalized_issues = eng_issues.select do |issue|
-            issue.dig('project', 'id') && capitalized_project_ids.include?(issue.dig('project', 'id'))
+        {
+          capitalized_count: capitalized_count,
+          non_capitalized_count: non_capitalized_count,
+          total_issues: total_issues,
+          capitalization_rate: capitalization_rate,
+          team_capitalization: team_capitalization,
+          engineer_workload: engineer_workload,
+          capitalized_projects: capitalized_projects.map { |p| { id: p[:id], name: p[:name] } },
+          project_engineer_workload: project_engineer_workload
+        }
+      end
+
+      # Calculate team capitalization metrics
+      # @param capitalized_issues [Array<Hash>] Array of capitalized issues
+      # @param non_capitalized_issues [Array<Hash>] Array of non-capitalized issues
+      # @return [Hash] Team capitalization metrics
+      def self.calculate_team_capitalization(capitalized_issues, non_capitalized_issues)
+        teams = {}
+
+        # Process capitalized issues
+        capitalized_issues.each do |issue|
+          team_name = issue.dig(:team, :name) || 'Unassigned'
+          teams[team_name] ||= { capitalized: 0, non_capitalized: 0 }
+          teams[team_name][:capitalized] += 1
+        end
+
+        # Process non-capitalized issues
+        non_capitalized_issues.each do |issue|
+          team_name = issue.dig(:team, :name) || 'Unassigned'
+          teams[team_name] ||= { capitalized: 0, non_capitalized: 0 }
+          teams[team_name][:non_capitalized] += 1
+        end
+
+        # Calculate totals and percentages
+        teams.each do |team, counts|
+          total = counts[:capitalized] + counts[:non_capitalized]
+          counts[:total] = total
+          counts[:percentage] = total.zero? ? 0 : ((counts[:capitalized].to_f / total) * 100).round(2)
+        end
+
+        teams
+      end
+
+      # Calculate engineer workload metrics
+      # @param issues [Array<Hash>] Array of issues to analyze
+      # @param capitalized_project_ids [Array<String>] Array of capitalized project IDs
+      # @return [Hash] Engineer workload metrics
+      def self.calculate_engineer_workload(issues, capitalized_project_ids)
+        engineers = {}
+
+        issues.each do |issue|
+          # Skip issues without an assignee
+          next unless issue[:assignee]
+
+          engineer_name = issue[:assignee][:name] || 'Unassigned'
+          engineers[engineer_name] ||= {
+            total_issues: 0,
+            capitalized_issues: 0,
+            total_estimate: 0,
+            capitalized_estimate: 0
+          }
+
+          engineers[engineer_name][:total_issues] += 1
+          engineers[engineer_name][:total_estimate] += issue[:estimate].to_i
+
+          if issue[:project] && capitalized_project_ids.include?(issue[:project][:id])
+            engineers[engineer_name][:capitalized_issues] += 1
+            engineers[engineer_name][:capitalized_estimate] += issue[:estimate].to_i
           end
+        end
 
-          total_issues = eng_issues.size
-          capitalized_count = eng_capitalized_issues.size
+        # Calculate percentages
+        engineers.each do |_name, stats|
+          stats[:percentage] =
+            stats[:total_issues].zero? ? 0 : ((stats[:capitalized_issues].to_f / stats[:total_issues]) * 100).round(2)
+          stats[:estimate_percentage] =
+            stats[:total_estimate].zero? ? 0 : ((stats[:capitalized_estimate].to_f / stats[:total_estimate]) * 100).round(2)
+        end
 
-          # Calculate total estimates (if available)
-          total_estimate = eng_issues.sum { |i| i['estimate'].to_f }
-          capitalized_estimate = eng_capitalized_issues.sum { |i| i['estimate'].to_f }
+        engineers
+      end
 
-          # Determine percentage of work on capitalized projects
-          cap_percentage = total_issues > 0 ? (capitalized_count.to_f / total_issues * 100).round(2) : 0
-          estimate_percentage = total_estimate > 0 ? (capitalized_estimate / total_estimate * 100).round(2) : 0
+      # Calculate project engineer workload
+      # @param issues [Array<Hash>] Array of issues to analyze
+      # @param capitalized_projects [Array<Hash>] Array of capitalized projects
+      # @return [Hash] Project engineer workload data
+      def self.calculate_project_engineer_workload(issues, capitalized_projects)
+        result = {}
 
-          engineer_workload[engineer_name] = {
-            total_issues: total_issues,
-            capitalized_issues: capitalized_count,
-            non_capitalized_issues: total_issues - capitalized_count,
-            percentage: cap_percentage,
-            total_estimate: total_estimate,
-            capitalized_estimate: capitalized_estimate,
-            estimate_percentage: estimate_percentage
+        # Initialize project data structure
+        capitalized_projects.each do |project|
+          result[project[:name]] = {
+            id: project[:id],
+            total_issues: 0,
+            assigned_issues: 0,
+            engineers: {}
           }
         end
 
-        {
-          capitalized_count: capitalized_issues.size,
-          non_capitalized_count: non_capitalized_issues.size,
-          total_issues: issues.size,
-          capitalization_rate: issues.size > 0 ? (capitalized_issues.size.to_f / issues.size * 100).round(2) : 0,
-          team_capitalization: team_capitalization,
-          capitalized_projects: capitalized_projects.map { |p| { id: p['id'], name: p['name'] } },
-          engineer_workload: engineer_workload
-        }
+        # Process issues
+        issues.each do |issue|
+          next unless issue[:project]
+
+          project = capitalized_projects.find { |p| p[:id] == issue[:project][:id] }
+          next unless project
+
+          project_name = project[:name]
+          result[project_name][:total_issues] += 1
+
+          # Skip issues without an assignee
+          next unless issue[:assignee]
+
+          result[project_name][:assigned_issues] += 1
+
+          engineer_id = issue[:assignee][:id]
+          engineer_name = issue[:assignee][:name]
+          engineer_email = issue[:assignee][:email]
+
+          # Initialize engineer data if not exists
+          result[project_name][:engineers][engineer_id] ||= {
+            id: engineer_id,
+            name: engineer_name,
+            email: engineer_email,
+            issues_count: 0,
+            total_estimate: 0,
+            issues: []
+          }
+
+          # Update engineer data
+          result[project_name][:engineers][engineer_id][:issues_count] += 1
+          result[project_name][:engineers][engineer_id][:total_estimate] += issue[:estimate].to_i
+          result[project_name][:engineers][engineer_id][:issues] << {
+            id: issue[:id],
+            title: issue[:title],
+            estimate: issue[:estimate],
+            started_at: issue[:startedAt],
+            completed_at: issue[:completedAt]
+          }
+        end
+
+        result
       end
 
       # Generate complete report from workspace data

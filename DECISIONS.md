@@ -176,4 +176,19 @@
   - More comprehensive capitalization tracking for financial reporting
   - Better ability to analyze engineer time allocation across capitalized projects
   - Ability to generate time-based reports for different financial periods
-  - Improved tracking of project-based capitalization metrics 
+  - Improved tracking of project-based capitalization metrics
+
+## Enhanced Terminal Output for Analytics
+
+- **Decision**: Use dedicated terminal libraries for improved analytics display
+- **Context**: The analytics module needed more advanced output formatting including tables, colors, and structured display
+- **Implementation**:
+  - Added the `terminal-table` gem for structured tabular output
+  - Added the `colorize` gem for colorizing terminal output
+  - Maintained compatibility with TTY libraries used elsewhere in the application
+  - Improved formatting for percentage values with color-coding based on thresholds
+- **Consequences**:
+  - Enhanced readability of analytics output
+  - Better visual distinction between different types of data
+  - Improved user experience with color-coded metrics
+  - More professional presentation of capitalization metrics 

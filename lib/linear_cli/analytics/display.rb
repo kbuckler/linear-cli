@@ -1,3 +1,7 @@
+require 'terminal-table'
+require 'colorize'
+require 'tty-spinner'
+
 module LinearCli
   module Analytics
     # Display formatting for analytics data
@@ -138,107 +142,158 @@ module LinearCli
 
       # Display capitalization metrics
       # @param capitalization_data [Hash] Capitalization metrics data
-      # @return [void]
-      def self.display_capitalization_metrics(capitalization_data)
-        return unless capitalization_data
+      # @param options [Hash] Display options
+      def self.display_capitalization_metrics(capitalization_data, options = {})
+        return puts 'No capitalization data available.'.yellow unless capitalization_data&.any?
 
-        puts "\nSoftware Capitalization Metrics:"
-        puts "Capitalized Issues: #{capitalization_data[:capitalized_count]}"
-        puts "Non-Capitalized Issues: #{capitalization_data[:non_capitalized_count]}"
-        puts "Total Issues: #{capitalization_data[:total_issues]}"
-        puts "Overall Capitalization Rate: #{capitalization_data[:capitalization_rate]}%"
-        puts '(Capitalization determined by project labels only)'
+        display_overall_capitalization_rate(capitalization_data) if capitalization_data[:capitalization_rate]
 
-        # Display capitalized projects
-        if capitalization_data[:capitalized_projects]
-          display_capitalized_projects(capitalization_data[:capitalized_projects])
-        end
+        display_capitalized_projects(capitalization_data) if capitalization_data[:capitalized_projects]&.any?
 
-        # Display team capitalization breakdown
-        if capitalization_data[:team_capitalization].any?
-          display_team_capitalization_table(capitalization_data[:team_capitalization])
-        end
+        display_team_capitalization(capitalization_data) if capitalization_data[:team_capitalization]&.any?
 
-        # Display engineer workload metrics
-        return unless capitalization_data[:engineer_workload]&.any?
+        display_project_engineer_workload(capitalization_data) if capitalization_data[:project_engineer_workload]&.any?
 
-        display_engineer_workload(capitalization_data[:engineer_workload])
+        display_engineer_workload_summary(capitalization_data) if capitalization_data[:engineer_workload]&.any?
       end
 
-      # Display capitalized projects
-      # @param capitalized_projects [Array] List of capitalized projects
-      # @return [void]
-      def self.display_capitalized_projects(capitalized_projects)
-        return if capitalized_projects.empty?
+      # Display the overall capitalization rate
+      # @param capitalization_data [Hash] Capitalization metrics data
+      def self.display_overall_capitalization_rate(capitalization_data)
+        puts "\n#{'Overall Capitalization Rate:'.bold}"
+        puts "  #{format_percentage(capitalization_data[:capitalization_rate])} of issues (#{capitalization_data[:capitalized_count]}/#{capitalization_data[:total_issues]}) are on capitalized projects"
+      end
 
-        puts "\nCapitalized Projects:"
-        if in_test_environment?
-          puts 'ID | Name'
-          puts '---+------'
-          capitalized_projects.each do |project|
-            puts "#{project[:id]} | #{project[:name]}"
+      # Display the list of capitalized projects
+      # @param capitalization_data [Hash] Capitalization metrics data
+      def self.display_capitalized_projects(capitalization_data)
+        puts "\n#{'Capitalized Projects:'.bold}"
+        capitalization_data[:capitalized_projects].each do |project|
+          puts "  - #{project[:name]}".green
+        end
+      end
+
+      # Display team capitalization metrics
+      # @param capitalization_data [Hash] Capitalization metrics data
+      def self.display_team_capitalization(capitalization_data)
+        puts "\n#{'Team Capitalization Rates:'.bold}"
+
+        rows = []
+        capitalization_data[:team_capitalization].each do |team, metrics|
+          rows << [
+            team,
+            metrics[:capitalized],
+            metrics[:non_capitalized],
+            metrics[:total],
+            format_percentage(metrics[:percentage])
+          ]
+        end
+
+        # Sort by percentage descending
+        rows = rows.sort_by { |row| -row[4].to_f }
+
+        table = Terminal::Table.new(
+          headings: ['Team', 'Capitalized', 'Non-Cap', 'Total', 'Cap %'],
+          rows: rows
+        )
+
+        puts table
+      end
+
+      # Display engineers grouped by capitalized projects
+      # @param capitalization_data [Hash] Capitalization metrics data
+      def self.display_project_engineer_workload(capitalization_data)
+        return if capitalization_data[:project_engineer_workload].empty?
+
+        puts "\n#{'Engineers by Capitalized Project:'.bold}"
+
+        capitalization_data[:project_engineer_workload].each do |project_name, project_data|
+          puts "\n  #{'Project:'.bold} #{project_name.green} (#{project_data[:assigned_issues]}/#{project_data[:total_issues]} assigned issues)"
+
+          # Skip if no engineers on this project
+          next if project_data[:engineers].empty?
+
+          # Build table of engineers for this project
+          rows = []
+          project_data[:engineers].each_value do |engineer|
+            rows << [
+              engineer[:name],
+              engineer[:email],
+              engineer[:issues_count],
+              engineer[:total_estimate]
+            ]
           end
-        else
-          table = TTY::Table.new(
-            %w[ID Name],
-            capitalized_projects.map { |p| [p[:id], p[:name]] }
+
+          # Sort by issue count descending
+          rows = rows.sort_by { |row| -row[2] }
+
+          table = Terminal::Table.new(
+            headings: ['Engineer', 'Email', 'Issues', 'Est. Points'],
+            rows: rows
           )
-          puts table.render(:unicode, padding: [0, 1])
-        end
-      end
 
-      # Display engineer workload table
-      # @param engineer_workload [Hash] Engineer workload data
-      # @return [void]
-      def self.display_engineer_workload(engineer_workload)
-        return if engineer_workload.empty?
+          puts table
 
-        puts "\nEngineer Capitalization Workload:"
-        if in_test_environment?
-          puts 'Engineer | Total Issues | Cap Issues | % of Issues | Total Est | Cap Est | % of Est'
-          puts '---------+---------------+----------- +-----------+-----------+----------+--------'
-          engineer_workload.each do |engineer, data|
-            puts "#{engineer} | #{data[:total_issues]} | #{data[:capitalized_issues]} | #{data[:percentage]}% | #{data[:total_estimate]} | #{data[:capitalized_estimate]} | #{data[:estimate_percentage]}%"
-          end
-        else
-          table = TTY::Table.new(
-            ['Engineer', 'Total Issues', 'Cap Issues', '% of Issues', 'Total Est', 'Cap Est', '% of Est'],
-            engineer_workload.map do |engineer, data|
-              [
-                engineer,
-                data[:total_issues],
-                data[:capitalized_issues],
-                "#{data[:percentage]}%",
-                data[:total_estimate],
-                data[:capitalized_estimate],
-                "#{data[:estimate_percentage]}%"
-              ]
+          # If in test mode, also show issues for each engineer
+          next unless ENV['LINEAR_CLI_TEST']
+
+          puts "\n    #{'Issues by Engineer:'.bold}"
+          project_data[:engineers].each_value do |engineer|
+            puts "    - #{engineer[:name]}:".green
+            engineer[:issues].each do |issue|
+              status = if issue[:completed_at]
+                         'Done'
+                       else
+                         (issue[:started_at] ? 'In Progress' : 'Not Started')
+                       end
+              puts "      ∙ #{issue[:title]} (#{issue[:estimate] || 'no'} points) - #{status}"
             end
-          )
-          puts table.render(:unicode, padding: [0, 1])
+          end
         end
       end
 
-      # Display team capitalization table
-      # @param team_capitalization [Hash] Team capitalization data
-      # @return [void]
-      def self.display_team_capitalization_table(team_capitalization)
-        puts "\nTeam Capitalization Breakdown:"
-        if in_test_environment?
-          puts 'Team | Capitalized | Non-Capitalized | Total | Rate (%)'
-          puts '------+-------------+----------------+-------+--------'
-          team_capitalization.each do |team, data|
-            puts "#{team} | #{data[:capitalized]} | #{data[:non_capitalized]} | #{data[:total]} | #{data[:capitalization_rate]}"
-          end
-        else
-          table = TTY::Table.new(
-            ['Team', 'Capitalized', 'Non-Capitalized', 'Total', 'Rate (%)'],
-            team_capitalization.map do |team, data|
-              [team, data[:capitalized], data[:non_capitalized], data[:total], data[:capitalization_rate]]
-            end
-          )
-          puts table.render(:unicode, padding: [0, 1])
+      # Display engineer workload summary
+      # @param capitalization_data [Hash] Capitalization metrics data
+      def self.display_engineer_workload_summary(capitalization_data)
+        puts "\n#{'Engineer Workload Summary:'.bold}"
+
+        rows = []
+        capitalization_data[:engineer_workload].each do |engineer, metrics|
+          rows << [
+            engineer,
+            metrics[:capitalized_issues],
+            metrics[:total_issues],
+            format_percentage(metrics[:percentage]),
+            metrics[:capitalized_estimate],
+            metrics[:total_estimate],
+            format_percentage(metrics[:estimate_percentage])
+          ]
         end
+
+        # Sort by percentage descending
+        rows = rows.sort_by { |row| -row[3].to_f }
+
+        table = Terminal::Table.new(
+          headings: ['Engineer', 'Cap Issues', 'Total', 'Cap %', 'Cap Points', 'Total Points', 'Cap Points %'],
+          rows: rows
+        )
+
+        puts table
+      end
+
+      # Format a percentage value
+      # @param percentage [Float] Percentage value
+      # @return [String] Formatted and colored percentage string
+      def self.format_percentage(percentage)
+        color = if percentage >= 75
+                  :green
+                elsif percentage >= 50
+                  :yellow
+                else
+                  :red
+                end
+
+        "#{percentage}%".colorize(color)
       end
     end
   end
