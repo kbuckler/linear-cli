@@ -207,6 +207,68 @@ linear projects view ID
 linear projects view project_123
 ```
 
+## Analytics
+
+Commands for generating analytics and reports from your Linear workspace data.
+
+### Generate Comprehensive Report
+
+Generate a comprehensive report of your Linear workspace, including team performance metrics, issue distribution, and capitalization data.
+
+```
+linear analytics report [options]
+```
+
+**Options:**
+- `--format TEXT`: Output format, either 'json' or 'table' (default: 'table')
+- `--team TEXT`: Filter analytics by team name
+
+**Examples:**
+```bash
+# Generate a full workspace report
+linear analytics report
+
+# Export report as JSON for external analysis
+linear analytics report --format json
+
+# Generate report for a specific team
+linear analytics report --team "Engineering"
+```
+
+**Generated Analytics:**
+- **Summary Statistics**: Teams count, projects count, issues count
+- **Status Distribution**: Number of issues in each status category
+- **Team Distribution**: Number of issues assigned to each team
+- **Completion Rates**: Issue completion rate for each team with statistics
+- **Capitalization Metrics**: Project capitalization rates (when applicable)
+
+### Capitalization Reporting
+
+Generate detailed software capitalization metrics, useful for financial reporting and tracking development investments.
+
+```
+linear analytics capitalization [options]
+```
+
+**Options:**
+- `--format TEXT`: Output format, either 'json' or 'table' (default: 'table')
+
+**Examples:**
+```bash
+# Generate capitalization metrics
+linear analytics capitalization
+
+# Export capitalization data as JSON
+linear analytics capitalization --format json
+```
+
+**Generated Analytics:**
+- **Overall Capitalization Rate**: Percentage of issues on capitalized projects
+- **Capitalized Projects**: List of projects marked for capitalization
+- **Team Capitalization**: Team-level breakdown of capitalization rates
+- **Engineer Workload**: Time allocation metrics for engineers on capitalized work
+- **Project Engineer Distribution**: Engineers grouped by capitalized project
+
 ## Data Generator
 
 Commands for generating and analyzing Linear data.
@@ -241,7 +303,9 @@ linear generator populate --teams 3 --projects-per-team 3 --issues-per-project 8
 
 ### Dump Linear Data
 
-Extracts detailed reporting data from your Linear workspace and provides analytics on the data. The command uses a modular analytics system to generate meaningful insights about your workspace.
+> **Note**: This command is deprecated. Please use `linear analytics report` instead.
+
+Extracts detailed reporting data from your Linear workspace and provides analytics on the data.
 
 ```
 linear generator dump [options]
@@ -252,33 +316,9 @@ linear generator dump [options]
 
 **Examples:**
 ```bash
-# Display summary tables of Linear data
+# Display summary tables of Linear data (deprecated)
 linear generator dump
 
-# Export data as JSON for external analysis
+# Export data as JSON for external analysis (deprecated)
 linear generator dump --format json
-```
-
-**Generated Analytics:**
-- **Summary Statistics**: Teams count, projects count, issues count
-- **Status Distribution**: Number of issues in each status category
-- **Team Distribution**: Number of issues assigned to each team
-- **Completion Rates**: Issue completion rate for each team with statistics
-
-**JSON Format:**
-When using the `--format json` option, the command outputs a comprehensive JSON structure containing:
-```json
-{
-  "teams": [...],         // Full team data
-  "projects": [...],      // Full project data
-  "issues": [...],        // Full issue data
-  "summary": {            // Aggregated analytics
-    "teams_count": 3,
-    "projects_count": 6,
-    "issues_count": 42,
-    "issues_by_status": {...},
-    "issues_by_team": {...},
-    "team_completion_rates": {...}
-  }
-}
 ``` 
