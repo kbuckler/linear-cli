@@ -256,16 +256,41 @@ module LinearCli
       end
       
       desc 'comment ID BODY', 'Add a comment to an issue'
-      def comment(id, body)
+      long_desc <<-LONGDESC
+        Add a comment to a Linear issue.
+        
+        Examples:
+          linear issues comment KBU-10 "This is my comment"
+          linear issues comment KBU-10 This is also a valid comment
+        
+        The comment text can include spaces without needing quotes.
+      LONGDESC
+      def comment(issue_identifier, *comment_parts)
         client = LinearCli::API::Client.new
         
-        # Execute the mutation
-        result = client.query(LinearCli::API::Queries::Issues.create_comment, { issueId: id, body: body })
+        # Join all the parts to form the full comment body
+        body = comment_parts.join(' ')
         
-        if result['commentCreate']['success']
-          puts "Comment added successfully."
-        else
-          puts "Failed to add comment."
+        if body.empty?
+          puts "Error: Comment body cannot be empty."
+          return
+        end
+        
+        begin
+          # Just use the issue identifier directly
+          # Linear API will validate and return an error if the issue doesn't exist
+          comment_result = client.query(LinearCli::API::Queries::Issues.create_comment, { 
+            issueId: issue_identifier.upcase,
+            body: body
+          })
+          
+          if comment_result['commentCreate'] && comment_result['commentCreate']['success']
+            puts "Comment added successfully to #{issue_identifier.upcase}"
+          else
+            puts "Failed to add comment."
+          end
+        rescue RuntimeError => e
+          puts "Error: #{e.message}"
         end
       end
     end

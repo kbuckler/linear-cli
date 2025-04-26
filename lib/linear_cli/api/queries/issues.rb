@@ -148,7 +148,7 @@ module LinearCli
         # @return [String] GraphQL query
         def self.create_comment
           <<~GRAPHQL
-            mutation CreateComment($issueId: ID!, $body: String!) {
+            mutation CreateComment($issueId: String!, $body: String!) {
               commentCreate(input: { issueId: $issueId, body: $body }) {
                 success
                 comment {

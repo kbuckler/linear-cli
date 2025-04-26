@@ -180,6 +180,21 @@ RSpec.describe LinearCli::Commands::Issues do
       it 'adds the comment' do
         expect { command.comment('ENG-1', 'Test comment') }.to output(/Comment added successfully/).to_stdout
       end
+
+      it 'passes the correct parameters to the API' do
+        expect(client).to receive(:query).with(
+          LinearCli::API::Queries::Issues.create_comment,
+          { issueId: 'ENG-1', body: 'Test comment' }
+        ).and_return({ 'commentCreate' => { 'success' => true } })
+        
+        command.comment('eng-1', 'Test comment')
+      end
+    end
+
+    context 'when comment body is empty' do
+      it 'displays an error message' do
+        expect { command.comment('ENG-1') }.to output(/Error: Comment body cannot be empty/).to_stdout
+      end
     end
 
     context 'when comment creation fails' do
