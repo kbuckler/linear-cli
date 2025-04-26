@@ -9,8 +9,8 @@
 
 ## Linear API Integration
 - [ ] Implement authentication mechanism
-- [ ] Create API client for Linear GraphQL API
-- [ ] Add error handling for API responses
+- [x] Create API client for Linear GraphQL API
+- [x] Add error handling for API responses
 - [ ] Implement rate limiting support
 
 ## Core Features
@@ -30,13 +30,13 @@
 - [ ] List projects (`linear projects list`)
 
 ## Testing
-- [ ] Setup RSpec for testing
-- [ ] Add VCR for HTTP interaction recording
-- [ ] Write tests for API client
+- [x] Setup RSpec for testing
+- [x] Add VCR for HTTP interaction recording
+- [x] Write tests for API client
 - [ ] Write tests for CLI commands
 
 ## Documentation
-- [ ] Create README with installation and usage instructions
+- [x] Create README with installation and usage instructions
 - [ ] Add command reference documentation
 - [ ] Document configuration options
 

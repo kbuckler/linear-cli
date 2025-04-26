@@ -79,6 +79,44 @@ linear projects list
 bundle exec rspec
 ```
 
+For running specific tests, you can use:
+
+```
+# Run tests for a specific file
+bundle exec rspec spec/linear_cli/api/client_spec.rb
+
+# Run a specific test (by line number)
+bundle exec rspec spec/linear_cli/api/client_spec.rb:70
+
+# Run with detailed output
+bundle exec rspec --format doc
+```
+
+#### Writing API Client Tests
+
+The API client has a built-in mocking approach for tests:
+
+```ruby
+# In your test
+before do
+  # Set the mock response for the API client
+  LinearCli::API::Client.mock_response = {
+    'teams' => {
+      'nodes' => [
+        { 'id' => 'team_123', 'name' => 'Engineering', 'key' => 'ENG' }
+      ]
+    }
+  }
+end
+
+after do
+  # Reset the mock response after your test
+  LinearCli::API::Client.mock_response = nil
+end
+```
+
+This approach is simpler than using WebMock stubs and avoids issues with HTTP request mocking.
+
 ### Building the Gem
 
 ```

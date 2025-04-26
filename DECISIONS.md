@@ -20,6 +20,24 @@
 ## Testing
 - **RSpec**: We will use RSpec for unit and integration testing.
 - **VCR**: For recording and replaying HTTP interactions in tests.
+- **API Mocking**: Use a simple mock response approach instead of WebMock stubs for API client testing
+  - **Context**: WebMock and VCR can lead to complexity in maintaining request/response pairs
+  - **Implementation**: Added a class-level `mock_response` attribute to the API client that tests can set
+  - **Consequences**:
+    - Simplified test setup with clearer intentions
+    - Decoupled tests from HTTP implementation details
+    - Easier maintenance and less brittle tests
+    - VCR can still be used for integration tests when needed
 
 ## Dependency Management
-- **Bundler**: We will use Bundler for managing gem dependencies. 
+- **Bundler**: We will use Bundler for managing gem dependencies.
+
+## Terminal Output in Tests
+
+- **Decision**: Use simplified text output instead of TTY::Table rendering in test environments
+- **Context**: TTY::Table requires terminal capabilities that aren't available in test environments (StringIO)
+- **Implementation**: Check for test environment (`RACK_ENV` or `RAILS_ENV`) and use basic string formatting
+- **Consequences**: 
+  - Tests can run without terminal-related errors
+  - Test output is still readable and verifiable
+  - Production environment maintains rich terminal formatting 
