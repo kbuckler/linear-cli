@@ -92,6 +92,10 @@ RSpec.describe LinearCli::API::Queries::Generator do
       expect(query).to include('team')
       expect(query).to include('priority')
       expect(query).to include('project')
+      expect(query).to include('estimate')
+      expect(query).to include('startedAt')
+      expect(query).to include('completedAt')
+      expect(query).to include('createdAt')
     end
   end
 

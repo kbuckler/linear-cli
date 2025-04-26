@@ -129,6 +129,10 @@ module LinearCli
                     id
                     name
                   }
+                  estimate
+                  startedAt
+                  completedAt
+                  createdAt
                 }
               }
             }

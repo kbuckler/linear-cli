@@ -138,7 +138,7 @@ module LinearCli
         # @return [String] GraphQL query
         def self.update_issue
           <<~GRAPHQL
-            mutation UpdateIssue($id: ID!, $input: IssueUpdateInput!) {
+            mutation UpdateIssue($id: String!, $input: IssueUpdateInput!) {
               issueUpdate(id: $id, input: $input) {
                 success
                 issue {

@@ -157,7 +157,9 @@ RSpec.describe LinearCli::API::DataGenerator do
         assignee_id: 'user_123',
         state_id: 'state_123',
         priority: 2,
-        project_id: 'project_123'
+        project_id: 'project_123',
+        estimate: 5,
+        completed_at: '2023-01-15T14:30:00Z'
       }
 
       expect(client).to receive(:query)
@@ -171,7 +173,9 @@ RSpec.describe LinearCli::API::DataGenerator do
               assigneeId: 'user_123',
               stateId: 'state_123',
               priority: 2,
-              projectId: 'project_123'
+              projectId: 'project_123',
+              estimate: 5,
+              completedAt: '2023-01-15T14:30:00Z'
             }
           }
         )
