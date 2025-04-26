@@ -8,28 +8,33 @@ RSpec.describe LinearCli::Analytics::Reporting do
         'title' => 'Bug fix',
         'state' => { 'name' => 'In Progress' },
         'team' => { 'name' => 'Engineering' },
-        'completedAt' => nil
+        'completedAt' => nil,
+        'project' => { 'id' => 'proj1', 'name' => 'Project A' }
       },
       {
         'id' => 'issue2',
         'title' => 'New feature',
         'state' => { 'name' => 'Done' },
         'team' => { 'name' => 'Engineering' },
-        'completedAt' => '2023-05-15T10:00:00Z'
+        'completedAt' => '2023-05-15T10:00:00Z',
+        'project' => { 'id' => 'proj1', 'name' => 'Project A' }
       },
       {
         'id' => 'issue3',
         'title' => 'Design update',
         'state' => { 'name' => 'In Progress' },
         'team' => { 'name' => 'Design' },
-        'completedAt' => nil
+        'completedAt' => nil,
+        'project' => { 'id' => 'proj2', 'name' => 'Project B' },
+        'labels' => { 'nodes' => [{ 'name' => 'bug' }] }
       },
       {
         'id' => 'issue4',
         'title' => 'Refactoring',
         'state' => { 'name' => 'Backlog' },
         'team' => { 'name' => 'Engineering' },
-        'completedAt' => nil
+        'completedAt' => nil,
+        'labels' => { 'nodes' => [{ 'name' => 'capitalization' }] }
       }
     ]
   end
@@ -43,8 +48,16 @@ RSpec.describe LinearCli::Analytics::Reporting do
 
   let(:projects) do
     [
-      { 'id' => 'proj1', 'name' => 'Project A' },
-      { 'id' => 'proj2', 'name' => 'Project B' }
+      {
+        'id' => 'proj1',
+        'name' => 'Project A',
+        'labels' => { 'nodes' => [{ 'name' => 'capitalization' }] }
+      },
+      {
+        'id' => 'proj2',
+        'name' => 'Project B',
+        'labels' => { 'nodes' => [{ 'name' => 'feature' }] }
+      }
     ]
   end
 
@@ -119,6 +132,47 @@ RSpec.describe LinearCli::Analytics::Reporting do
     end
   end
 
+  describe '.calculate_capitalization_metrics' do
+    it 'identifies capitalized issues by project labels' do
+      result = described_class.calculate_capitalization_metrics(issues, projects)
+
+      # Project A has capitalization label, so its 2 issues should be capitalized
+      # Issue4 has capitalization label directly, so it should be capitalized too
+      expect(result[:capitalized_count]).to eq(3)
+      expect(result[:non_capitalized_count]).to eq(1) # Only issue3 isn't capitalized
+      expect(result[:total_issues]).to eq(4)
+      expect(result[:capitalization_rate]).to eq(75.0)
+    end
+
+    it 'correctly calculates team capitalization metrics' do
+      result = described_class.calculate_capitalization_metrics(issues, projects)
+
+      expect(result[:team_capitalization]['Engineering'][:capitalized]).to eq(3)
+      expect(result[:team_capitalization]['Engineering'][:non_capitalized]).to eq(0)
+      expect(result[:team_capitalization]['Engineering'][:total]).to eq(3)
+      expect(result[:team_capitalization]['Engineering'][:capitalization_rate]).to eq(100.0)
+
+      expect(result[:team_capitalization]['Design'][:capitalized]).to eq(0)
+      expect(result[:team_capitalization]['Design'][:non_capitalized]).to eq(1)
+      expect(result[:team_capitalization]['Design'][:total]).to eq(1)
+      expect(result[:team_capitalization]['Design'][:capitalization_rate]).to eq(0)
+    end
+
+    it 'falls back to issue labels when project labels are not available' do
+      # Remove project information to test fallback
+      issues_without_projects = issues.map do |issue|
+        issue.delete('project')
+        issue
+      end
+
+      result = described_class.calculate_capitalization_metrics(issues_without_projects, [])
+
+      # Only issue4 has capitalization label
+      expect(result[:capitalized_count]).to eq(1)
+      expect(result[:capitalization_rate]).to eq(25.0)
+    end
+  end
+
   describe '.generate_report' do
     it 'generates a complete report with all data sections' do
       report = described_class.generate_report(teams, projects, issues)
@@ -134,6 +188,7 @@ RSpec.describe LinearCli::Analytics::Reporting do
       expect(report[:summary][:issues_by_status]).to be_a(Hash)
       expect(report[:summary][:issues_by_team]).to be_a(Hash)
       expect(report[:summary][:team_completion_rates]).to be_a(Hash)
+      expect(report[:summary][:capitalization_metrics]).to be_a(Hash)
     end
   end
 

@@ -102,3 +102,18 @@
   - Provides visibility into capitalization rates by team
   - Helps track capitalized vs. non-capitalized work
   - Simplifies financial auditing and compliance reporting 
+
+## Project-Based Capitalization Analysis
+
+- **Decision**: Change capitalization analysis to be per-project instead of per-issue
+- **Context**: Capitalization status is typically determined at the project level in organizations, not at the individual issue level
+- **Implementation**:
+  - Updated `calculate_capitalization_metrics` to primarily check project labels for capitalization status
+  - Modified GraphQL queries to include project labels information
+  - Maintained backward compatibility by continuing to check issue labels when project labels aren't available
+  - Added appropriate documentation in display output
+- **Consequences**:
+  - More accurately models real-world financial tracking practices
+  - Streamlines capitalization labeling (apply once at project level instead of on every issue)
+  - Reduces inconsistencies in capitalization reporting
+  - Maintains backward compatibility with existing issue-level labels 

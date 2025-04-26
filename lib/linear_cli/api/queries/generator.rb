@@ -147,6 +147,12 @@ module LinearCli
                   description
                   state
                   progress
+                  labels {
+                    nodes {
+                      id
+                      name
+                    }
+                  }
                   teams {
                     nodes {
                       id
@@ -194,6 +200,12 @@ module LinearCli
                   project {
                     id
                     name
+                  }
+                  labels {
+                    nodes {
+                      id
+                      name
+                    }
                   }
                   createdAt
                   updatedAt

@@ -39,37 +39,57 @@ module LinearCli
         end
       end
 
-      # Calculate software capitalization metrics
+      # Calculate software capitalization metrics on a per-project basis
       # @param issues [Array<Hash>] List of issues
-      # @param labels [Array<String>] List of capitalization labels to identify capitalized issues
+      # @param projects [Array<Hash>] List of projects
+      # @param labels [Array<String>] List of capitalization labels to identify capitalized projects
       # @return [Hash] Capitalization metrics
-      def self.calculate_capitalization_metrics(issues, labels = ['capitalization', 'capex', 'fixed asset'])
-        capitalized_issues = issues.select do |issue|
-          next false unless issue['labels']
+      def self.calculate_capitalization_metrics(issues, projects = [],
+                                                labels = ['capitalization', 'capex', 'fixed asset'])
+        # Identify capitalized projects by their labels
+        capitalized_project_ids = projects.select do |project|
+          next false unless project['labels'] && project['labels']['nodes']
 
-          issue['labels'].any? do |label|
+          project['labels']['nodes'].any? do |label|
+            labels.any? { |cap_label| label['name'].downcase.include?(cap_label.downcase) }
+          end
+        end.map { |p| p['id'] }
+
+        # Filter issues based on whether they belong to capitalized projects
+        capitalized_issues = issues.select do |issue|
+          issue.dig('project', 'id') && capitalized_project_ids.include?(issue.dig('project', 'id'))
+        end
+
+        # For backward compatibility, also check issue labels
+        capitalized_issues += issues.select do |issue|
+          next false unless issue['labels'] && issue['labels']['nodes']
+          next false if issue.dig('project', 'id') && capitalized_project_ids.include?(issue.dig('project', 'id'))
+
+          issue['labels']['nodes'].any? do |label|
             labels.any? { |cap_label| label['name'].downcase.include?(cap_label.downcase) }
           end
         end
 
+        # Ensure uniqueness
+        capitalized_issues.uniq! { |issue| issue['id'] }
         non_capitalized_issues = issues - capitalized_issues
 
+        # Calculate team capitalization metrics
         team_capitalization = issues
                               .group_by { |i| i.dig('team', 'name') || 'Unknown' }
                               .transform_values do |team_issues|
-          capitalized = team_issues.count do |issue|
-            next false unless issue['labels']
-
-            issue['labels'].any? do |label|
-              labels.any? { |cap_label| label['name'].downcase.include?(cap_label.downcase) }
-            end
+          team_capitalized_issues = team_issues.select do |issue|
+            capitalized_issues.any? { |cap_issue| cap_issue['id'] == issue['id'] }
           end
+
+          capitalized = team_capitalized_issues.size
+          total = team_issues.size
 
           {
             capitalized: capitalized,
-            non_capitalized: team_issues.size - capitalized,
-            total: team_issues.size,
-            capitalization_rate: team_issues.size > 0 ? (capitalized.to_f / team_issues.size * 100).round(2) : 0
+            non_capitalized: total - capitalized,
+            total: total,
+            capitalization_rate: total > 0 ? (capitalized.to_f / total * 100).round(2) : 0
           }
         end
 
@@ -99,7 +119,7 @@ module LinearCli
             issues_by_status: count_issues_by_status(issues),
             issues_by_team: count_issues_by_team(issues),
             team_completion_rates: calculate_team_completion_rates(issues),
-            capitalization_metrics: calculate_capitalization_metrics(issues)
+            capitalization_metrics: calculate_capitalization_metrics(issues, projects)
           }
         }
       end

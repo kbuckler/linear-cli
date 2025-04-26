@@ -38,6 +38,10 @@ module LinearCli
                     id
                     name
                   }
+                  project {
+                    id
+                    name
+                  }
                   priority
                   estimate
                   startedAt
@@ -80,6 +84,10 @@ module LinearCli
                   email
                 }
                 team {
+                  id
+                  name
+                }
+                project {
                   id
                   name
                 }
@@ -162,4 +170,4 @@ module LinearCli
       end
     end
   end
-end 
+end
