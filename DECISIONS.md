@@ -284,3 +284,18 @@
   - Tables automatically adapt to content size
   - Better compatibility with the Linear API's expected GraphQL structure
   - Simplified renderer code with fewer potential points of failure 
+
+## GraphQL Pagination Support
+
+- **Decision**: Implement cursor-based pagination to fetch all issues when requested
+- **Context**: Users need to be able to view and analyze the full set of issues, not just a limited batch
+- **Implementation**:
+  - Added an `--all` flag to the issues list command to fetch all issues
+  - Implemented cursor-based pagination using GraphQL's pageInfo
+  - Used a while loop to fetch pages until all issues are retrieved or until the requested limit is reached
+  - Preserved existing behavior with limits when not fetching all issues
+- **Consequences**:
+  - Users can now see all issues at once without arbitrary limits
+  - Better support for reporting and analysis use cases
+  - Improved user experience when needing to browse all issues
+  - Potential for slower performance with very large issue sets 

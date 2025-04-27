@@ -77,11 +77,9 @@ RSpec.describe LinearCli::UI::TableRenderer do
   describe '.render_tty_table' do
     it 'configures and renders a TTY table' do
       table_double = instance_double(TTY::Table)
-      renderer_double = double('Renderer')
 
       allow(TTY::Table).to receive(:new).and_return(table_double)
-      allow(table_double).to receive(:render).and_yield(renderer_double).and_return('TTY Table Output')
-      allow(renderer_double).to receive(:width=)
+      allow(table_double).to receive(:render).and_return('TTY Table Output')
 
       output = described_class.send(:render_tty_table, headers, rows, options)
       expect(output).to eq('TTY Table Output')
@@ -89,17 +87,13 @@ RSpec.describe LinearCli::UI::TableRenderer do
 
     it 'applies border separator option when provided' do
       table_double = instance_double(TTY::Table)
-      renderer_double = double('Renderer')
 
       allow(TTY::Table).to receive(:new).and_return(table_double)
-      allow(table_double).to receive(:render).and_yield(renderer_double).and_return('TTY Table Output')
-      allow(renderer_double).to receive(:width=)
+      allow(table_double).to receive(:render).and_return('TTY Table Output')
 
       options_with_separator = options.merge(border_separator: true)
-      described_class.send(:render_tty_table, headers, rows, options_with_separator)
-
-      # The test passes if the code executes without errors
-      # since we're not directly testing the TTY::Table implementation
+      output = described_class.send(:render_tty_table, headers, rows, options_with_separator)
+      expect(output).to eq('TTY Table Output')
     end
   end
 end

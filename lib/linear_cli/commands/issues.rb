@@ -13,11 +13,18 @@ module LinearCli
       option :assignee, type: :string, desc: 'Filter by assignee email or name'
       option :status, type: :string, desc: 'Filter by status name'
       option :limit, type: :numeric, default: 20, desc: 'Number of issues to fetch'
+      option :all, type: :boolean, desc: 'Fetch all issues, overrides limit option'
       def list
         client = LinearCli::API::Client.new
 
         # Build variables for the query
-        variables = { first: options[:limit] ? LinearCli::Validators::InputValidator.validate_limit(options[:limit]) : 20 }
+        max_per_page = 100 # Linear API typically limits to 100 items per page
+        first_page_limit = if options[:all]
+                             max_per_page
+                           else
+                             (options[:limit] ? LinearCli::Validators::InputValidator.validate_limit(options[:limit]) : 20)
+                           end
+        variables = { first: first_page_limit }
 
         # Add team filter if provided
         if options[:team]
@@ -42,18 +49,40 @@ module LinearCli
           variables[:states] = [sanitized_status]
         end
 
-        # Execute the query
-        result = client.query(LinearCli::API::Queries::Issues.list_issues, variables)
-        issues = result['issues']['nodes']
+        # Execute the query with pagination if fetching all issues
+        all_issues = []
+        has_next_page = true
 
-        if issues.empty?
+        while has_next_page
+          # Execute the query
+          result = client.query(LinearCli::API::Queries::Issues.list_issues, variables)
+
+          # Add the current page of issues to our collection
+          current_issues = result['issues']['nodes']
+          all_issues.concat(current_issues)
+
+          # Check if there are more pages
+          page_info = result['issues']['pageInfo']
+          has_next_page = options[:all] && page_info['hasNextPage']
+
+          # If we need to fetch the next page, update the cursor
+          variables[:after] = page_info['endCursor'] if has_next_page
+
+          # If we're not fetching all issues, only do one page
+          break unless options[:all]
+
+          # If we've reached the requested limit, stop
+          break if !options[:all] && all_issues.size >= first_page_limit
+        end
+
+        if all_issues.empty?
           puts 'No issues found matching your criteria.'
           return
         end
 
         # Prepare the data
         headers = %w[ID Title Status Assignee Priority Estimate Cycle Labels Team]
-        rows = issues.map do |issue|
+        rows = all_issues.map do |issue|
           # For detailed view - include priority, estimate, cycle, etc.
           priority_values = { 0 => 'No priority', 1 => 'Urgent', 2 => 'High', 3 => 'Medium', 4 => 'Low' }
           priority = issue['priority'] ? priority_values[issue['priority']] : 'Not set'
@@ -81,7 +110,7 @@ module LinearCli
 
         # Use the centralized table renderer with a title and row separators
         LinearCli::UI::TableRenderer.output_table(
-          "Linear Issues (#{issues.size}):",
+          "Linear Issues (#{all_issues.size}):",
           headers,
           rows,
           widths: {

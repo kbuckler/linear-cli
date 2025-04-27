@@ -49,6 +49,9 @@ linear issues list
 # List issues for a specific team
 linear issues list --team "Engineering"
 
+# List all issues without pagination limits
+linear issues list --all
+
 # View a specific issue
 linear issues view ABC-123
 

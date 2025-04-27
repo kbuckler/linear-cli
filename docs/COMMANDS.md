@@ -28,7 +28,7 @@ linear issues list [options]
 - `--assignee TEXT`: Filter by assignee email or name
 - `--status TEXT`: Filter by status name
 - `--limit NUMBER`: Number of issues to fetch (default: 20)
-- `--detail`: Show detailed view with more attributes
+- `--all`: Fetch all issues using pagination (overrides --limit)
 
 **Examples:**
 ```bash
@@ -44,8 +44,8 @@ linear issues list --assignee "john@example.com"
 # List issues with a specific status
 linear issues list --status "In Progress"
 
-# List with detailed information
-linear issues list --detail
+# List all issues without pagination limits
+linear issues list --all
 ```
 
 ### View Issue

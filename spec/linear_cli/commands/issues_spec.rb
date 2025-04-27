@@ -24,11 +24,67 @@ RSpec.describe LinearCli::Commands::Issues do
 
     context 'when no filters are provided' do
       before do
-        allow(client).to receive(:query).and_return({ 'issues' => { 'nodes' => issues } })
+        allow(client).to receive(:query).and_return({ 'issues' => {
+                                                      'nodes' => issues,
+                                                      'pageInfo' => {
+                                                        'hasNextPage' => false,
+                                                        'endCursor' => 'cursor123'
+                                                      }
+                                                    } })
       end
 
       it 'lists all issues' do
         expect { command.list }.to output(/Linear Issues \(1\):/).to_stdout
+      end
+    end
+
+    context 'when pagination is requested with --all flag' do
+      let(:second_page_issues) do
+        [
+          {
+            'identifier' => 'ENG-2',
+            'title' => 'Second Issue',
+            'state' => { 'name' => 'In Progress' },
+            'assignee' => { 'name' => 'Jane Doe' },
+            'team' => { 'name' => 'Engineering' }
+          }
+        ]
+      end
+
+      before do
+        # First page response
+        allow(client).to receive(:query).with(
+          LinearCli::API::Queries::Issues.list_issues,
+          hash_including(first: 100)
+        ).and_return({
+                       'issues' => {
+                         'nodes' => issues,
+                         'pageInfo' => {
+                           'hasNextPage' => true,
+                           'endCursor' => 'cursor123'
+                         }
+                       }
+                     }).once
+
+        # Second page response
+        allow(client).to receive(:query).with(
+          LinearCli::API::Queries::Issues.list_issues,
+          hash_including(after: 'cursor123')
+        ).and_return({
+                       'issues' => {
+                         'nodes' => second_page_issues,
+                         'pageInfo' => {
+                           'hasNextPage' => false,
+                           'endCursor' => 'cursor456'
+                         }
+                       }
+                     }).once
+      end
+
+      it 'fetches all pages of issues' do
+        command.options = { all: true }
+        expect { command.list }.to output(/Linear Issues \(2\):/).to_stdout
+        expect(client).to have_received(:query).exactly(2).times
       end
     end
 

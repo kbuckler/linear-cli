@@ -71,7 +71,7 @@ module LinearCli
 
         puts "\n#{pastel.bold('Issue Commands:')}"
         puts '  linear issues list           # List Linear issues'
-        puts '  linear issues list --detail  # List issues with detailed attributes'
+        puts '  linear issues list --all     # List all issues without pagination limits'
         puts '  linear issues view ID        # View details of a specific issue'
         puts '  linear issues create         # Create a new issue'
         puts '  linear issues update ID      # Update an existing issue'

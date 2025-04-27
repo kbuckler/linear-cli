@@ -79,9 +79,6 @@ module LinearCli
 
         # Render the table with consistent styling
         table.render(renderer_options)
-
-        # Return the rendered table without setting width
-        # This avoids issues with the TTY::Table width handling
       end
     end
   end

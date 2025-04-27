@@ -18,7 +18,7 @@
   - [x] Filter by team
   - [x] Filter by status
   - [x] Filter by assignee
-  - [ ] Support pagination
+  - [x] Support pagination
 - [x] View issue details (`linear issues view <id>`)
 - [x] Create issues (`linear issues create`)
   - [x] Required fields: title, team
