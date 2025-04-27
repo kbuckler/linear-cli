@@ -12,24 +12,36 @@ module LinearCli
         # @return [Array<Hash>] Array of team data
         def fetch_teams
           query = LinearCli::API::Queries::Analytics.list_teams
-          result = @client.query(query)
-          result.dig('teams', 'nodes') || []
+          result = @client.fetch_paginated_data(query, { first: 20 }, {
+                                                  fetch_all: true,
+                                                  nodes_path: 'teams',
+                                                  page_info_path: 'teams'
+                                                })
+          result || []
         end
 
         # Fetch projects from the Linear API
         # @return [Array<Hash>] Array of project data
         def fetch_projects
           query = LinearCli::API::Queries::Analytics.list_projects
-          result = @client.query(query)
-          result.dig('projects', 'nodes') || []
+          result = @client.fetch_paginated_data(query, { first: 20 }, {
+                                                  fetch_all: true,
+                                                  nodes_path: 'projects',
+                                                  page_info_path: 'projects'
+                                                })
+          result || []
         end
 
         # Fetch issues from the Linear API
         # @return [Array<Hash>] Array of issue data
         def fetch_issues
           query = LinearCli::API::Queries::Analytics.list_issues
-          result = @client.query(query)
-          result.dig('issues', 'nodes') || []
+          result = @client.fetch_paginated_data(query, { first: 20 }, {
+                                                  fetch_all: true,
+                                                  nodes_path: 'issues',
+                                                  page_info_path: 'issues'
+                                                })
+          result || []
         end
       end
     end
