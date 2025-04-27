@@ -12,6 +12,10 @@ module LinearCli
       # Default API URL for Linear GraphQL endpoint
       API_URL = 'https://api.linear.app/graphql'.freeze
 
+      # Default timeout values (in seconds)
+      DEFAULT_TIMEOUT = 30
+      DEFAULT_OPEN_TIMEOUT = 10
+
       # For test environment
       class << self
         attr_accessor :mock_response
@@ -20,9 +24,13 @@ module LinearCli
       # Initialize the client with an API key
       # @param api_key [String] Linear API key
       # @param api_url [String] Optional custom API URL
-      def initialize(api_key = nil, api_url = nil)
+      # @param timeout [Integer] Request timeout in seconds
+      # @param open_timeout [Integer] Connection open timeout in seconds
+      def initialize(api_key = nil, api_url = nil, timeout = DEFAULT_TIMEOUT, open_timeout = DEFAULT_OPEN_TIMEOUT)
         @api_key = api_key || ENV.fetch('LINEAR_API_KEY', nil)
         @api_url = api_url || ENV['LINEAR_API_URL'] || API_URL
+        @timeout = timeout
+        @open_timeout = open_timeout
 
         raise 'Linear API key is required! Please set LINEAR_API_KEY in your .env file.' unless @api_key
 
@@ -69,7 +77,9 @@ module LinearCli
             body: {
               query: query,
               variables: variables
-            }.to_json
+            }.to_json,
+            timeout: @timeout,
+            open_timeout: @open_timeout
           )
 
           # Almost done
@@ -151,7 +161,9 @@ module LinearCli
               body: {
                 query: query,
                 variables: current_variables
-              }.to_json
+              }.to_json,
+              timeout: @timeout,
+              open_timeout: @open_timeout
             )
 
             body = JSON.parse(response.body)

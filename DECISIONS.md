@@ -590,3 +590,19 @@
   - Clearer command structure with more explicit parameter requirements
   - More maintainable code with single-team focus
   - Improved reporting clarity by focusing on one team's data at a time 
+
+## API Timeout Configuration
+
+- **Decision**: Implement configurable timeouts for all API requests
+- **Context**: API requests were previously lacking timeout settings, which could lead to hanging connections and performance issues
+- **Implementation**:
+  - Added default timeout values (30 seconds for request timeout, 10 seconds for connection timeout)
+  - Made timeouts configurable through the API client constructor
+  - Applied timeout settings to all HTTP requests (query and fetch_paginated_data methods)
+  - Used consistent timeout handling across all API calls
+- **Consequences**:
+  - Improved reliability by preventing hanging connections
+  - Better error handling for slow network conditions
+  - More consistent behavior for long-running operations
+  - Addresses requirements for improved network security
+  - Helps satisfy rate limiting support by providing better request control 
