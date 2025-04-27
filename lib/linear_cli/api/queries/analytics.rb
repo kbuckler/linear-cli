@@ -40,10 +40,14 @@ module LinearCli
 
         # Query to list projects with pagination
         # @return [String] GraphQL query
-        def self.list_projects
+        def self.list_projects(team_id: nil)
           <<~GRAPHQL
-            query Projects($first: Int, $after: String) {
-              projects(first: $first, after: $after) {
+            query Projects($first: Int, $after: String, $teamId: ID) {
+              projects(
+                first: $first,
+                after: $after,
+                filter: { team: { id: { eq: $teamId } } }
+              ) {
                 pageInfo {
                   hasNextPage
                   endCursor
@@ -83,10 +87,14 @@ module LinearCli
 
         # Query to list issues with pagination
         # @return [String] GraphQL query
-        def self.list_issues
+        def self.list_issues(team_id: nil)
           <<~GRAPHQL
-            query Issues($first: Int, $after: String) {
-              issues(first: $first, after: $after) {
+            query Issues($first: Int, $after: String, $teamId: ID) {
+              issues(
+                first: $first,
+                after: $after,
+                filter: { team: { id: { eq: $teamId } } }
+              ) {
                 pageInfo {
                   hasNextPage
                   endCursor

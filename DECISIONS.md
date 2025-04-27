@@ -652,3 +652,19 @@
   - Better performance with larger page sizes
   - More maintainable code with centralized pagination configuration
   - Clearer expectations for API response sizes 
+
+## Optimized GraphQL Queries for Team Analytics
+
+- **Decision**: Optimize GraphQL queries to filter data by team at the API level
+- **Context**: Analytics queries were fetching all data and filtering client-side, which was inefficient and could cause performance issues with large datasets
+- **Implementation**:
+  - Added team_id filter parameter to projects and issues GraphQL queries
+  - Updated DataFetcher service to pass team_id to queries
+  - Modified tests to verify both filtered and unfiltered scenarios
+  - Maintained backward compatibility for cases where team_id is not provided
+- **Consequences**:
+  - Improved performance by reducing unnecessary data transfer
+  - Better scalability for organizations with large numbers of projects/issues
+  - More efficient use of Linear API resources
+  - Cleaner separation of concerns with filtering at the API level
+  - Reduced memory usage in the client application 

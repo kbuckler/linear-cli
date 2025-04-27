@@ -29,10 +29,14 @@ module LinearCli
         end
 
         # Fetch projects from the Linear API
+        # @param team_id [String] Optional team ID to filter projects by
         # @return [Array<Hash>] Array of project data
-        def fetch_projects
-          query = LinearCli::API::Queries::Analytics.list_projects
-          result = @client.fetch_paginated_data(query, { first: 50 }, {
+        def fetch_projects(team_id: nil)
+          query = LinearCli::API::Queries::Analytics.list_projects(team_id: team_id)
+          variables = { first: 50 }
+          variables[:teamId] = team_id if team_id
+
+          result = @client.fetch_paginated_data(query, variables, {
                                                   fetch_all: true,
                                                   nodes_path: 'projects',
                                                   page_info_path: 'projects'
@@ -41,10 +45,14 @@ module LinearCli
         end
 
         # Fetch issues from the Linear API
+        # @param team_id [String] Optional team ID to filter issues by
         # @return [Array<Hash>] Array of issue data
-        def fetch_issues
-          query = LinearCli::API::Queries::Analytics.list_issues
-          result = @client.fetch_paginated_data(query, { first: 50 }, {
+        def fetch_issues(team_id: nil)
+          query = LinearCli::API::Queries::Analytics.list_issues(team_id: team_id)
+          variables = { first: 50 }
+          variables[:teamId] = team_id if team_id
+
+          result = @client.fetch_paginated_data(query, variables, {
                                                   fetch_all: true,
                                                   nodes_path: 'issues',
                                                   page_info_path: 'issues'
