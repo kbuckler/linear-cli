@@ -157,4 +157,152 @@ RSpec.describe LinearCli::Commands::Analytics do
       end
     end
   end
+
+  describe 'helper methods' do
+    describe '#find_contributor_id_by_name' do
+      let(:contributors) do
+        {
+          'user1' => { name: 'John Doe' },
+          'user2' => { name: 'Jane Smith' }
+        }
+      end
+
+      it 'finds a contributor ID by name' do
+        expect(command.send(:find_contributor_id_by_name, 'John Doe', contributors)).to eq('user1')
+        expect(command.send(:find_contributor_id_by_name, 'Jane Smith', contributors)).to eq('user2')
+      end
+
+      it 'returns nil for non-existent names' do
+        expect(command.send(:find_contributor_id_by_name, 'Unknown Person', contributors)).to be_nil
+      end
+
+      it 'handles the Unassigned special case' do
+        expect(command.send(:find_contributor_id_by_name, 'Unassigned', contributors)).to eq('unassigned')
+      end
+    end
+
+    describe '#project_id_from_name' do
+      let(:projects) do
+        {
+          'proj1' => { name: 'Project A' },
+          'proj2' => { name: 'Project B' }
+        }
+      end
+
+      it 'finds a project ID by name' do
+        expect(command.send(:project_id_from_name, 'Project A', projects)).to eq('proj1')
+        expect(command.send(:project_id_from_name, 'Project B', projects)).to eq('proj2')
+      end
+
+      it 'returns nil for non-existent projects' do
+        expect(command.send(:project_id_from_name, 'Unknown Project', projects)).to be_nil
+      end
+
+      it 'handles the No Project special case' do
+        expect(command.send(:project_id_from_name, 'No Project', projects)).to eq('no_project')
+      end
+    end
+  end
+
+  describe 'display methods' do
+    describe '#display_team_workload_report' do
+      let(:team) do
+        { 'id' => 'team_1', 'name' => 'Engineering' }
+      end
+
+      let(:monthly_reports) do
+        {
+          '2023-01' => {
+            month_name: 'January 2023',
+            issue_count: 5,
+            id: 'team_1',
+            name: 'Engineering',
+            contributors: {
+              'user_1' => {
+                name: 'John Doe',
+                total_points: 10,
+                issues_count: 2,
+                projects: {
+                  'project_1' => {
+                    name: 'Project A',
+                    points: 7,
+                    issues_count: 1,
+                    percentage: 70.0
+                  },
+                  'project_2' => {
+                    name: 'Project B',
+                    points: 3,
+                    issues_count: 1,
+                    percentage: 30.0
+                  }
+                }
+              },
+              'unassigned' => {
+                name: 'Unassigned',
+                total_points: 5,
+                issues_count: 3,
+                projects: {
+                  'project_1' => {
+                    name: 'Project A',
+                    points: 5,
+                    issues_count: 3,
+                    percentage: 100.0
+                  }
+                }
+              }
+            },
+            projects: {
+              'project_1' => {
+                name: 'Project A',
+                total_points: 12,
+                issues_count: 4,
+                contributors: {
+                  'user_1' => {
+                    name: 'John Doe',
+                    points: 7,
+                    issues_count: 1,
+                    percentage: 58.33
+                  },
+                  'unassigned' => {
+                    name: 'Unassigned',
+                    points: 5,
+                    issues_count: 3,
+                    percentage: 41.67
+                  }
+                }
+              },
+              'project_2' => {
+                name: 'Project B',
+                total_points: 3,
+                issues_count: 1,
+                contributors: {
+                  'user_1' => {
+                    name: 'John Doe',
+                    points: 3,
+                    issues_count: 1,
+                    percentage: 100.0
+                  }
+                }
+              }
+            }
+          }
+        }
+      end
+
+      before do
+        # Force the puts method to not actually output anything during tests
+        allow(command).to receive(:puts)
+
+        # Mock table renderer for test output
+        allow(LinearCli::UI::TableRenderer).to receive(:render_table).and_return('Mock table')
+
+        # Required because this is a private method
+        allow(command).to receive(:display_team_workload_report).and_call_original
+      end
+
+      it 'executes without raising any errors' do
+        expect { command.send(:display_team_workload_report, monthly_reports, team) }.not_to raise_error
+      end
+    end
+  end
 end

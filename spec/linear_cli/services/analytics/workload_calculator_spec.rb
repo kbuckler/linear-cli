@@ -163,6 +163,116 @@ RSpec.describe LinearCli::Services::Analytics::WorkloadCalculator do
         expect(result[:contributors]['unassigned'][:total_points]).to eq(3)
       end
     end
+
+    context 'when issues have zero estimates' do
+      let(:issues) do
+        [
+          {
+            'team' => { 'id' => 'team_1', 'name' => 'Engineering' },
+            'project' => { 'id' => 'project_1', 'name' => 'Project A' },
+            'assignee' => { 'id' => 'user_1', 'name' => 'John Doe' },
+            'estimate' => 0, # Zero estimate
+            'completedAt' => '2023-01-01'
+          },
+          {
+            'team' => { 'id' => 'team_1', 'name' => 'Engineering' },
+            'project' => { 'id' => 'project_1', 'name' => 'Project A' },
+            'assignee' => { 'id' => 'user_1', 'name' => 'John Doe' },
+            'estimate' => nil, # Nil estimate
+            'completedAt' => '2023-01-02'
+          }
+        ]
+      end
+
+      it 'treats zero and nil estimates as 1 point of effort' do
+        result = workload_calculator.calculate_team_project_workload(issues, team, projects)
+
+        # Both issues should be counted as 1 point each
+        expect(result[:projects]['project_1'][:total_points]).to eq(2)
+        expect(result[:contributors]['user_1'][:total_points]).to eq(2)
+      end
+
+      it 'correctly tracks issue counts despite zero estimates' do
+        result = workload_calculator.calculate_team_project_workload(issues, team, projects)
+
+        # Should count 2 issues total
+        expect(result[:projects]['project_1'][:issues_count]).to eq(2)
+        expect(result[:contributors]['user_1'][:issues_count]).to eq(2)
+      end
+    end
+
+    context 'when multiple contributors work on multiple projects' do
+      let(:issues) do
+        [
+          # User 1 on Project 1
+          {
+            'team' => { 'id' => 'team_1', 'name' => 'Engineering' },
+            'project' => { 'id' => 'project_1', 'name' => 'Project A' },
+            'assignee' => { 'id' => 'user_1', 'name' => 'John Doe' },
+            'estimate' => 3,
+            'completedAt' => '2023-01-01'
+          },
+          # User 1 on Project 1 (another issue)
+          {
+            'team' => { 'id' => 'team_1', 'name' => 'Engineering' },
+            'project' => { 'id' => 'project_1', 'name' => 'Project A' },
+            'assignee' => { 'id' => 'user_1', 'name' => 'John Doe' },
+            'estimate' => 2,
+            'completedAt' => '2023-01-02'
+          },
+          # User 2 on Project 1
+          {
+            'team' => { 'id' => 'team_1', 'name' => 'Engineering' },
+            'project' => { 'id' => 'project_1', 'name' => 'Project A' },
+            'assignee' => { 'id' => 'user_2', 'name' => 'Jane Smith' },
+            'estimate' => 5,
+            'completedAt' => '2023-01-03'
+          },
+          # User 1 on Project 2
+          {
+            'team' => { 'id' => 'team_1', 'name' => 'Engineering' },
+            'project' => { 'id' => 'project_2', 'name' => 'Project B' },
+            'assignee' => { 'id' => 'user_1', 'name' => 'John Doe' },
+            'estimate' => 8,
+            'completedAt' => '2023-01-04'
+          }
+        ]
+      end
+
+      it 'correctly tracks issue counts per contributor and project' do
+        result = workload_calculator.calculate_team_project_workload(issues, team, projects)
+
+        # Project issue counts
+        expect(result[:projects]['project_1'][:issues_count]).to eq(3) # 2 from user_1, 1 from user_2
+        expect(result[:projects]['project_2'][:issues_count]).to eq(1) # 1 from user_1
+
+        # Contributor issue counts
+        expect(result[:contributors]['user_1'][:issues_count]).to eq(3) # 2 on project_1, 1 on project_2
+        expect(result[:contributors]['user_2'][:issues_count]).to eq(1) # 1 on project_1
+
+        # Project-contributor relationship issue counts
+        expect(result[:projects]['project_1'][:contributors]['user_1'][:issues_count]).to eq(2)
+        expect(result[:projects]['project_1'][:contributors]['user_2'][:issues_count]).to eq(1)
+        expect(result[:projects]['project_2'][:contributors]['user_1'][:issues_count]).to eq(1)
+
+        # Contributor-project relationship issue counts
+        expect(result[:contributors]['user_1'][:projects]['project_1'][:issues_count]).to eq(2)
+        expect(result[:contributors]['user_1'][:projects]['project_2'][:issues_count]).to eq(1)
+        expect(result[:contributors]['user_2'][:projects]['project_1'][:issues_count]).to eq(1)
+      end
+
+      it 'calculates the correct point totals' do
+        result = workload_calculator.calculate_team_project_workload(issues, team, projects)
+
+        # Project point totals
+        expect(result[:projects]['project_1'][:total_points]).to eq(10) # 3+2 from user_1, 5 from user_2
+        expect(result[:projects]['project_2'][:total_points]).to eq(8)  # 8 from user_1
+
+        # Contributor point totals
+        expect(result[:contributors]['user_1'][:total_points]).to eq(13) # 3+2 on project_1, 8 on project_2
+        expect(result[:contributors]['user_2'][:total_points]).to eq(5)  # 5 on project_1
+      end
+    end
   end
 
   describe '#calculate_engineer_project_workload' do
