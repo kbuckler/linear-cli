@@ -299,3 +299,19 @@
   - Better support for reporting and analysis use cases
   - Improved user experience when needing to browse all issues
   - Potential for slower performance with very large issue sets 
+
+## Pagination Logic Refactoring
+
+- **Decision**: Extract pagination logic into a reusable method in the API client
+- **Context**: Pagination logic was duplicated in multiple command classes
+- **Implementation**:
+  - Added `fetch_paginated_data` method to the `LinearCli::API::Client` class
+  - Method accepts a query, variables, and options for configuring pagination
+  - Supports flexible path specification for accessing nodes and pageInfo in different response structures
+  - Updated existing commands to use this centralized pagination method
+- **Consequences**:
+  - Reduced code duplication across command classes
+  - Simplified command implementations
+  - Easier maintenance as pagination logic is in one place
+  - More consistent pagination behavior across the application
+  - Flexible enough to handle different response structures 

@@ -49,31 +49,16 @@ module LinearCli
           variables[:states] = [sanitized_status]
         end
 
-        # Execute the query with pagination if fetching all issues
-        all_issues = []
-        has_next_page = true
-
-        while has_next_page
-          # Execute the query
-          result = client.query(LinearCli::API::Queries::Issues.list_issues, variables)
-
-          # Add the current page of issues to our collection
-          current_issues = result['issues']['nodes']
-          all_issues.concat(current_issues)
-
-          # Check if there are more pages
-          page_info = result['issues']['pageInfo']
-          has_next_page = options[:all] && page_info['hasNextPage']
-
-          # If we need to fetch the next page, update the cursor
-          variables[:after] = page_info['endCursor'] if has_next_page
-
-          # If we're not fetching all issues, only do one page
-          break unless options[:all]
-
-          # If we've reached the requested limit, stop
-          break if !options[:all] && all_issues.size >= first_page_limit
-        end
+        # Use the client's fetch_paginated_data method to handle pagination
+        all_issues = client.fetch_paginated_data(
+          LinearCli::API::Queries::Issues.list_issues,
+          variables,
+          {
+            fetch_all: options[:all],
+            limit: first_page_limit,
+            nodes_path: 'issues'
+          }
+        )
 
         if all_issues.empty?
           puts 'No issues found matching your criteria.'

@@ -52,6 +52,59 @@ module LinearCli
         handle_response(response)
       end
 
+      # Fetch paginated data from the API
+      # @param query [String] GraphQL query
+      # @param variables [Hash] Initial GraphQL variables
+      # @param options [Hash] Pagination options
+      # @option options [Boolean] :fetch_all Whether to fetch all pages
+      # @option options [Integer] :limit Maximum number of items to fetch
+      # @option options [String] :nodes_path Path to nodes in the response (e.g., 'issues')
+      # @option options [String] :page_info_path Path to pageInfo in the response (default: same as nodes_path)
+      # @return [Array] Array of data nodes
+      def fetch_paginated_data(query, variables, options = {})
+        fetch_all = options[:fetch_all] || false
+        limit = options[:limit] || 20
+        nodes_path = options[:nodes_path] || 'issues'
+        page_info_path = options[:page_info_path] || nodes_path
+
+        all_items = []
+        has_next_page = true
+        current_variables = variables.dup
+
+        while has_next_page
+          # Execute the query
+          result = query(query, current_variables)
+
+          # Extract the nodes using the provided path
+          current_path = nodes_path.split('.')
+          current_items = result
+          current_path.each { |path| current_items = current_items[path] if current_items }
+          current_items = current_items && current_items['nodes'] || []
+
+          # Add the current page of items
+          all_items.concat(current_items)
+
+          # Check if there are more pages
+          page_info_path_parts = page_info_path.split('.')
+          page_info = result
+          page_info_path_parts.each { |path| page_info = page_info[path] if page_info }
+          page_info &&= page_info['pageInfo']
+
+          has_next_page = fetch_all && page_info && page_info['hasNextPage']
+
+          # If we need to fetch the next page, update the cursor
+          current_variables[:after] = page_info['endCursor'] if has_next_page
+
+          # If we're not fetching all items, only do one page
+          break unless fetch_all
+
+          # If we've reached the requested limit, stop
+          break if !fetch_all && all_items.size >= limit
+        end
+
+        all_items
+      end
+
       # Get team ID by name (case insensitive)
       # @param team_name [String] Name of the team
       # @return [String] Team ID

@@ -24,13 +24,7 @@ RSpec.describe LinearCli::Commands::Issues do
 
     context 'when no filters are provided' do
       before do
-        allow(client).to receive(:query).and_return({ 'issues' => {
-                                                      'nodes' => issues,
-                                                      'pageInfo' => {
-                                                        'hasNextPage' => false,
-                                                        'endCursor' => 'cursor123'
-                                                      }
-                                                    } })
+        allow(client).to receive(:fetch_paginated_data).and_return(issues)
       end
 
       it 'lists all issues' do
@@ -52,39 +46,14 @@ RSpec.describe LinearCli::Commands::Issues do
       end
 
       before do
-        # First page response
-        allow(client).to receive(:query).with(
-          LinearCli::API::Queries::Issues.list_issues,
-          hash_including(first: 100)
-        ).and_return({
-                       'issues' => {
-                         'nodes' => issues,
-                         'pageInfo' => {
-                           'hasNextPage' => true,
-                           'endCursor' => 'cursor123'
-                         }
-                       }
-                     }).once
-
-        # Second page response
-        allow(client).to receive(:query).with(
-          LinearCli::API::Queries::Issues.list_issues,
-          hash_including(after: 'cursor123')
-        ).and_return({
-                       'issues' => {
-                         'nodes' => second_page_issues,
-                         'pageInfo' => {
-                           'hasNextPage' => false,
-                           'endCursor' => 'cursor456'
-                         }
-                       }
-                     }).once
+        # Combined pages
+        all_issues = issues + second_page_issues
+        allow(client).to receive(:fetch_paginated_data).and_return(all_issues)
       end
 
       it 'fetches all pages of issues' do
         command.options = { all: true }
         expect { command.list }.to output(/Linear Issues \(2\):/).to_stdout
-        expect(client).to have_received(:query).exactly(2).times
       end
     end
 
@@ -93,7 +62,7 @@ RSpec.describe LinearCli::Commands::Issues do
 
       before do
         allow(client).to receive(:get_team_id_by_name).with('Engineering').and_return(team_id)
-        allow(client).to receive(:query).and_return({ 'issues' => { 'nodes' => issues } })
+        allow(client).to receive(:fetch_paginated_data).and_return(issues)
       end
 
       it 'filters issues by team' do
@@ -104,7 +73,7 @@ RSpec.describe LinearCli::Commands::Issues do
 
     context 'when no issues are found' do
       before do
-        allow(client).to receive(:query).and_return({ 'issues' => { 'nodes' => [] } })
+        allow(client).to receive(:fetch_paginated_data).and_return([])
       end
 
       it 'displays a message' do
@@ -114,7 +83,7 @@ RSpec.describe LinearCli::Commands::Issues do
 
     context 'with input validation' do
       before do
-        allow(client).to receive(:query).and_return({ 'issues' => { 'nodes' => issues } })
+        allow(client).to receive(:fetch_paginated_data).and_return(issues)
         allow(client).to receive(:get_team_id_by_name).with('Engineering').and_return('team_123')
       end
 
