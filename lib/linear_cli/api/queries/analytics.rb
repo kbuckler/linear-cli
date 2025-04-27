@@ -38,77 +38,55 @@ module LinearCli
           GRAPHQL
         end
 
-        # Query to list projects with pagination
+        # GraphQL query to list all projects
+        # @param team_id [String, nil] Team ID to filter projects
         # @return [String] GraphQL query
-        def self.list_projects(team_id: nil)
+        def self.list_projects(_team_id = nil)
           <<~GRAPHQL
-            query Projects($first: Int, $after: String) {
-              projects(first: $first, after: $after) {
-                pageInfo {
-                  hasNextPage
-                  endCursor
-                }
+            query Projects {
+              projects(first: 100) {
                 nodes {
                   id
                   name
                   description
-                  state
-                  startDate
-                  targetDate
-                  completedAt
-                  createdAt
-                  updatedAt
                   teams {
                     nodes {
                       id
                       name
                     }
                   }
-                  lead {
-                    id
-                    name
-                  }
-                  members {
-                    nodes {
-                      id
-                      name
-                      email
-                    }
-                  }
+                  state
+                  url
+                  createdAt
+                  updatedAt
                 }
               }
             }
           GRAPHQL
         end
 
-        # Query to list issues with pagination
+        # GraphQL query to list all issues for analytics
+        # @param team_id [String, nil] Team ID to filter issues
         # @return [String] GraphQL query
-        def self.list_issues(team_id: nil)
+        def self.list_issues(_team_id = nil)
           <<~GRAPHQL
-            query Issues($first: Int, $after: String, $teamId: ID) {
+            query Issues($teamId: String, $first: Int, $after: String) {
               issues(
-                first: $first,
-                after: $after,
                 filter: { team: { id: { eq: $teamId } } }
+                first: $first
+                after: $after
               ) {
-                pageInfo {
-                  hasNextPage
-                  endCursor
-                }
                 nodes {
                   id
-                  identifier
                   title
                   state {
-                    id
-                    name
-                    color
-                  }
-                  assignee {
-                    id
                     name
                   }
                   team {
+                    id
+                    name
+                  }
+                  assignee {
                     id
                     name
                   }
@@ -116,21 +94,13 @@ module LinearCli
                     id
                     name
                   }
-                  priority
                   estimate
-                  startedAt
                   completedAt
-                  cycle {
-                    id
-                    name
-                  }
-                  labels {
-                    nodes {
-                      name
-                    }
-                  }
                   createdAt
-                  updatedAt
+                }
+                pageInfo {
+                  hasNextPage
+                  endCursor
                 }
               }
             }

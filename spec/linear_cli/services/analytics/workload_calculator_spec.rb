@@ -65,19 +65,22 @@ RSpec.describe LinearCli::Services::Analytics::WorkloadCalculator do
             'team' => { 'id' => 'team_1', 'name' => 'Engineering' },
             'project' => { 'id' => 'project_1', 'name' => 'Project A' },
             'assignee' => { 'id' => 'user_1', 'name' => 'John Doe' },
-            'estimate' => 5
+            'estimate' => 5,
+            'completedAt' => '2023-01-01'
           },
           {
             'team' => { 'id' => 'team_1', 'name' => 'Engineering' },
             'project' => { 'id' => 'project_2', 'name' => 'Project B' },
             'assignee' => { 'id' => 'user_1', 'name' => 'John Doe' },
-            'estimate' => 3
+            'estimate' => 3,
+            'completedAt' => '2023-01-02'
           },
           {
             'team' => { 'id' => 'team_2', 'name' => 'Design' },
             'project' => { 'id' => 'project_1', 'name' => 'Project A' },
             'assignee' => { 'id' => 'user_2', 'name' => 'Jane Smith' },
-            'estimate' => 8
+            'estimate' => 8,
+            'completedAt' => '2023-01-03'
           }
         ]
       end
@@ -123,12 +126,14 @@ RSpec.describe LinearCli::Services::Analytics::WorkloadCalculator do
           {
             'team' => { 'id' => 'team_1', 'name' => 'Engineering' },
             'assignee' => { 'id' => 'user_1', 'name' => 'John Doe' },
-            'estimate' => 5
+            'estimate' => 5,
+            'completedAt' => '2023-01-01'
           }, # Missing project
           {
             'team' => { 'id' => 'team_1', 'name' => 'Engineering' },
             'project' => { 'id' => 'project_1', 'name' => 'Project A' },
-            'estimate' => 3
+            'estimate' => 3,
+            'completedAt' => '2023-01-02'
           } # Missing assignee
         ]
       end
@@ -209,19 +214,22 @@ RSpec.describe LinearCli::Services::Analytics::WorkloadCalculator do
             'team' => { 'id' => 'team_1', 'name' => 'Engineering' },
             'project' => { 'id' => 'project_1', 'name' => 'Project A' },
             'assignee' => { 'id' => 'user_1', 'name' => 'John Doe' },
-            'estimate' => 5
+            'estimate' => 5,
+            'completedAt' => '2023-01-01'
           },
           {
             'team' => { 'id' => 'team_1', 'name' => 'Engineering' },
             'project' => { 'id' => 'project_2', 'name' => 'Project B' },
             'assignee' => { 'id' => 'user_1', 'name' => 'John Doe' },
-            'estimate' => 3
+            'estimate' => 3,
+            'completedAt' => '2023-01-02'
           },
           {
             'team' => { 'id' => 'team_2', 'name' => 'Design' },
             'project' => { 'id' => 'project_1', 'name' => 'Project A' },
             'assignee' => { 'id' => 'user_2', 'name' => 'Jane Smith' },
-            'estimate' => 8
+            'estimate' => 8,
+            'completedAt' => '2023-01-03'
           }
         ]
       end
@@ -265,18 +273,19 @@ RSpec.describe LinearCli::Services::Analytics::WorkloadCalculator do
           {
             'project' => { 'id' => 'project_1' },
             'assignee' => { 'id' => 'user_1' }
-          }, # Missing team
+            # Missing team and no completedAt
+          },
           {
-            'team' => { 'id' => 'team_1' },
-            'project' => { 'id' => 'project_1' },
-            'assignee' => { 'id' => 'user_1' }
-          }, # Missing estimate
+            'team' => { 'id' => 'team_1' }
+            # Missing project, assignee, estimate and completedAt
+          },
           {
             'team' => { 'id' => 'team_1' },
             'project' => { 'id' => 'project_1' },
             'assignee' => { 'id' => 'user_1' },
             'estimate' => 0
-          } # Zero estimate
+            # Missing completedAt
+          }
         ]
       end
 
@@ -296,12 +305,14 @@ RSpec.describe LinearCli::Services::Analytics::WorkloadCalculator do
           {
             'team' => { 'id' => 'team_1', 'name' => 'Engineering' },
             'assignee' => { 'id' => 'user_1', 'name' => 'John Doe' },
-            'estimate' => 5
+            'estimate' => 5,
+            'completedAt' => '2023-01-01'
           }, # Missing project
           {
             'team' => { 'id' => 'team_1', 'name' => 'Engineering' },
             'project' => { 'id' => 'project_1', 'name' => 'Project A' },
-            'estimate' => 3
+            'estimate' => 3,
+            'completedAt' => '2023-01-02'
           } # Missing assignee
         ]
       end

@@ -79,6 +79,7 @@
   - Enhanced with time period filtering, summary/detailed views, completion date usage, and more context (issue counts, point totals).
   - **Simplified**: Standardized on a 6-month monthly summary view followed by project details for clarity.
   - **Team Focus**: Changed to focus on one team at a time via `team_workload` command (deprecating `engineer_workload`) for more focused reporting. Renamed "engineers" to "contributors".
+  - **Contribution Definition**: Refined to only consider completed issues as contributions. Tasks without story point estimates are counted as 1 point of effort to properly account for all completed work.
 
 ### Capitalization Analysis (Removed)
 - **Initial Implementation**: Added software capitalization analysis based on issue labels.

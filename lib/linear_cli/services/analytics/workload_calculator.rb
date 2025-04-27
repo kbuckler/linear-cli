@@ -9,8 +9,6 @@ module LinearCli
         # @param projects [Array<Hash>] Array of project data
         # @return [Hash] Team workload data
         def calculate_team_project_workload(issues, team, projects)
-          result = {}
-
           # Ensure issues is an array to avoid nil errors
           issues = [] if issues.nil?
 
@@ -42,8 +40,11 @@ module LinearCli
 
           # Process each issue
           issues.each do |issue|
-            # Skip issues without teams or estimates
-            next unless issue['team'] && issue['estimate']
+            # Skip issues without teams
+            next unless issue['team']
+
+            # Only consider completed issues as contributions
+            next unless issue['completedAt']
 
             issue_team_id = issue['team']['id']
 
@@ -68,10 +69,13 @@ module LinearCli
 
             contributor_id = issue['assignee'] ? issue['assignee']['id'] : 'unassigned'
             contributor_name = issue['assignee'] ? issue['assignee']['name'] : 'Unassigned'
-            points = issue['estimate'].to_i
 
-            # Skip if points is zero
-            next if points.zero?
+            # Tasks without estimates should be counted as 1 point of effort
+            points = if issue['estimate'].nil? || issue['estimate'].to_i.zero?
+                       1
+                     else
+                       issue['estimate'].to_i
+                     end
 
             # Initialize project if needed
             result[:projects][project_id] ||= {
@@ -162,8 +166,11 @@ module LinearCli
 
           # Process each issue
           issues.each do |issue|
-            # Skip issues without teams or estimates
-            next unless issue['team'] && issue['estimate']
+            # Skip issues without teams
+            next unless issue['team']
+
+            # Only consider completed issues as contributions
+            next unless issue['completedAt']
 
             team_id = issue['team']['id']
             issue['team']['name']
@@ -186,10 +193,13 @@ module LinearCli
 
             engineer_id = issue['assignee'] ? issue['assignee']['id'] : 'unassigned'
             engineer_name = issue['assignee'] ? issue['assignee']['name'] : 'Unassigned'
-            points = issue['estimate'].to_i
 
-            # Skip if points is zero
-            next if points.zero?
+            # Tasks without estimates should be counted as 1 point of effort
+            points = if issue['estimate'].nil? || issue['estimate'].to_i.zero?
+                       1
+                     else
+                       issue['estimate'].to_i
+                     end
 
             # Initialize project in team if needed
             result[team_id][:projects][project_id] ||= {

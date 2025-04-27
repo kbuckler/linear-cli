@@ -65,8 +65,8 @@ module LinearCli
               when 'year'
                 same_year?(date_time, current_time)
               end
-            rescue ArgumentError => e
-              # Handle invalid date formats
+            rescue ArgumentError
+              # Handle invalid date format
               Rails.logger.warn("Invalid date format: #{date_string}") if defined?(Rails)
               false
             end

@@ -2,6 +2,7 @@ require 'httparty'
 require 'json'
 require 'active_support/core_ext/string/inflections'
 require_relative '../ui/logger'
+require 'net/http'
 
 module LinearCli
   module API
@@ -68,30 +69,28 @@ module LinearCli
 
         LinearCli::UI::Logger.info("#{description}...")
 
-        begin
-          # Make the actual request
-          response = self.class.post(
-            '',
-            headers: headers,
-            body: {
-              query: query,
-              variables: variables
-            }.to_json,
-            timeout: @timeout,
-            open_timeout: @open_timeout
-          )
+        # Make the actual request
+        response = self.class.post(
+          '',
+          headers: headers,
+          body: {
+            query: query,
+            variables: variables
+          }.to_json,
+          timeout: @timeout,
+          open_timeout: @open_timeout
+        )
 
-          result = handle_response(response)
+        result = handle_response(response)
 
-          # Log completion
-          LinearCli::UI::Logger.info("#{description} completed.")
+        # Log completion
+        LinearCli::UI::Logger.info("#{description} completed.")
 
-          result
-        rescue StandardError => e
-          # Log error
-          LinearCli::UI::Logger.error("#{description} failed: #{e.message}")
-          raise e
-        end
+        result
+      rescue StandardError => e
+        # Log error
+        LinearCli::UI::Logger.error("#{description} failed: #{e.message}")
+        raise
       end
 
       # Fetch paginated data from the API
@@ -121,73 +120,71 @@ module LinearCli
         page_count = 0
         has_more_pages = true
 
-        begin
-          while has_more_pages
-            page_count += 1
+        while has_more_pages
+          page_count += 1
 
-            LinearCli::UI::Logger.info("#{progress_message} (page #{page_count})")
+          LinearCli::UI::Logger.info("#{progress_message} (page #{page_count})")
 
-            # Execute the query for this page
-            response = self.class.post(
-              '',
-              headers: headers,
-              body: {
-                query: query,
-                variables: current_variables
-              }.to_json,
-              timeout: @timeout,
-              open_timeout: @open_timeout
-            )
+          # Execute the query for this page
+          response = self.class.post(
+            '',
+            headers: headers,
+            body: {
+              query: query,
+              variables: current_variables
+            }.to_json,
+            timeout: @timeout,
+            open_timeout: @open_timeout
+          )
 
-            body = JSON.parse(response.body)
-            handle_error(body, response.code) if response.code != 200 || body['errors']
-            result = body['data'] || {}
+          body = JSON.parse(response.body)
+          handle_error(body, response.code) if response.code != 200 || body['errors']
+          result = body['data'] || {}
 
-            # Extract nodes
-            current_path = nodes_path.split('.')
-            current_data = result
-            current_path.each { |path| current_data = current_data[path] if current_data }
+          # Extract nodes
+          current_path = nodes_path.split('.')
+          current_data = result
+          current_path.each { |path| current_data = current_data[path] if current_data }
 
-            # Extract items and pageInfo
-            current_items = (current_data && current_data['nodes']) || []
-            page_info_path_parts = page_info_path.split('.')
-            page_info_data = result
-            page_info_path_parts.each { |path| page_info_data = page_info_data[path] if page_info_data }
-            page_info = page_info_data && page_info_data['pageInfo']
+          # Extract items and pageInfo
+          current_items = (current_data && current_data['nodes']) || []
+          page_info_path_parts = page_info_path.split('.')
+          page_info_data = result
+          page_info_path_parts.each { |path| page_info_data = page_info_data[path] if page_info_data }
+          page_info = page_info_data && page_info_data['pageInfo']
 
-            # Add current items to the result
-            all_items.concat(current_items)
+          # Add current items to the result
+          all_items.concat(current_items)
 
-            # Determine if we should fetch the next page
-            has_next_page = page_info && page_info['hasNextPage']
+          # Determine if we should fetch the next page
+          has_next_page = page_info && page_info['hasNextPage']
 
-            # Stop if we shouldn't fetch more pages
-            break unless fetch_all
+          # Stop if we shouldn't fetch more pages
+          break unless fetch_all
 
-            # Stop if we've reached the limit
-            break if limit && all_items.size >= limit
+          # Stop if we've reached the limit
+          break if limit && all_items.size >= limit
 
-            # Stop if we've reached the last page
-            break unless has_next_page
+          # Stop if we've reached the last page
+          break unless has_next_page
 
-            # Get the cursor for the next page
-            end_cursor = page_info['endCursor']
-            current_variables[:after] = end_cursor
+          # Get the cursor for the next page
+          end_cursor = page_info['endCursor']
+          current_variables[:after] = end_cursor
 
-            # Continue to next page
-            has_more_pages = true
-          end
-
-          # Complete the progress
-          LinearCli::UI::Logger.info("Fetched #{all_items.size} items across #{page_count} pages") if page_count > 1
-          LinearCli::UI::Logger.info("#{progress_message} completed.")
-
-          all_items
-        rescue StandardError => e
-          # Log error
-          LinearCli::UI::Logger.error("#{progress_message} failed: #{e.message}")
-          raise e
+          # Continue to next page
+          has_more_pages = true
         end
+
+        # Complete the progress
+        LinearCli::UI::Logger.info("Fetched #{all_items.size} items across #{page_count} pages") if page_count > 1
+        LinearCli::UI::Logger.info("#{progress_message} completed.")
+
+        all_items
+      rescue StandardError => e
+        # Log error
+        LinearCli::UI::Logger.error("#{progress_message} failed: #{e.message}")
+        raise
       end
 
       # Get team ID by name (case insensitive)
@@ -209,24 +206,56 @@ module LinearCli
           }
         GRAPHQL
 
-        begin
-          result = query(query)
-          teams = result['teams']['nodes']
+        result = query(query)
+        teams = result['teams']['nodes']
 
-          raise 'No teams found in your Linear workspace. Please create a team first.' if teams.empty?
+        raise 'No teams found in your Linear workspace. Please create a team first.' if teams.empty?
 
-          # Find team by case-insensitive name match
-          team = teams.find { |t| t['name'].downcase == team_name.downcase }
+        # Find team by case-insensitive name match
+        team = teams.find { |t| t['name'].downcase == team_name.downcase }
 
-          if team.nil?
-            available_teams = teams.map { |t| "#{t['name']} (#{t['key']})" }.join(', ')
-            raise "Team '#{team_name}' not found. Available teams: #{available_teams}"
-          end
-
-          team['id']
-        rescue StandardError => e
-          raise e
+        if team.nil?
+          available_teams = teams.map { |t| "#{t['name']} (#{t['key']})" }.join(', ')
+          raise "Team '#{team_name}' not found. Available teams: #{available_teams}"
         end
+
+        team['id']
+      end
+
+      # @return [Boolean] True if the call was successful
+      def check_url_connection
+        uri = URI.parse(@api_url)
+        response = Net::HTTP.get_response(uri)
+        response.code.to_i < 400
+      rescue StandardError
+        false
+      end
+
+      # Send a GraphQL request to the Linear API and handle response
+      # @param query [String] GraphQL query
+      # @param variables [Hash] GraphQL variables
+      # @return [Hash] Response data
+      def request(query, variables = {})
+        # Prepare headers with authentication
+        headers = {
+          'Content-Type' => 'application/json',
+          'Authorization' => @api_key
+        }
+
+        # Log the request
+        UI::Logger.info("Sending GraphQL request to #{@api_url}")
+
+        # Make the request with timeout settings
+        response = HTTParty.post(
+          @api_url,
+          body: { query: query, variables: variables }.to_json,
+          headers: headers,
+          timeout: @timeout,
+          open_timeout: @open_timeout
+        )
+
+        # Parse and handle response
+        handle_response(response)
       end
 
       private
