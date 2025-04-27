@@ -377,3 +377,68 @@
   - Made the pagination system more robust against API schema changes
   - Enhanced user experience with clearer progress information
   - No impact on non-TTY environments (CI/CD, scripts) 
+
+## Exception Handling Best Practices
+
+- **Decision**: Remove exception handling that obscures code or logic issues
+- **Context**: The codebase contained try/catch blocks that were silently catching and handling errors in ways that could hide problems
+- **Implementation**:
+  - Removed exception handling in `fetch_paginated_data` that suppressed count query errors and continued execution
+  - Removed special test-mode error handling in `handle_response` that bypassed error validation
+  - Retained exception handling used only for resource cleanup (e.g., closing progress bars) where exceptions are re-raised
+  - Added activesupport gem as an explicit dependency to properly support required functionality
+- **Consequences**:
+  - Improved error visibility and debugging by allowing exceptions to properly propagate
+  - Better code reliability as issues are no longer hidden behind exception handling
+  - More consistent error handling throughout the codebase
+  - Cleaner separation between resource cleanup and error handling
+  - Ensures that tests properly validate error conditions rather than bypassing them 
+
+## Pagination Count Improvement
+
+- **Decision**: Improve pagination count calculation to use the API's totalCount field
+- **Context**: The pagination display was incorrectly showing "page 1 of 1" even when there were multiple pages because it only counted nodes in the first page
+- **Implementation**:
+  - Modified the pagination count logic to first look for the `totalCount` field in the API response
+  - Added fallback to counting nodes only when `totalCount` is not available
+  - Properly recalculated total pages based on the accurate total count
+- **Consequences**:
+  - Fixed incorrect pagination display in progress bars
+  - More accurate feedback to users about their position in paginated results
+  - Better user experience when navigating large result sets 
+
+## Pagination Fetching Fix
+
+- **Decision**: Fix the logic for fetching all pages of data when using pagination
+- **Context**: The pagination system wasn't properly retrieving all pages due to logical errors in the loop control flow
+- **Implementation**:
+  - Completely redesigned the pagination loop logic to separate API concerns from application logic
+  - Added proper handling of the `--all` flag by ignoring the limit parameter when fetch_all is true
+  - Changed loop structure to use clearer break conditions instead of complex conditionals
+  - Fixed cursor handling to ensure next page is correctly fetched
+  - Added separate checks for different termination conditions (fetch_all, limit, hasNextPage)
+  - Adjusted default page size from 100 to 20 items per page for better memory usage
+- **Consequences**:
+  - The pagination system now correctly retrieves all pages when requested
+  - The `--all` flag properly overrides any limit settings
+  - Improved code readability with clearer separation of concerns
+  - Better handling of pagination states for different use cases
+  - Improved consistency between pagination display and actual data retrieval
+  - Better memory usage with smaller page sizes 
+
+## Adaptive Pagination Progress Display
+
+- **Decision**: Implement an adaptive progress display that estimates the total number of pages
+- **Context**: Linear's GraphQL API doesn't provide a totalCount field, making it difficult to accurately show pagination progress
+- **Implementation**:
+  - Removed dependency on count query which didn't provide accurate total counts
+  - Implemented an adaptive estimation approach that starts with a reasonable estimate and adjusts as pages are fetched
+  - Added exponential increase of estimated total when approaching the current estimated maximum
+  - Updated progress formatting to show "page X of Y+" to indicate an estimate versus exact count
+  - Added final exact count display when all pages have been fetched
+- **Consequences**:
+  - More accurate progress indication without relying on API features not available in Linear
+  - Better user experience with clear indication of pagination progress
+  - Dynamic adjustment of progress bar as more information becomes available
+  - Visual indication of estimated versus exact page counts with the "+" suffix
+  - Eliminated errors from attempting to use unsupported API fields 

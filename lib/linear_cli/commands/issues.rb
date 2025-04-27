@@ -18,7 +18,7 @@ module LinearCli
         client = LinearCli::API::Client.new
 
         # Build variables for the query
-        max_per_page = 100 # Linear API typically limits to 100 items per page
+        max_per_page = 19 # Linear API typically limits to 100 items per page
         first_page_limit = if options[:all]
                              max_per_page
                            else

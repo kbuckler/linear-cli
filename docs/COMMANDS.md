@@ -44,9 +44,11 @@ linear issues list --assignee "john@example.com"
 # List issues with a specific status
 linear issues list --status "In Progress"
 
-# List all issues without pagination limits
+# List all issues without pagination limits (with adaptive progress display)
 linear issues list --all
 ```
+
+When using the `--all` flag, the CLI implements an adaptive pagination system that provides visual feedback on progress, even when the total count is unknown. The progress display will adapt as more pages are fetched.
 
 ### View Issue
 

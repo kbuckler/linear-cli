@@ -67,14 +67,16 @@ module LinearCli
         # @return [String] GraphQL query
         def self.count_issues
           <<~GRAPHQL
-            query IssuesCount($teamId: ID, $assigneeId: ID, $states: [ID!]) {
-              issues(
+            query IssuesCount($teamId: ID, $assigneeId: ID, $states: [ID!], $first: Int) {
+              issueConnection: issues(
+                first: $first
                 filter: {
                   team: { id: { eq: $teamId } }
                   assignee: { id: { eq: $assigneeId } }
                   state: { id: { in: $states } }
                 }
               ) {
+                totalCount
                 pageInfo {
                   hasNextPage
                 }

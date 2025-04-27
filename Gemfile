@@ -35,4 +35,5 @@ group :development, :test do
   gem 'yard', '~> 0.9.34'
 end
 
-gem "tty-progressbar", "~> 0.18.3"
+gem 'activesupport', '~> 7.0'
+gem 'tty-progressbar', '~> 0.18.3'

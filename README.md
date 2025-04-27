@@ -49,7 +49,7 @@ linear issues list
 # List issues for a specific team
 linear issues list --team "Engineering"
 
-# List all issues without pagination limits
+# List all issues without pagination limits (with adaptive progress display)
 linear issues list --all
 
 # View a specific issue
@@ -148,6 +148,16 @@ bundle exec rspec spec/linear_cli/api/client_spec.rb:70
 # Run with detailed output
 bundle exec rspec --format doc
 ```
+
+### Dependencies
+
+The project relies on the following key dependencies:
+
+- Thor: CLI framework
+- HTTParty: HTTP client for API requests
+- ActiveSupport: Provides extensions to Ruby's standard library
+- TTY gems: Terminal formatting and display
+- RSpec: Testing framework
 
 #### Writing API Client Tests
 

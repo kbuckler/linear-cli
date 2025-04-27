@@ -1,5 +1,6 @@
 require 'httparty'
 require 'json'
+require 'active_support/core_ext/string/inflections'
 require_relative '../ui/progress_bar'
 
 module LinearCli
@@ -104,91 +105,46 @@ module LinearCli
         nodes_path = options[:nodes_path] || 'issues'
         page_info_path = options[:page_info_path] || nodes_path
         count_query = options[:count_query]
-        page_size = variables[:first] || 100
+        page_size = variables[:first] || 20
+
+        # When fetch_all is true, ignore the limit
+        limit = nil if fetch_all
 
         # Create a progress bar for the count operation if needed
         total_count = nil
         total_pages = nil
 
-        if fetch_all && count_query
-          count_progress = LinearCli::UI::ProgressBar.create('Counting total items')
-          count_progress.advance(50)
-
-          begin
-            # Execute count query directly with HTTParty to avoid nested progress bars
-            count_response = self.class.post(
-              '',
-              headers: headers,
-              body: {
-                query: count_query,
-                variables: variables
-              }.to_json
-            )
-
-            count_body = JSON.parse(count_response.body)
-            handle_error(count_body, count_response.code) if count_response.code != 200 || count_body['errors']
-            count_result = count_body['data'] || {}
-
-            # Extract count from the result - now we need to count the nodes
-            count_path = nodes_path.split('.')
-            count_data = count_result
-            # Navigate to the right node
-            count_path.each { |path| count_data = count_data[path] if count_data }
-
-            # Get the count by counting the nodes
-            total_count = count_data && count_data['nodes'] ? count_data['nodes'].size : nil
-            total_pages = total_count ? (total_count.to_f / page_size).ceil : nil
-
-            count_progress.finish
-          rescue StandardError => e
-            count_progress.finish
-            # If count query fails, we'll proceed without total count
-            total_count = nil
-            total_pages = nil
-          end
-        end
-
-        # Get operation name for the progress bar
-        operation_name = extract_operation_name(query)
-
-        # Create progress message with page information if available
-        progress_message = if total_pages && total_pages > 0
-                             "Fetching #{nodes_path.capitalize} (page %d of %d)"
+        # For the first page, we'll create a simple progress bar
+        progress_message = if total_count
+                             "Fetching #{total_count} #{nodes_path.capitalize.pluralize(total_count)}"
                            else
                              "Fetching #{nodes_path.capitalize} data"
                            end
 
-        # Create the progress bar for pagination
-        progress = LinearCli::UI::ProgressBar.create(total_pages ? format(progress_message, 1,
-                                                                          total_pages) : progress_message)
+        progress = LinearCli::UI::ProgressBar.create(progress_message)
 
         all_items = []
-        has_next_page = true
         current_variables = variables.dup
         page_count = 0
-
-        # If total pages is known, calculate progress per page
-        # Otherwise use a simpler approach for the unknown number of pages
-        progress_per_page = if total_pages && total_pages > 0
-                              100.0 / total_pages
-                            else
-                              fetch_all ? 20 : 90 # If fetching all without count, reserve progress for multiple pages
-                            end
+        has_more_pages = true
+        estimated_total_pages = 5 # Start with a reasonable estimate until we know better
 
         begin
-          while has_next_page
-            # Update progress for this page
+          while has_more_pages
             page_count += 1
 
-            # If we know total pages, update the format string with current/total
-            if total_pages && total_pages > 0
-              progress.update(format: "[:bar] :percent #{format(progress_message, page_count, total_pages)}")
+            # Update progress bar with current/estimated total pages
+            if page_count == 1 || estimated_total_pages > page_count
+              progress.update(format: "[:bar] :percent Fetching #{nodes_path.capitalize} (page #{page_count} of #{estimated_total_pages}+)")
+            else
+              progress.update(format: "[:bar] :percent Fetching #{nodes_path.capitalize} (page #{page_count})")
             end
 
-            # Advance the progress bar
+            # Calculate progress based on what we know
+            progress_per_page = 100.0 / [estimated_total_pages, page_count].max
             progress.advance(progress_per_page)
 
-            # Execute the query directly with HTTParty to avoid nested progress bars
+            # Execute the query for this page
             response = self.class.post(
               '',
               headers: headers,
@@ -202,34 +158,59 @@ module LinearCli
             handle_error(body, response.code) if response.code != 200 || body['errors']
             result = body['data'] || {}
 
-            # Extract the nodes using the provided path
+            # Extract nodes
             current_path = nodes_path.split('.')
-            current_items = result
-            current_path.each { |path| current_items = current_items[path] if current_items }
-            current_items = current_items && current_items['nodes'] || []
+            current_data = result
+            current_path.each { |path| current_data = current_data[path] if current_data }
 
-            # Add the current page of items
+            # Extract items and pageInfo
+            current_items = current_data && current_data['nodes'] || []
+            page_info_path_parts = page_info_path.split('.')
+            page_info_data = result
+            page_info_path_parts.each { |path| page_info_data = page_info_data[path] if page_info_data }
+            page_info = page_info_data && page_info_data['pageInfo']
+
+            # Add current items to the result
             all_items.concat(current_items)
 
-            # Check if there are more pages
-            page_info_path_parts = page_info_path.split('.')
-            page_info = result
-            page_info_path_parts.each { |path| page_info = page_info[path] if page_info }
-            page_info &&= page_info['pageInfo']
+            # Determine if we should fetch the next page
+            has_next_page = page_info && page_info['hasNextPage']
 
-            has_next_page = fetch_all && page_info && page_info['hasNextPage']
+            # If we're on the first page and there's a next page, we can try to peek ahead
+            # to get a better estimate of total pages
+            # Update our estimate based on items received so far
+            if page_count == 1 && has_next_page && fetch_all && current_items.size >= 10 && estimated_total_pages < 10
+              estimated_total_pages = 10
+              progress.update(format: "[:bar] :percent Fetching #{nodes_path.capitalize} (page #{page_count} of #{estimated_total_pages}+)")
+            end
 
-            # If we need to fetch the next page, update the cursor
-            current_variables[:after] = page_info['endCursor'] if has_next_page
+            # If we're approaching our estimated total, increase it
+            if page_count >= estimated_total_pages - 1 && has_next_page
+              estimated_total_pages *= 2
+              progress.update(format: "[:bar] :percent Fetching #{nodes_path.capitalize} (page #{page_count} of #{estimated_total_pages}+)")
+            end
 
-            # If we're not fetching all items, only do one page
+            # If we're at the end, update with the exact total
+            if !has_next_page && page_count > 1
+              estimated_total_pages = page_count
+              progress.update(format: "[:bar] :percent Fetching #{nodes_path.capitalize} (page #{page_count} of #{estimated_total_pages})")
+            end
+
+            # Stop if we shouldn't fetch more pages
             break unless fetch_all
 
-            # If we've reached the requested limit, stop
-            break if !fetch_all && all_items.size >= limit
+            # Stop if we've reached the limit
+            break if limit && all_items.size >= limit
 
-            # If we know the total pages and we've reached that number, stop
-            break if total_pages && page_count >= total_pages
+            # Stop if we've reached the last page
+            break unless has_next_page
+
+            # Get the cursor for the next page
+            end_cursor = page_info['endCursor']
+            current_variables[:after] = end_cursor
+
+            # Continue to next page
+            has_more_pages = true
           end
 
           # Complete the progress
@@ -326,15 +307,7 @@ module LinearCli
         puts "DEBUG - Response body data: #{body['data'].inspect}" if defined?(RSpec)
         puts "DEBUG - Response body errors: #{body['errors'].inspect}" if defined?(RSpec)
 
-        # In test environment (the test API key is 'test_api_key'),
-        # we want to skip error handling for certain cases
-        if @api_key == 'test_api_key' && defined?(RSpec)
-          puts 'DEBUG - Running in test environment' if defined?(RSpec)
-          # If we have data in the response, use it regardless of status code
-          return body['data'] if body['data']
-        end
-
-        # For real requests, validate normally
+        # For all requests, validate normally
         handle_error(body, response.code) if response.code != 200 || body['errors']
 
         body['data'] || {}
