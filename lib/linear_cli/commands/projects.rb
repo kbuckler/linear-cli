@@ -50,7 +50,7 @@ module LinearCli
         client = LinearCli::API::Client.new
 
         # Execute the query
-        result = client.query(LinearCli::API::Queries::Projects.get_project, { id: id })
+        result = client.query(LinearCli::API::Queries::Projects.project, { id: id })
         project = result['project']
 
         if project.nil?

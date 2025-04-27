@@ -174,7 +174,11 @@ module LinearCli
           stats[:percentage] =
             stats[:total_issues].zero? ? 0 : ((stats[:capitalized_issues].to_f / stats[:total_issues]) * 100).round(2)
           stats[:estimate_percentage] =
-            stats[:total_estimate].zero? ? 0 : ((stats[:capitalized_estimate].to_f / stats[:total_estimate]) * 100).round(2)
+            if stats[:total_estimate].zero?
+              0
+            else
+              ((stats[:capitalized_estimate].to_f / stats[:total_estimate]) * 100).round(2)
+            end
         end
 
         engineers

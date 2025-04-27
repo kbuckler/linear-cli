@@ -137,7 +137,9 @@ module LinearCli
       # @param capitalization_data [Hash] Capitalization metrics data
       def self.display_overall_capitalization_rate(capitalization_data)
         puts "\n#{'Overall Capitalization Rate:'.bold}"
-        puts "  #{format_percentage(capitalization_data[:capitalization_rate])} of issues (#{capitalization_data[:capitalized_count]}/#{capitalization_data[:total_issues]}) are on capitalized projects"
+        puts "  #{format_percentage(capitalization_data[:capitalization_rate])} of issues " \
+             "(#{capitalization_data[:capitalized_count]}/#{capitalization_data[:total_issues]}) " \
+             'are on capitalized projects'
       end
 
       # Display the list of capitalized projects
@@ -185,7 +187,8 @@ module LinearCli
         puts "\n#{'Engineers by Capitalized Project:'.bold}"
 
         capitalization_data[:project_engineer_workload].each do |project_name, project_data|
-          puts "\n  #{'Project:'.bold} #{project_name.green} (#{project_data[:assigned_issues]}/#{project_data[:total_issues]} assigned issues)"
+          puts "\n  #{'Project:'.bold} #{project_name.green} " \
+               "(#{project_data[:assigned_issues]}/#{project_data[:total_issues]} assigned issues)"
 
           # Skip if no engineers on this project
           next if project_data[:engineers].empty?

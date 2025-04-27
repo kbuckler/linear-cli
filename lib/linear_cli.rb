@@ -54,7 +54,7 @@ module LinearCli
              'Analytics and reporting for Linear data'
 
     # Override help to provide a more comprehensive menu
-    def help(command = nil, subcommand = true)
+    def help(command = nil, subcommand: true)
       if command.nil?
         pastel = Pastel.new
         puts pastel.bold('Linear CLI - Command Line Interface for Linear')

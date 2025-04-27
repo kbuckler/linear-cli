@@ -22,7 +22,11 @@ module LinearCli
         first_page_limit = if options[:all]
                              max_per_page
                            else
-                             (options[:limit] ? LinearCli::Validators::InputValidator.validate_limit(options[:limit]) : 20)
+                             (if options[:limit]
+                                LinearCli::Validators::InputValidator.validate_limit(options[:limit])
+                              else
+                                20
+                              end)
                            end
         variables = { first: first_page_limit }
 
@@ -128,7 +132,7 @@ module LinearCli
         client = LinearCli::API::Client.new
 
         # Execute the query
-        result = client.query(LinearCli::API::Queries::Issues.get_issue, { id: sanitized_id })
+        result = client.query(LinearCli::API::Queries::Issues.issue, { id: sanitized_id })
         issue = result['issue']
 
         if issue.nil?
@@ -191,7 +195,8 @@ module LinearCli
 
           # Add status if provided
           if options[:status]
-            input[:stateId] = LinearCli::Validators::InputValidator.sanitize_string(options[:status]) # TODO: Implement resolving status name to ID
+            # TODO: Implement resolving status name to ID
+            input[:stateId] = LinearCli::Validators::InputValidator.sanitize_string(options[:status])
           end
 
           # Add priority if provided
@@ -259,7 +264,8 @@ module LinearCli
 
         # Add status if provided
         if options[:status]
-          input[:stateId] = LinearCli::Validators::InputValidator.sanitize_string(options[:status]) # TODO: Implement resolving status name to ID
+          # TODO: Implement resolving status name to ID
+          input[:stateId] = LinearCli::Validators::InputValidator.sanitize_string(options[:status])
         end
 
         # Add priority if provided
@@ -283,7 +289,7 @@ module LinearCli
         else
           puts 'Failed to update issue.'
         end
-      rescue ArgumentError => e
+      rescue ArgumentError, RuntimeError => e
         puts "Error: #{e.message}"
       end
 
@@ -323,9 +329,7 @@ module LinearCli
         else
           puts 'Failed to add comment.'
         end
-      rescue ArgumentError => e
-        puts "Error: #{e.message}"
-      rescue RuntimeError => e
+      rescue ArgumentError, RuntimeError => e
         puts "Error: #{e.message}"
       end
     end

@@ -90,7 +90,7 @@ module LinearCli
 
         # Query to get issue details by id
         # @return [String] GraphQL query
-        def self.get_issue
+        def self.issue
           <<~GRAPHQL
             query Issue($id: ID!) {
               issue(id: $id) {

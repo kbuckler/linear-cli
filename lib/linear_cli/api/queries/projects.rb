@@ -35,7 +35,7 @@ module LinearCli
 
         # Query to get project details by id
         # @return [String] GraphQL query
-        def self.get_project
+        def self.project
           <<~GRAPHQL
             query Project($id: ID!) {
               project(id: $id) {

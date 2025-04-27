@@ -49,7 +49,7 @@ module LinearCli
         client = LinearCli::API::Client.new
 
         # Execute the query
-        result = client.query(LinearCli::API::Queries::Teams.get_team, { id: id })
+        result = client.query(LinearCli::API::Queries::Teams.team, { id: id })
         team = result['team']
 
         if team.nil?

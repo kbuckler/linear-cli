@@ -36,7 +36,7 @@ module LinearCli
 
         # Query to get team details by id
         # @return [String] GraphQL query
-        def self.get_team
+        def self.team
           <<~GRAPHQL
             query Team($id: String!) {
               team(id: $id) {

@@ -39,7 +39,8 @@ module LinearCli
 
         # Check if this is a mutation and safe mode is enabled
         if LinearCli.safe_mode? && query.strip.start_with?('mutation')
-          raise "Operation blocked: Safe mode is enabled. Mutations are not allowed in safe mode.\nUse the --allow-mutations flag to perform this operation."
+          raise "Operation blocked: Safe mode is enabled. Mutations are not allowed in safe mode.\n" \
+                'Use the --allow-mutations flag to perform this operation.'
         end
 
         # Create a progress bar for the operation
@@ -132,7 +133,9 @@ module LinearCli
 
             # Update progress bar with current/estimated total pages
             if page_count == 1 || estimated_total_pages > page_count
-              progress.update(format: "[:bar] :percent Fetching #{nodes_path.capitalize} (page #{page_count} of #{estimated_total_pages}+)")
+              message = "[:bar] :percent Fetching #{nodes_path.capitalize} " \
+                        "(page #{page_count} of #{estimated_total_pages})"
+              progress.update(format: message)
             else
               progress.update(format: "[:bar] :percent Fetching #{nodes_path.capitalize} (page #{page_count})")
             end
@@ -178,19 +181,25 @@ module LinearCli
             # Update our estimate based on items received so far
             if page_count == 1 && has_next_page && fetch_all && current_items.size >= 10 && estimated_total_pages < 10
               estimated_total_pages = 10
-              progress.update(format: "[:bar] :percent Fetching #{nodes_path.capitalize} (page #{page_count} of #{estimated_total_pages}+)")
+              message = "[:bar] :percent Fetching #{nodes_path.capitalize} " \
+                        "(page #{page_count} of #{estimated_total_pages}+)"
+              progress.update(format: message)
             end
 
             # If we're approaching our estimated total, increase it
             if page_count >= estimated_total_pages - 1 && has_next_page
               estimated_total_pages *= 2
-              progress.update(format: "[:bar] :percent Fetching #{nodes_path.capitalize} (page #{page_count} of #{estimated_total_pages}+)")
+              message = "[:bar] :percent Fetching #{nodes_path.capitalize} " \
+                        "(page #{page_count} of #{estimated_total_pages}+)"
+              progress.update(format: message)
             end
 
             # If we're at the end, update with the exact total
             if !has_next_page && page_count > 1
               estimated_total_pages = page_count
-              progress.update(format: "[:bar] :percent Fetching #{nodes_path.capitalize} (page #{page_count} of #{estimated_total_pages})")
+              message = "[:bar] :percent Fetching #{nodes_path.capitalize} " \
+                        "(page #{page_count} of #{estimated_total_pages})"
+              progress.update(format: message)
             end
 
             # Stop if we shouldn't fetch more pages
