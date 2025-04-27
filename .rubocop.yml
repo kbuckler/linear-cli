@@ -20,6 +20,8 @@ Style/StringLiterals:
 
 Layout/LineLength:
   Max: 120
+  Exclude:
+    - 'spec/**/*'
 
 Style/ClassAndModuleChildren:
   Enabled: false
@@ -32,4 +34,10 @@ Metrics/MethodLength:
   Max: 20
 
 Metrics/AbcSize:
-  Max: 20 
+  Max: 20
+
+Metrics/ModuleLength:
+  Max: 200
+
+Metrics/ClassLength:
+  Max: 250 
