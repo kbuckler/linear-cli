@@ -129,14 +129,14 @@ module LinearCli
             handle_error(count_body, count_response.code) if count_response.code != 200 || count_body['errors']
             count_result = count_body['data'] || {}
 
-            # Extract count from the result
+            # Extract count from the result - now we need to count the nodes
             count_path = nodes_path.split('.')
             count_data = count_result
             # Navigate to the right node
             count_path.each { |path| count_data = count_data[path] if count_data }
 
-            # Get the totalCount value
-            total_count = count_data && count_data['totalCount']
+            # Get the count by counting the nodes
+            total_count = count_data && count_data['nodes'] ? count_data['nodes'].size : nil
             total_pages = total_count ? (total_count.to_f / page_size).ceil : nil
 
             count_progress.finish
@@ -153,13 +153,14 @@ module LinearCli
 
         # Create progress message with page information if available
         progress_message = if total_pages && total_pages > 0
-                             "Fetching #{nodes_path.capitalize} (page %<current>d/%<total>d)"
+                             "Fetching #{nodes_path.capitalize} (page %d of %d)"
                            else
                              "Fetching #{nodes_path.capitalize} data"
                            end
 
         # Create the progress bar for pagination
-        progress = LinearCli::UI::ProgressBar.create(progress_message)
+        progress = LinearCli::UI::ProgressBar.create(total_pages ? format(progress_message, 1,
+                                                                          total_pages) : progress_message)
 
         all_items = []
         has_next_page = true
@@ -181,9 +182,7 @@ module LinearCli
 
             # If we know total pages, update the format string with current/total
             if total_pages && total_pages > 0
-              progress.update(format: "[:bar] :percent #{progress_message.gsub('%<current>d', page_count.to_s).gsub(
-                '%<total>d', total_pages.to_s
-              )}")
+              progress.update(format: "[:bar] :percent #{format(progress_message, page_count, total_pages)}")
             end
 
             # Advance the progress bar

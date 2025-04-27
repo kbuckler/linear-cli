@@ -75,7 +75,12 @@ module LinearCli
                   state: { id: { in: $states } }
                 }
               ) {
-                totalCount
+                pageInfo {
+                  hasNextPage
+                }
+                nodes {
+                  id
+                }
               }
             }
           GRAPHQL
