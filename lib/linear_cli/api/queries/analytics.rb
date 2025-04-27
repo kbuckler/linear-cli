@@ -72,7 +72,7 @@ module LinearCli
         # @return [String] GraphQL query
         def self.list_issues(_team_id = nil)
           <<~GRAPHQL
-            query Issues($teamId: String, $first: Int, $after: String) {
+            query Issues($teamId: ID, $first: Int, $after: String) {
               issues(
                 filter: { team: { id: { eq: $teamId } } }
                 first: $first

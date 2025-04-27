@@ -83,6 +83,7 @@ module LinearCli
             result[:projects][project_id] ||= {
               name: project_name,
               total_points: 0,
+              issues_count: 0,
               contributors: {}
             }
 
@@ -90,26 +91,33 @@ module LinearCli
             result[:contributors][contributor_id] ||= {
               name: contributor_name,
               total_points: 0,
+              issues_count: 0,
               projects: {}
             }
 
             # Initialize contributor in project if needed
             result[:projects][project_id][:contributors][contributor_id] ||= {
               name: contributor_name,
-              points: 0
+              points: 0,
+              issues_count: 0
             }
 
             # Initialize project in contributor if needed
             result[:contributors][contributor_id][:projects][project_id] ||= {
               name: project_name,
-              points: 0
+              points: 0,
+              issues_count: 0
             }
 
-            # Update points
+            # Update points and issue counts
             result[:projects][project_id][:total_points] += points
+            result[:projects][project_id][:issues_count] += 1
             result[:projects][project_id][:contributors][contributor_id][:points] += points
+            result[:projects][project_id][:contributors][contributor_id][:issues_count] += 1
             result[:contributors][contributor_id][:total_points] += points
+            result[:contributors][contributor_id][:issues_count] += 1
             result[:contributors][contributor_id][:projects][project_id][:points] += points
+            result[:contributors][contributor_id][:projects][project_id][:issues_count] += 1
           end
 
           # Calculate percentages

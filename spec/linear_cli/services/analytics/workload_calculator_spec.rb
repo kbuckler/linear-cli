@@ -102,16 +102,23 @@ RSpec.describe LinearCli::Services::Analytics::WorkloadCalculator do
         expect(result[:contributors]).to have_key('user_1')
         expect(result[:contributors]['user_1'][:name]).to eq('John Doe')
         expect(result[:contributors]['user_1'][:total_points]).to eq(8) # 5 + 3
+        expect(result[:contributors]['user_1'][:issues_count]).to eq(2) # 2 issues
 
         # Check project data
         project1 = result[:projects]['project_1']
         expect(project1[:name]).to eq('Project A')
         expect(project1[:total_points]).to eq(5)
+        expect(project1[:issues_count]).to eq(1) # 1 issue
         expect(project1[:contributors]).to have_key('user_1')
+        expect(project1[:contributors]['user_1'][:issues_count]).to eq(1) # 1 issue
 
         # Check percentage calculations
         expect(result[:contributors]['user_1'][:projects]['project_1'][:percentage]).to eq(62.5) # 5/8 * 100
         expect(result[:contributors]['user_1'][:projects]['project_2'][:percentage]).to eq(37.5) # 3/8 * 100
+
+        # Check issue counts in project/contributor relationships
+        expect(result[:contributors]['user_1'][:projects]['project_1'][:issues_count]).to eq(1) # 1 issue
+        expect(result[:contributors]['user_1'][:projects]['project_2'][:issues_count]).to eq(1) # 1 issue
       end
 
       it 'filters out issues from other teams' do

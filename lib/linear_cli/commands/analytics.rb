@@ -183,22 +183,35 @@ module LinearCli
         all_contributors.each do |contributor_id, contributor_name|
           row = [contributor_name]
 
+          monthly_points = 0
+          monthly_issues = 0
+
           # Add point totals for each month
           sorted_months.each do |month|
             if monthly_reports[month][:contributors][contributor_id]
               points = monthly_reports[month][:contributors][contributor_id][:total_points]
-              row << points
+              issues = monthly_reports[month][:contributors][contributor_id][:issues_count]
+              monthly_points += points
+              monthly_issues += issues
+              row << "#{points}p / #{issues}i"
             else
-              row << 0
+              row << '0p / 0i'
             end
           end
 
           # Add row only if contributor has points
-          rows << row if row[1..].sum.positive?
+          rows << row if monthly_points.positive?
+
+          # Add total points and issues
+          row << "#{monthly_points}p / #{monthly_issues}i"
         end
 
         # Sort rows by total points (highest first)
-        rows = rows.sort_by { |row| -row[1..].sum }
+        rows = rows.sort_by do |row|
+          # Extract points from the last cell which has format "Xp / Yi"
+          last_cell = row.last
+          -last_cell.split('p').first.to_i
+        end
 
         # Create headers with month names
         headers = ['Contributor']
@@ -207,9 +220,9 @@ module LinearCli
         end
 
         # Add a total column
-        headers << 'Total'
+        headers << 'Total (Points / Issues)'
         rows.each do |row|
-          row << row[1..].sum
+          # No need to add the total here, as we've already added it above when creating the rows
         end
 
         # Use the centralized table renderer
@@ -228,11 +241,16 @@ module LinearCli
           monthly_reports[month][:projects].each_value do |project|
             next if project[:contributors].empty?
 
-            puts "  #{'Project:'.bold} #{project[:name]} (#{project[:total_points]} points)"
+            puts "  #{'Project:'.bold} #{project[:name]} (#{project[:total_points]} points, #{project[:issues_count]} issues)"
 
             # List contributors who worked on this project
             project[:contributors].each_value do |contributor|
-              puts "    - #{contributor[:name]}: #{contributor[:points]} points (#{contributor[:percentage]}%)"
+              points_per_issue = contributor[:issues_count] > 0 ? (contributor[:points].to_f / contributor[:issues_count]).round(1) : 0
+              issue_percentage = project[:issues_count] > 0 ? ((contributor[:issues_count].to_f / project[:issues_count]) * 100).round(1) : 0
+
+              puts "    - #{contributor[:name]}: #{contributor[:points]} points (#{contributor[:percentage].round(1)}%), " +
+                   "#{contributor[:issues_count]} issues (#{issue_percentage}%), " +
+                   "#{points_per_issue} points/issue"
             end
           end
         end
