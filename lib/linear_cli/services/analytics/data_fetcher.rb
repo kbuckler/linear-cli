@@ -33,15 +33,22 @@ module LinearCli
         # @return [Array<Hash>] Array of project data
         def fetch_projects(team_id: nil)
           query = LinearCli::API::Queries::Analytics.list_projects(team_id: team_id)
-          variables = { first: 50 }
-          variables[:teamId] = team_id if team_id
-
-          result = @client.fetch_paginated_data(query, variables, {
+          result = @client.fetch_paginated_data(query, { first: 50 }, {
                                                   fetch_all: true,
                                                   nodes_path: 'projects',
                                                   page_info_path: 'projects'
                                                 })
-          result || []
+          result ||= []
+
+          # Filter projects by team_id if provided
+          if team_id
+            result.select do |project|
+              project['teams'] && project['teams']['nodes'] &&
+                project['teams']['nodes'].any? { |team| team['id'] == team_id }
+            end
+          else
+            result
+          end
         end
 
         # Fetch issues from the Linear API

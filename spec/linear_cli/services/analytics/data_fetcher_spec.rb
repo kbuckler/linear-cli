@@ -39,7 +39,28 @@ RSpec.describe LinearCli::Services::Analytics::DataFetcher do
 
   describe '#fetch_projects' do
     let(:query) { 'query Projects' }
-    let(:projects_data) { [{ 'id' => 'project_1', 'name' => 'Project 1' }, { 'id' => 'project_2', 'name' => 'Project 2' }] }
+    let(:projects_data) do
+      [
+        {
+          'id' => 'project_1',
+          'name' => 'Project 1',
+          'teams' => {
+            'nodes' => [
+              { 'id' => 'team_1', 'name' => 'Team 1' }
+            ]
+          }
+        },
+        {
+          'id' => 'project_2',
+          'name' => 'Project 2',
+          'teams' => {
+            'nodes' => [
+              { 'id' => 'team_2', 'name' => 'Team 2' }
+            ]
+          }
+        }
+      ]
+    end
     let(:team_id) { 'team_1' }
 
     context 'without team_id' do
@@ -50,7 +71,7 @@ RSpec.describe LinearCli::Services::Analytics::DataFetcher do
           .and_return(projects_data)
       end
 
-      it 'fetches projects from the API' do
+      it 'fetches all projects from the API' do
         projects = data_fetcher.fetch_projects
         expect(projects).to eq(projects_data)
       end
@@ -76,13 +97,21 @@ RSpec.describe LinearCli::Services::Analytics::DataFetcher do
       before do
         allow(LinearCli::API::Queries::Analytics).to receive(:list_projects).with(team_id: team_id).and_return(query)
         allow(client).to receive(:fetch_paginated_data)
-          .with(query, { first: 50, teamId: team_id }, { fetch_all: true, nodes_path: 'projects', page_info_path: 'projects' })
+          .with(query, { first: 50 }, { fetch_all: true, nodes_path: 'projects', page_info_path: 'projects' })
           .and_return(projects_data)
       end
 
-      it 'fetches projects for the specified team' do
+      it 'fetches and filters projects for the specified team' do
         projects = data_fetcher.fetch_projects(team_id: team_id)
-        expect(projects).to eq(projects_data)
+        expect(projects).to eq([projects_data[0]])
+      end
+
+      it 'returns an empty array when no projects match the team' do
+        allow(client).to receive(:fetch_paginated_data)
+          .with(query, { first: 50 }, { fetch_all: true, nodes_path: 'projects', page_info_path: 'projects' })
+          .and_return([])
+        projects = data_fetcher.fetch_projects(team_id: team_id)
+        expect(projects).to eq([])
       end
     end
   end

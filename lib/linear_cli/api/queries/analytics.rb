@@ -42,12 +42,8 @@ module LinearCli
         # @return [String] GraphQL query
         def self.list_projects(team_id: nil)
           <<~GRAPHQL
-            query Projects($first: Int, $after: String, $teamId: ID) {
-              projects(
-                first: $first,
-                after: $after,
-                filter: { team: { id: { eq: $teamId } } }
-              ) {
+            query Projects($first: Int, $after: String) {
+              projects(first: $first, after: $after) {
                 pageInfo {
                   hasNextPage
                   endCursor
