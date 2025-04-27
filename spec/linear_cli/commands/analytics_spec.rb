@@ -16,9 +16,6 @@ RSpec.describe LinearCli::Commands::Analytics do
     # Mock the output methods to prevent actual output during tests
     allow(command).to receive(:puts)
     allow(command).to receive(:display_engineer_workload_report)
-    allow(command).to receive(:display_summary_workload_report)
-    allow(command).to receive(:display_single_period_workload_report)
-    allow(command).to receive(:display_single_period_summary_report)
   end
 
   describe '#engineer_workload' do
@@ -52,35 +49,15 @@ RSpec.describe LinearCli::Commands::Analytics do
       ]
     end
 
-    let(:workload_result) do
+    let(:monthly_reports) do
       {
-        'team_1' => {
-          name: 'Engineering',
-          projects: {
-            'project_1' => {
-              name: 'Project A',
-              total_points: 5,
-              engineers: {
-                'user_1' => {
-                  name: 'John Doe',
-                  points: 5,
-                  percentage: 100.0
-                }
-              }
-            }
-          },
-          engineers: {
-            'user_1' => {
-              name: 'John Doe',
-              total_points: 5,
-              projects: {
-                'project_1' => {
-                  name: 'Project A',
-                  points: 5,
-                  percentage: 100.0
-                }
-              }
-            }
+        '2023-08' => {
+          name: 'August 2023',
+          issue_count: 1,
+          'team_1' => {
+            name: 'Engineering',
+            projects: { 'project_1' => { name: 'Project A', total_points: 5 } },
+            engineers: { 'user_1' => { name: 'John Doe', total_points: 5 } }
           }
         }
       }
@@ -91,10 +68,9 @@ RSpec.describe LinearCli::Commands::Analytics do
       allow(data_fetcher).to receive(:fetch_projects).and_return(projects_data)
       allow(data_fetcher).to receive(:fetch_issues).and_return(issues_data)
       allow(period_filter).to receive(:filter_issues_by_period).and_return(issues_data)
-      allow(workload_calculator).to receive(:calculate_engineer_project_workload).and_return(workload_result)
-      allow(command).to receive(:process_monthly_data).and_return({})
+      allow(command).to receive(:process_monthly_data).and_return(monthly_reports)
 
-      command.options = { format: 'table', period: 'month', view: 'detailed' }
+      command.options = { format: 'table' }
     end
 
     it 'fetches all required data' do
@@ -105,69 +81,39 @@ RSpec.describe LinearCli::Commands::Analytics do
       expect(data_fetcher).to have_received(:fetch_issues)
     end
 
-    it 'filters issues by period' do
+    it 'filters issues by period for the last 6 months' do
       command.engineer_workload
 
-      expect(period_filter).to have_received(:filter_issues_by_period)
+      expect(period_filter).to have_received(:filter_issues_by_period).with(issues_data, 'all')
     end
 
-    context 'with all period' do
-      before do
-        command.options = { format: 'table', period: 'all', view: 'detailed' }
-      end
+    it 'processes monthly data' do
+      command.engineer_workload
 
-      it 'processes monthly data' do
-        allow(command).to receive(:process_monthly_data).and_return({})
-
-        command.engineer_workload
-
-        expect(command).to have_received(:process_monthly_data)
-        expect(workload_calculator).not_to have_received(:calculate_engineer_project_workload)
-      end
+      expect(command).to have_received(:process_monthly_data)
     end
 
-    context 'with specific period' do
+    context 'with table format' do
       before do
-        command.options = { format: 'table', period: 'month', view: 'detailed' }
+        command.options = { format: 'table' }
       end
 
-      it 'calculates workload for the period' do
+      it 'displays the workload report' do
         command.engineer_workload
 
-        expect(workload_calculator).to have_received(:calculate_engineer_project_workload)
-        expect(command).not_to have_received(:process_monthly_data)
+        expect(command).to have_received(:display_engineer_workload_report).with(monthly_reports, teams_data)
       end
     end
 
     context 'with JSON output format' do
       before do
-        command.options = { format: 'json', period: 'month', view: 'detailed' }
+        command.options = { format: 'json' }
       end
 
       it 'outputs JSON' do
-        expect(command).to receive(:puts).with(anything)
+        expect(command).to receive(:puts).with(JSON.pretty_generate(monthly_reports))
 
         command.engineer_workload
-      end
-    end
-
-    context 'with different view options' do
-      it 'displays detailed report for detailed view' do
-        command.options = { format: 'table', period: 'month', view: 'detailed' }
-
-        command.engineer_workload
-
-        expect(command).to have_received(:display_single_period_workload_report)
-        expect(command).not_to have_received(:display_single_period_summary_report)
-      end
-
-      it 'displays summary report for summary view' do
-        command.options = { format: 'table', period: 'month', view: 'summary' }
-
-        command.engineer_workload
-
-        expect(command).to have_received(:display_single_period_summary_report)
-        expect(command).not_to have_received(:display_single_period_workload_report)
       end
     end
   end
@@ -236,30 +182,6 @@ RSpec.describe LinearCli::Commands::Analytics do
 
       it 'raises an error for invalid formats' do
         expect { command.send(:validate_format, 'invalid') }.to raise_error(/Invalid format/)
-      end
-    end
-
-    describe '#validate_period' do
-      it 'accepts valid periods' do
-        expect { command.send(:validate_period, 'all') }.not_to raise_error
-        expect { command.send(:validate_period, 'month') }.not_to raise_error
-        expect { command.send(:validate_period, 'quarter') }.not_to raise_error
-        expect { command.send(:validate_period, 'year') }.not_to raise_error
-      end
-
-      it 'raises an error for invalid periods' do
-        expect { command.send(:validate_period, 'invalid') }.to raise_error(/Invalid period/)
-      end
-    end
-
-    describe '#validate_view' do
-      it 'accepts valid views' do
-        expect { command.send(:validate_view, 'detailed') }.not_to raise_error
-        expect { command.send(:validate_view, 'summary') }.not_to raise_error
-      end
-
-      it 'raises an error for invalid views' do
-        expect { command.send(:validate_view, 'invalid') }.to raise_error(/Invalid view/)
       end
     end
   end

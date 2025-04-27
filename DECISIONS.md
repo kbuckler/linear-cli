@@ -494,3 +494,19 @@
   - More robust handling of edge cases like nil inputs
   - Easier to extend with new functionality in the future
   - Cleaner command class that delegates to specialized services 
+
+## Simplified Engineer Workload Report
+
+- **Decision**: Simplify engineer workload report to only show monthly data going back six months
+- **Context**: The workload report had multiple views and time period options which added complexity without providing significant value. Users primarily needed monthly level granularity.
+- **Implementation**:
+  - Removed period options (month, quarter, year) and standardized on the 6-month view
+  - Removed detailed vs. summary view options and combined the most useful elements
+  - Simplified the UI to show a monthly summary table followed by project-specific details
+  - Improved display format for better readability with less visual clutter
+- **Consequences**:
+  - Simpler, more focused interface with meaningful defaults
+  - Cleaner codebase with fewer conditionals and special cases
+  - Better user experience with a consistent report format
+  - More maintainable report generation with reduced complexity
+  - Preserved the most valuable information (monthly granularity going back 6 months) 

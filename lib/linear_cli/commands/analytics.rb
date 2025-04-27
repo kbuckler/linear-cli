@@ -186,37 +186,18 @@ module LinearCli
         - How team priorities have shifted over time
         - Resource allocation across the organization
 
-        You can filter the data by time period using the --period option.
-
         Examples:
-          linear analytics engineer_workload                      # Output in table format
-          linear analytics engineer_workload --format=json        # Output in JSON format
-          linear analytics engineer_workload --period=month       # Only analyze current month's data
-          linear analytics engineer_workload --period=quarter     # Only analyze current quarter's data
+          linear analytics engineer_workload                # Output in table format
+          linear analytics engineer_workload --format=json  # Output in JSON format
       LONGDESC
       option :format,
              type: :string,
              desc: 'Output format (json or table)',
              default: 'table',
              required: false
-      option :period,
-             type: :string,
-             desc: 'Time period to analyze (month, quarter, year, all)',
-             default: 'all',
-             required: false
-      option :view,
-             type: :string,
-             desc: 'View type (detailed or summary)',
-             default: 'detailed',
-             required: false
       def engineer_workload
         format = options[:format]&.downcase || 'table'
-        period = options[:period]&.downcase || 'all'
-        view = options[:view]&.downcase || 'detailed'
-
         validate_format(format)
-        validate_period(period)
-        validate_view(view)
 
         client = LinearCli::API::Client.new
         data_fetcher = LinearCli::Services::Analytics::DataFetcher.new(client)
@@ -234,39 +215,20 @@ module LinearCli
         all_issues_data = data_fetcher.fetch_issues
 
         period_filter = LinearCli::Services::Analytics::PeriodFilter.new
-        workload_calculator = LinearCli::Services::Analytics::WorkloadCalculator.new
 
-        # Filter issues by time period if needed
-        issues_data = period_filter.filter_issues_by_period(all_issues_data, period)
+        # Filter issues for the last 6 months
+        issues_data = period_filter.filter_issues_by_period(all_issues_data, 'all')
 
-        time_desc = period == 'all' ? 'the past 6 months' : "the current #{period}"
-        puts "Analyzing #{issues_data.size} issues from #{time_desc}..."
+        puts "Analyzing #{issues_data.size} issues from the past 6 months..."
 
-        if period == 'all'
-          # Group issues by month for the past 6 months
-          monthly_reports = process_monthly_data(issues_data, teams_data, projects_data, workload_calculator,
-                                                 period_filter)
+        # Group issues by month for the past 6 months
+        monthly_reports = process_monthly_data(issues_data, teams_data, projects_data)
 
-          # Output based on requested format
-          if format == 'json'
-            puts JSON.pretty_generate(monthly_reports)
-          elsif view == 'detailed'
-            display_engineer_workload_report(monthly_reports, teams_data)
-          else
-            display_summary_workload_report(monthly_reports, teams_data)
-          end
+        # Output based on requested format
+        if format == 'json'
+          puts JSON.pretty_generate(monthly_reports)
         else
-          # Process single period data
-          workload_data = workload_calculator.calculate_engineer_project_workload(issues_data, teams_data,
-                                                                                  projects_data)
-
-          if format == 'json'
-            puts JSON.pretty_generate(workload_data)
-          elsif view == 'detailed'
-            display_single_period_workload_report(workload_data, teams_data, period)
-          else
-            display_single_period_summary_report(workload_data, teams_data, period)
-          end
+          display_engineer_workload_report(monthly_reports, teams_data)
         end
       end
 
@@ -278,19 +240,8 @@ module LinearCli
         raise "Invalid format: #{format}. Must be 'json' or 'table'."
       end
 
-      def validate_period(period)
-        return if %w[all month quarter year].include?(period)
-
-        raise "Invalid period: #{period}. Must be 'all', 'month', 'quarter', or 'year'."
-      end
-
-      def validate_view(view)
-        return if %w[detailed summary].include?(view)
-
-        raise "Invalid view: #{view}. Must be 'detailed' or 'summary'."
-      end
-
-      def process_monthly_data(issues_data, teams_data, projects_data, workload_calculator, period_filter)
+      def process_monthly_data(issues_data, teams_data, projects_data)
+        workload_calculator = LinearCli::Services::Analytics::WorkloadCalculator.new
         monthly_issues = {}
 
         # Group issues by month for the past 6 months
@@ -353,96 +304,10 @@ module LinearCli
             next
           end
 
-          # For each month that has data for this team
-          sorted_months.each do |month|
-            month_name = monthly_reports[month][:name]
-            issue_count = monthly_reports[month][:issue_count]
-
-            # Skip if team has no data this month
-            next unless monthly_reports[month][team_id]
-
-            puts "\n#{'Month:'.bold} #{month_name} (#{issue_count} issues)"
-
-            team_data = monthly_reports[month][team_id]
-
-            # Skip if no projects or engineers
-            if team_data[:projects].empty?
-              puts "  No projects for this team in #{month_name}"
-              next
-            end
-
-            # Display projects for this team
-            team_data[:projects].each do |project_id, project|
-              puts "\n  #{'Project:'.bold} #{project[:name]} (#{project[:total_points]} points)"
-
-              if project[:engineers].empty?
-                puts "    No engineer contributions to this project in #{month_name}"
-                next
-              end
-
-              # Create a table for engineers on this project
-              rows = []
-              project[:engineers].each do |engineer_id, engineer|
-                # Find this engineer's total points across all projects
-                engineer_total = team_data[:engineers][engineer_id][:total_points]
-                percentage = ((engineer[:points].to_f / engineer_total) * 100).round(2)
-
-                rows << [
-                  engineer[:name],
-                  engineer[:points],
-                  "#{engineer_total} points",
-                  "#{percentage}%"
-                ]
-              end
-
-              # Sort rows by percentage (highest first)
-              rows = rows.sort_by { |row| -row[1] }
-
-              # Create table headers
-              headers = ['Engineer', 'Project Points', 'Total Points', 'Percentage']
-
-              # Use the centralized table renderer
-              puts LinearCli::UI::TableRenderer.render_table(
-                headers,
-                rows,
-                widths: {
-                  'Engineer' => 20,
-                  'Project Points' => 15,
-                  'Total Points' => 15,
-                  'Percentage' => 15
-                }
-              )
-            end
-          end
-        end
-      end
-
-      # Display a summary view of the workload report
-      def display_summary_workload_report(monthly_reports, teams)
-        puts "\n#{'Monthly Engineer Workload Summary (Past 6 Months)'.bold}"
-
-        # Sort months chronologically (oldest to newest)
-        sorted_months = monthly_reports.keys.sort
-
-        # Create a table showing engineers and their monthly point totals
-        teams.each do |team|
-          team_id = team['id']
-          team_name = team['name']
-
-          # Check if team has data in any month
-          has_team_data = sorted_months.any? do |month|
-            monthly_reports[month][team_id] &&
-              !monthly_reports[month][team_id][:engineers].empty?
-          end
-
-          next unless has_team_data
-
-          puts "\n#{'=' * 80}"
-          puts "Team: #{team_name.bold}"
-          puts "#{'=' * 80}"
+          # Create a table showing engineers and their monthly point totals
+          all_engineers = {}
 
           # Collect all engineers who have contributed to this team
-          all_engineers = {}
           sorted_months.each do |month|
             next unless monthly_reports[month][team_id]
 
@@ -488,124 +353,32 @@ module LinearCli
 
           # Use the centralized table renderer
           puts LinearCli::UI::TableRenderer.render_table(headers, rows)
-        end
-      end
 
-      # Display workload report for a single period
-      def display_single_period_workload_report(workload_data, teams, period)
-        period_desc = period == 'all' ? 'All Time' : "Current #{period.capitalize}"
-        puts "\n#{'Engineer Workload Report ('.bold}#{period_desc.bold})"
+          # For each month, show project details
+          sorted_months.each do |month|
+            month_name = monthly_reports[month][:name]
 
-        # For each team
-        teams.each do |team|
-          team_id = team['id']
-          team_name = team['name']
+            # Skip if no data for this month and team
+            next unless monthly_reports[month][team_id] &&
+                        !monthly_reports[month][team_id][:projects].empty?
 
-          # Skip if team has no data
-          next unless workload_data[team_id] && !workload_data[team_id][:projects].empty?
+            puts "\n#{'Month:'.bold} #{month_name} (#{monthly_reports[month][:issue_count]} issues)"
 
-          puts "\n#{'=' * 80}"
-          puts "Team: #{team_name.bold}"
-          puts "#{'=' * 80}"
+            # Get team data for this month
+            team_data = monthly_reports[month][team_id]
 
-          team_data = workload_data[team_id]
+            # Display projects for this team in this month
+            team_data[:projects].each do |project_id, project|
+              next if project[:engineers].empty?
 
-          # Display projects for this team
-          team_data[:projects].each do |project_id, project|
-            puts "\n  #{'Project:'.bold} #{project[:name]} (#{project[:total_points]} points)"
+              puts "  #{'Project:'.bold} #{project[:name]} (#{project[:total_points]} points)"
 
-            if project[:engineers].empty?
-              puts '    No engineer contributions to this project'
-              next
+              # List engineers who worked on this project
+              project[:engineers].each do |_engineer_id, engineer|
+                puts "    - #{engineer[:name]}: #{engineer[:points]} points (#{engineer[:percentage]}%)"
+              end
             end
-
-            # Create a table for engineers on this project
-            rows = []
-            project[:engineers].each do |engineer_id, engineer|
-              # Find this engineer's total points across all projects
-              engineer_total = team_data[:engineers][engineer_id][:total_points]
-              percentage = ((engineer[:points].to_f / engineer_total) * 100).round(2)
-
-              rows << [
-                engineer[:name],
-                engineer[:points],
-                "#{engineer_total} points",
-                "#{percentage}%"
-              ]
-            end
-
-            # Sort rows by points (highest first)
-            rows = rows.sort_by { |row| -row[1] }
-
-            # Create table headers
-            headers = ['Engineer', 'Project Points', 'Total Points', 'Percentage']
-
-            # Use the centralized table renderer
-            puts LinearCli::UI::TableRenderer.render_table(
-              headers,
-              rows,
-              widths: {
-                'Engineer' => 20,
-                'Project Points' => 15,
-                'Total Points' => 15,
-                'Percentage' => 15
-              }
-            )
           end
-        end
-      end
-
-      # Display summary workload report for a single period
-      def display_single_period_summary_report(workload_data, teams, period)
-        period_desc = period == 'all' ? 'All Time' : "Current #{period.capitalize}"
-        puts "\n#{'Engineer Workload Summary ('.bold}#{period_desc.bold})"
-
-        # For each team
-        teams.each do |team|
-          team_id = team['id']
-          team_name = team['name']
-
-          # Skip if team has no data
-          next unless workload_data[team_id] && !workload_data[team_id][:engineers].empty?
-
-          puts "\n#{'=' * 80}"
-          puts "Team: #{team_name.bold}"
-          puts "#{'=' * 80}"
-
-          team_data = workload_data[team_id]
-
-          # Create a table showing engineers and their project distributions
-          headers = ['Engineer', 'Total Points']
-
-          # Add all project names to headers
-          project_columns = {}
-          team_data[:projects].keys.each_with_index do |project_id, index|
-            project_name = team_data[:projects][project_id][:name]
-            headers << project_name
-            project_columns[project_id] = index + 2 # +2 for engineer and total columns
-          end
-
-          # Create rows with engineer point totals and percentages by project
-          rows = []
-          team_data[:engineers].each do |engineer_id, engineer|
-            row = [engineer[:name], engineer[:total_points]]
-
-            # Fill with zeroes first
-            project_columns.size.times { row << '0%' }
-
-            # Fill in actual percentages
-            engineer[:projects].each do |project_id, project|
-              row[project_columns[project_id]] = "#{project[:percentage]}%" if project_columns[project_id]
-            end
-
-            rows << row
-          end
-
-          # Sort rows by total points (highest first)
-          rows = rows.sort_by { |row| -row[1] }
-
-          # Use the centralized table renderer
-          puts LinearCli::UI::TableRenderer.render_table(headers, rows)
         end
       end
     end
