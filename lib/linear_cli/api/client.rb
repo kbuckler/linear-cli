@@ -43,8 +43,16 @@ module LinearCli
 
         # Create a progress bar for the operation
         operation_type = query.strip.start_with?('mutation') ? 'Mutation' : 'Query'
-        operation_name = extract_operation_name(query) || operation_type
-        progress = LinearCli::UI::ProgressBar.create("Executing #{operation_name}")
+        operation_name = extract_operation_name(query)
+
+        # Create a readable description for the progress bar
+        description = if operation_name
+                        "Executing #{operation_name}"
+                      else
+                        "Executing #{operation_type}"
+                      end
+
+        progress = LinearCli::UI::ProgressBar.create(description)
 
         # Start progress
         progress.advance(10)
@@ -96,10 +104,12 @@ module LinearCli
         page_info_path = options[:page_info_path] || nodes_path
 
         # Get operation name for the progress bar
-        operation_name = extract_operation_name(query) || "Fetching #{nodes_path}"
+        operation_name = extract_operation_name(query)
+        # Use a more descriptive and properly formatted message
+        progress_message = "Fetching #{nodes_path.capitalize} data"
 
         # Create a progress bar for pagination
-        progress = LinearCli::UI::ProgressBar.create("Fetching #{nodes_path} data")
+        progress = LinearCli::UI::ProgressBar.create(progress_message)
 
         all_items = []
         has_next_page = true
@@ -206,7 +216,12 @@ module LinearCli
       def extract_operation_name(query)
         # Match query or mutation followed by a name
         match = query.match(/(?:query|mutation)\s+([A-Za-z0-9_]+)/)
-        match && match[1]
+        return match[1] if match
+
+        # If no named operation found, check the first type definition
+        # This is a fallback for cases where operations are unnamed
+        field_match = query.match(/{\s*([a-zA-Z0-9_]+)/)
+        field_match ? field_match[1] : nil
       end
 
       # Headers for API requests
