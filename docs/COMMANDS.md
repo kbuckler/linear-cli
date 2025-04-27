@@ -245,7 +245,50 @@ linear analytics report --team "Engineering"
 - **Status Distribution**: Number of issues in each status category
 - **Team Distribution**: Number of issues assigned to each team
 - **Completion Rates**: Issue completion rate for each team with statistics
-- **Capitalization Metrics**: Project capitalization rates (when applicable)
+
+### Team Workload Reporting
+
+Generate detailed team workload metrics, showing how team members contribute to different projects on a monthly basis.
+
+```
+linear analytics team_workload [options]
+```
+
+**Options:**
+- `--team TEXT`: Name of the team to analyze (required)
+- `--format TEXT`: Output format, either 'json' or 'table' (default: 'table')
+
+**Examples:**
+```bash
+# Generate workload metrics for the Engineering team
+linear analytics team_workload --team "Engineering"
+
+# Export team workload data as JSON
+linear analytics team_workload --team "Design" --format json
+```
+
+**Generated Analytics:**
+- **Monthly Contributor Breakdown**: Shows each contributor's workload over the past 6 months
+- **Project Contributions**: Breakdown of how team members allocate their time across projects
+- **Contribution Percentages**: Percentage of each contributor's time spent on different projects
+- **Monthly Trends**: View how team focus has shifted over time
+
+### Engineer Workload Reporting (Deprecated)
+
+**Note**: This command is deprecated. Please use `team_workload` instead.
+
+```
+linear analytics engineer_workload [options]
+```
+
+**Options:**
+- `--format TEXT`: Output format, either 'json' or 'table' (default: 'table')
+
+**Examples:**
+```bash
+# Use this command instead
+linear analytics team_workload --team "Engineering"
+```
 
 ### Capitalization Reporting
 

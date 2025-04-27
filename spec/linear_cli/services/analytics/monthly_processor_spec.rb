@@ -4,6 +4,10 @@ RSpec.describe LinearCli::Services::Analytics::MonthlyProcessor do
   let(:workload_calculator) { instance_double(LinearCli::Services::Analytics::WorkloadCalculator) }
   let(:monthly_processor) { described_class.new(workload_calculator) }
 
+  let(:team_data) do
+    { 'id' => 'team_1', 'name' => 'Engineering' }
+  end
+
   let(:teams_data) do
     [
       { 'id' => 'team_1', 'name' => 'Engineering' }
@@ -34,9 +38,137 @@ RSpec.describe LinearCli::Services::Analytics::MonthlyProcessor do
     }
   end
 
+  let(:team_workload_result) do
+    {
+      id: 'team_1',
+      name: 'Engineering',
+      projects: { 'project_1' => { name: 'Project A', total_points: 5, contributors: {} } },
+      contributors: { 'user_1' => { name: 'John Doe', total_points: 5, projects: {} } }
+    }
+  end
+
   before do
     allow(Time).to receive(:now).and_return(current_time)
     allow(workload_calculator).to receive(:calculate_engineer_project_workload).and_return(workload_result)
+    allow(workload_calculator).to receive(:calculate_team_project_workload).and_return(team_workload_result)
+  end
+
+  describe '#process_monthly_team_data' do
+    context 'with issues from multiple months' do
+      let(:issues_data) do
+        [
+          {
+            'id' => 'issue_1',
+            'team' => { 'id' => 'team_1', 'name' => 'Engineering' },
+            'project' => { 'id' => 'project_1', 'name' => 'Project A' },
+            'assignee' => { 'id' => 'user_1', 'name' => 'John Doe' },
+            'estimate' => 5,
+            'completedAt' => current_time.strftime('%Y-%m-%d')
+          },
+          {
+            'id' => 'issue_2',
+            'team' => { 'id' => 'team_1', 'name' => 'Engineering' },
+            'project' => { 'id' => 'project_1', 'name' => 'Project A' },
+            'assignee' => { 'id' => 'user_1', 'name' => 'John Doe' },
+            'estimate' => 3,
+            'completedAt' => one_month_ago.strftime('%Y-%m-%d')
+          },
+          {
+            'id' => 'issue_3',
+            'team' => { 'id' => 'team_1', 'name' => 'Engineering' },
+            'project' => { 'id' => 'project_1', 'name' => 'Project A' },
+            'assignee' => { 'id' => 'user_1', 'name' => 'John Doe' },
+            'estimate' => 8,
+            'createdAt' => two_months_ago.strftime('%Y-%m-%d')
+          }
+        ]
+      end
+
+      it 'processes issues into monthly reports for the specific team' do
+        # Allow calculate_team_project_workload to return different results for different months
+        allow(workload_calculator).to receive(:calculate_team_project_workload) do |issues, _, _|
+          # Create a result with issue count as the points
+          {
+            id: 'team_1',
+            name: 'Engineering',
+            projects: {
+              'project_1' => {
+                name: 'Project A',
+                total_points: issues.size * 5,
+                contributors: {
+                  'user_1' => { name: 'John Doe', points: issues.size * 5, percentage: 100 }
+                }
+              }
+            },
+            contributors: {
+              'user_1' => {
+                name: 'John Doe',
+                total_points: issues.size * 5,
+                projects: {
+                  'project_1' => { name: 'Project A', points: issues.size * 5, percentage: 100 }
+                }
+              }
+            }
+          }
+        end
+
+        result = monthly_processor.process_monthly_team_data(issues_data, team_data, projects_data)
+
+        # We should have data for all 6 months
+        expect(result.keys.count).to eq(6)
+
+        # Inspect the monthly structure and counts directly
+        # Create a mapping of the expected issue counts by month
+        expected_issue_counts = {
+          current_month_key => 1,
+          one_month_ago_key => 1,
+          two_months_ago_key => 1
+        }
+
+        # Check the issue counts for each month
+        expected_issue_counts.each do |month_key, count|
+          expect(result).to have_key(month_key)
+          expect(result[month_key][:issue_count]).to eq(count),
+                                                     "Expected #{count} issues for #{month_key}, got #{result[month_key][:issue_count]}"
+          expect(result[month_key][:id]).to eq('team_1')
+          expect(result[month_key][:name]).to eq('Engineering')
+          expect(result[month_key][:month_name]).not_to be_nil
+        end
+
+        # Check other months have 0 issues
+        (result.keys - expected_issue_counts.keys).each do |month_key|
+          expect(result[month_key][:issue_count]).to eq(0)
+        end
+      end
+    end
+
+    context 'with nil issues data' do
+      it 'handles nil issues gracefully' do
+        result = monthly_processor.process_monthly_team_data(nil, team_data, projects_data)
+
+        # Should have 6 months of empty data
+        expect(result.keys.count).to eq(6)
+        result.each_value do |month_data|
+          expect(month_data[:issue_count]).to eq(0)
+          expect(month_data[:id]).to eq('team_1')
+          expect(month_data[:name]).to eq('Engineering')
+        end
+      end
+    end
+
+    context 'with empty issues data' do
+      it 'handles empty issues array' do
+        result = monthly_processor.process_monthly_team_data([], team_data, projects_data)
+
+        # Should have 6 months of empty data
+        expect(result.keys.count).to eq(6)
+        result.each_value do |month_data|
+          expect(month_data[:issue_count]).to eq(0)
+          expect(month_data[:id]).to eq('team_1')
+          expect(month_data[:name]).to eq('Engineering')
+        end
+      end
+    end
   end
 
   describe '#process_monthly_data' do

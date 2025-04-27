@@ -3,6 +3,154 @@ require 'spec_helper'
 RSpec.describe LinearCli::Services::Analytics::WorkloadCalculator do
   let(:workload_calculator) { described_class.new }
 
+  describe '#calculate_team_project_workload' do
+    let(:team) do
+      {
+        'id' => 'team_1',
+        'name' => 'Engineering'
+      }
+    end
+
+    let(:projects) do
+      [
+        {
+          'id' => 'project_1',
+          'name' => 'Project A',
+          'teams' => {
+            'nodes' => [
+              { 'id' => 'team_1', 'name' => 'Engineering' }
+            ]
+          }
+        },
+        {
+          'id' => 'project_2',
+          'name' => 'Project B',
+          'teams' => {
+            'nodes' => [
+              { 'id' => 'team_1', 'name' => 'Engineering' }
+            ]
+          }
+        }
+      ]
+    end
+
+    context 'when issues is nil' do
+      it 'handles nil issues gracefully' do
+        result = workload_calculator.calculate_team_project_workload(nil, team, projects)
+
+        expect(result).to be_a(Hash)
+        expect(result[:id]).to eq('team_1')
+        expect(result[:name]).to eq('Engineering')
+        expect(result[:projects]).to be_empty
+        expect(result[:contributors]).to be_empty
+      end
+    end
+
+    context 'when issues is empty' do
+      it 'handles empty issues array' do
+        result = workload_calculator.calculate_team_project_workload([], team, projects)
+
+        expect(result).to be_a(Hash)
+        expect(result[:id]).to eq('team_1')
+        expect(result[:name]).to eq('Engineering')
+        expect(result[:projects]).to be_empty
+        expect(result[:contributors]).to be_empty
+      end
+    end
+
+    context 'when issues have valid data' do
+      let(:issues) do
+        [
+          {
+            'team' => { 'id' => 'team_1', 'name' => 'Engineering' },
+            'project' => { 'id' => 'project_1', 'name' => 'Project A' },
+            'assignee' => { 'id' => 'user_1', 'name' => 'John Doe' },
+            'estimate' => 5
+          },
+          {
+            'team' => { 'id' => 'team_1', 'name' => 'Engineering' },
+            'project' => { 'id' => 'project_2', 'name' => 'Project B' },
+            'assignee' => { 'id' => 'user_1', 'name' => 'John Doe' },
+            'estimate' => 3
+          },
+          {
+            'team' => { 'id' => 'team_2', 'name' => 'Design' },
+            'project' => { 'id' => 'project_1', 'name' => 'Project A' },
+            'assignee' => { 'id' => 'user_2', 'name' => 'Jane Smith' },
+            'estimate' => 8
+          }
+        ]
+      end
+
+      it 'processes issues correctly for the target team' do
+        result = workload_calculator.calculate_team_project_workload(issues, team, projects)
+
+        expect(result).to be_a(Hash)
+        expect(result[:id]).to eq('team_1')
+        expect(result[:name]).to eq('Engineering')
+
+        # Check project structure
+        expect(result[:projects]).to have_key('project_1')
+        expect(result[:projects]).to have_key('project_2')
+
+        # Check contributor data
+        expect(result[:contributors]).to have_key('user_1')
+        expect(result[:contributors]['user_1'][:name]).to eq('John Doe')
+        expect(result[:contributors]['user_1'][:total_points]).to eq(8) # 5 + 3
+
+        # Check project data
+        project1 = result[:projects]['project_1']
+        expect(project1[:name]).to eq('Project A')
+        expect(project1[:total_points]).to eq(5)
+        expect(project1[:contributors]).to have_key('user_1')
+
+        # Check percentage calculations
+        expect(result[:contributors]['user_1'][:projects]['project_1'][:percentage]).to eq(62.5) # 5/8 * 100
+        expect(result[:contributors]['user_1'][:projects]['project_2'][:percentage]).to eq(37.5) # 3/8 * 100
+      end
+
+      it 'filters out issues from other teams' do
+        result = workload_calculator.calculate_team_project_workload(issues, team, projects)
+
+        # Should not include user_2 as they're on team_2
+        expect(result[:contributors]).not_to have_key('user_2')
+      end
+    end
+
+    context 'when issues have missing project or assignee' do
+      let(:issues) do
+        [
+          {
+            'team' => { 'id' => 'team_1', 'name' => 'Engineering' },
+            'assignee' => { 'id' => 'user_1', 'name' => 'John Doe' },
+            'estimate' => 5
+          }, # Missing project
+          {
+            'team' => { 'id' => 'team_1', 'name' => 'Engineering' },
+            'project' => { 'id' => 'project_1', 'name' => 'Project A' },
+            'estimate' => 3
+          } # Missing assignee
+        ]
+      end
+
+      it 'handles missing project by using no_project' do
+        result = workload_calculator.calculate_team_project_workload(issues, team, projects)
+
+        expect(result[:projects]).to have_key('no_project')
+        expect(result[:projects]['no_project'][:name]).to eq('No Project')
+        expect(result[:projects]['no_project'][:total_points]).to eq(5)
+      end
+
+      it 'handles missing assignee by using unassigned' do
+        result = workload_calculator.calculate_team_project_workload(issues, team, projects)
+
+        expect(result[:contributors]).to have_key('unassigned')
+        expect(result[:contributors]['unassigned'][:name]).to eq('Unassigned')
+        expect(result[:contributors]['unassigned'][:total_points]).to eq(3)
+      end
+    end
+  end
+
   describe '#calculate_engineer_project_workload' do
     let(:teams) do
       [

@@ -573,3 +573,20 @@
   - Improved handling of projects that belong to multiple teams
   - More robust data processing that adapts to Linear API changes
   - Better alignment with Linear's data model where projects can be associated with multiple teams 
+
+## Team-Focused Workload Analysis
+
+- **Decision**: Change engineer workload analysis to focus on one team at a time
+- **Context**: The original engineer workload analysis showed data for all teams, making it difficult to focus on a specific team's metrics
+- **Implementation**:
+  - Created a dedicated `team_workload` command that requires a specific team name
+  - Renamed data structures from "engineers" to "contributors" for better semantic clarity
+  - Modified the workload calculator to focus on a single team's data
+  - Maintained backward compatibility by keeping the deprecated `engineer_workload` command
+  - Updated documentation to reflect the new approach
+- **Consequences**:
+  - More focused analysis on a single team's performance
+  - Better user experience when analyzing team-specific workload distributions
+  - Clearer command structure with more explicit parameter requirements
+  - More maintainable code with single-team focus
+  - Improved reporting clarity by focusing on one team's data at a time 

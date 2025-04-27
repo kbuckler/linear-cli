@@ -1,13 +1,132 @@
 module LinearCli
   module Services
     module Analytics
-      # Service to calculate engineer workload across projects
+      # Service to calculate team workload across projects
       class WorkloadCalculator
-        # Calculate engineer workload across projects
+        # Calculate team workload across projects for a single team
+        # @param issues [Array<Hash>] Array of issue data
+        # @param team [Hash] Team data for the target team
+        # @param projects [Array<Hash>] Array of project data
+        # @return [Hash] Team workload data
+        def calculate_team_project_workload(issues, team, projects)
+          result = {}
+
+          # Ensure issues is an array to avoid nil errors
+          issues = [] if issues.nil?
+
+          # Initialize team structure
+          team_id = team['id']
+          team_name = team['name']
+
+          result = {
+            id: team_id,
+            name: team_name,
+            projects: {},
+            contributors: {}
+          }
+
+          # Create a project-to-team mapping for faster lookups
+          # Each project can belong to multiple teams
+          project_team_map = {}
+          projects.each do |project|
+            project_id = project['id']
+            project_team_map[project_id] = []
+
+            # Get teams from the project's teams.nodes array
+            next unless project['teams'] && project['teams']['nodes']
+
+            project['teams']['nodes'].each do |proj_team|
+              project_team_map[project_id] << proj_team['id']
+            end
+          end
+
+          # Process each issue
+          issues.each do |issue|
+            # Skip issues without teams or estimates
+            next unless issue['team'] && issue['estimate']
+
+            issue_team_id = issue['team']['id']
+
+            # Skip if issue doesn't belong to the target team
+            next unless issue_team_id == team_id
+
+            # Handle project and determine team association
+            if issue['project']
+              project_id = issue['project']['id']
+              project_name = issue['project']['name']
+
+              # Skip if this project doesn't belong to this team
+              # NOTE: This is a fallback check since the issue already has a team
+              if project_team_map[project_id] && !project_team_map[project_id].empty? &&
+                 !project_team_map[project_id].include?(team_id)
+                next
+              end
+            else
+              project_id = 'no_project'
+              project_name = 'No Project'
+            end
+
+            contributor_id = issue['assignee'] ? issue['assignee']['id'] : 'unassigned'
+            contributor_name = issue['assignee'] ? issue['assignee']['name'] : 'Unassigned'
+            points = issue['estimate'].to_i
+
+            # Skip if points is zero
+            next if points.zero?
+
+            # Initialize project if needed
+            result[:projects][project_id] ||= {
+              name: project_name,
+              total_points: 0,
+              contributors: {}
+            }
+
+            # Initialize contributor if needed
+            result[:contributors][contributor_id] ||= {
+              name: contributor_name,
+              total_points: 0,
+              projects: {}
+            }
+
+            # Initialize contributor in project if needed
+            result[:projects][project_id][:contributors][contributor_id] ||= {
+              name: contributor_name,
+              points: 0
+            }
+
+            # Initialize project in contributor if needed
+            result[:contributors][contributor_id][:projects][project_id] ||= {
+              name: project_name,
+              points: 0
+            }
+
+            # Update points
+            result[:projects][project_id][:total_points] += points
+            result[:projects][project_id][:contributors][contributor_id][:points] += points
+            result[:contributors][contributor_id][:total_points] += points
+            result[:contributors][contributor_id][:projects][project_id][:points] += points
+          end
+
+          # Calculate percentages
+          result[:contributors].each_value do |contributor|
+            contributor[:projects].each_value do |project|
+              project[:percentage] = calculate_percentage(project[:points], contributor[:total_points])
+            end
+          end
+
+          result[:projects].each_value do |project|
+            project[:contributors].each_value do |contributor|
+              contributor[:percentage] = calculate_percentage(contributor[:points], project[:total_points])
+            end
+          end
+
+          result
+        end
+
+        # Backward compatibility method
         # @param issues [Array<Hash>] Array of issue data
         # @param teams [Array<Hash>] Array of team data
         # @param projects [Array<Hash>] Array of project data
-        # @return [Hash] Engineer workload data
+        # @return [Hash] Engineer workload data for all teams
         def calculate_engineer_project_workload(issues, teams, projects)
           result = {}
 

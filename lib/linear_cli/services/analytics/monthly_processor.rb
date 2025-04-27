@@ -1,7 +1,7 @@
 module LinearCli
   module Services
     module Analytics
-      # Service to process monthly data for engineer workload report
+      # Service to process monthly data for team workload report
       class MonthlyProcessor
         # Initialize the monthly processor
         # @param workload_calculator [LinearCli::Services::Analytics::WorkloadCalculator] Calculator for workloads
@@ -9,11 +9,35 @@ module LinearCli
           @workload_calculator = workload_calculator || LinearCli::Services::Analytics::WorkloadCalculator.new
         end
 
+        # Process issues data into monthly reports for a specific team
+        # @param issues_data [Array<Hash>] Array of issue data for the past 6 months
+        # @param team [Hash] Team data for the target team
+        # @param projects_data [Array<Hash>] Array of project data
+        # @return [Hash] Monthly workload reports for the specified team
+        def process_monthly_team_data(issues_data, team, projects_data)
+          monthly_issues = group_issues_by_month(issues_data)
+
+          # Process data for each month
+          monthly_reports = {}
+          monthly_issues.each do |month_key, month_data|
+            # Calculate team workload for this month's issues
+            monthly_reports[month_key] = @workload_calculator.calculate_team_project_workload(
+              month_data[:issues],
+              team,
+              projects_data
+            )
+            monthly_reports[month_key][:month_name] = month_data[:name]
+            monthly_reports[month_key][:issue_count] = month_data[:issues].size
+          end
+
+          monthly_reports
+        end
+
         # Process issues data into monthly reports
         # @param issues_data [Array<Hash>] Array of issue data for the past 6 months
         # @param teams_data [Array<Hash>] Array of team data
         # @param projects_data [Array<Hash>] Array of project data
-        # @return [Hash] Monthly workload reports
+        # @return [Hash] Monthly workload reports for all teams
         def process_monthly_data(issues_data, teams_data, projects_data)
           monthly_issues = group_issues_by_month(issues_data)
 

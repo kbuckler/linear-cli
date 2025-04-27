@@ -91,4 +91,5 @@
 - [ ] Issue aging reports
 - [ ] Custom analytics dashboards
 - [x] Engineer workload analysis and project contribution metrics
-- [x] Enhanced engineer workload reporting with filtering and summary views 
+- [x] Enhanced engineer workload reporting with filtering and summary views
+- [x] Team-focused workload analysis with monthly contributor breakdown 

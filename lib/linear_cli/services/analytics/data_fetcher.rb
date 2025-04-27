@@ -8,6 +8,14 @@ module LinearCli
           @client = client
         end
 
+        # Fetch a specific team by name from the Linear API
+        # @param team_name [String] Name of the team to fetch
+        # @return [Hash, nil] Team data or nil if not found
+        def fetch_team_by_name(team_name)
+          teams = fetch_teams
+          teams.find { |team| team['name'].downcase == team_name.downcase }
+        end
+
         # Fetch teams from the Linear API
         # @return [Array<Hash>] Array of team data
         def fetch_teams
