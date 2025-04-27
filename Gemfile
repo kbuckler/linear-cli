@@ -37,4 +37,3 @@ group :development, :test do
 end
 
 gem 'activesupport', '~> 7.0'
-gem 'tty-progressbar', '~> 0.18.3'

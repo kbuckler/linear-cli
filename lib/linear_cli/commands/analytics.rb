@@ -101,7 +101,6 @@ module LinearCli
         data_fetcher = LinearCli::Services::Analytics::DataFetcher.new(client)
 
         # Get the specified team
-        puts "Fetching team data for '#{team_name}'..."
         team = data_fetcher.fetch_team_by_name(team_name)
 
         unless team
@@ -110,11 +109,9 @@ module LinearCli
         end
 
         # Get all projects
-        puts 'Fetching projects data...'
         projects_data = data_fetcher.fetch_projects
 
         # Get all issues
-        puts 'Fetching issues data...'
         all_issues_data = data_fetcher.fetch_issues
 
         period_filter = LinearCli::Services::Analytics::PeriodFilter.new

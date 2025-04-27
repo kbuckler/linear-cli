@@ -11,7 +11,7 @@ RSpec.describe LinearCli::Services::Analytics::DataFetcher do
     before do
       allow(LinearCli::API::Queries::Analytics).to receive(:list_teams).and_return(query)
       allow(client).to receive(:fetch_paginated_data)
-        .with(query, { first: 20 }, { fetch_all: true, nodes_path: 'teams', page_info_path: 'teams' })
+        .with(query, { first: 50 }, { fetch_all: true, nodes_path: 'teams', page_info_path: 'teams' })
         .and_return(teams_data)
     end
 
@@ -22,7 +22,7 @@ RSpec.describe LinearCli::Services::Analytics::DataFetcher do
 
     it 'returns an empty array when the response is empty' do
       allow(client).to receive(:fetch_paginated_data)
-        .with(query, { first: 20 }, { fetch_all: true, nodes_path: 'teams', page_info_path: 'teams' })
+        .with(query, { first: 50 }, { fetch_all: true, nodes_path: 'teams', page_info_path: 'teams' })
         .and_return([])
       teams = data_fetcher.fetch_teams
       expect(teams).to eq([])
@@ -30,7 +30,7 @@ RSpec.describe LinearCli::Services::Analytics::DataFetcher do
 
     it 'returns an empty array when the response nodes are nil' do
       allow(client).to receive(:fetch_paginated_data)
-        .with(query, { first: 20 }, { fetch_all: true, nodes_path: 'teams', page_info_path: 'teams' })
+        .with(query, { first: 50 }, { fetch_all: true, nodes_path: 'teams', page_info_path: 'teams' })
         .and_return(nil)
       teams = data_fetcher.fetch_teams
       expect(teams).to eq([])
@@ -44,7 +44,7 @@ RSpec.describe LinearCli::Services::Analytics::DataFetcher do
     before do
       allow(LinearCli::API::Queries::Analytics).to receive(:list_projects).and_return(query)
       allow(client).to receive(:fetch_paginated_data)
-        .with(query, { first: 20 }, { fetch_all: true, nodes_path: 'projects', page_info_path: 'projects' })
+        .with(query, { first: 50 }, { fetch_all: true, nodes_path: 'projects', page_info_path: 'projects' })
         .and_return(projects_data)
     end
 
@@ -55,7 +55,7 @@ RSpec.describe LinearCli::Services::Analytics::DataFetcher do
 
     it 'returns an empty array when the response is empty' do
       allow(client).to receive(:fetch_paginated_data)
-        .with(query, { first: 20 }, { fetch_all: true, nodes_path: 'projects', page_info_path: 'projects' })
+        .with(query, { first: 50 }, { fetch_all: true, nodes_path: 'projects', page_info_path: 'projects' })
         .and_return([])
       projects = data_fetcher.fetch_projects
       expect(projects).to eq([])
@@ -63,7 +63,7 @@ RSpec.describe LinearCli::Services::Analytics::DataFetcher do
 
     it 'returns an empty array when the response nodes are nil' do
       allow(client).to receive(:fetch_paginated_data)
-        .with(query, { first: 20 }, { fetch_all: true, nodes_path: 'projects', page_info_path: 'projects' })
+        .with(query, { first: 50 }, { fetch_all: true, nodes_path: 'projects', page_info_path: 'projects' })
         .and_return(nil)
       projects = data_fetcher.fetch_projects
       expect(projects).to eq([])
@@ -77,7 +77,7 @@ RSpec.describe LinearCli::Services::Analytics::DataFetcher do
     before do
       allow(LinearCli::API::Queries::Analytics).to receive(:list_issues).and_return(query)
       allow(client).to receive(:fetch_paginated_data)
-        .with(query, { first: 20 }, { fetch_all: true, nodes_path: 'issues', page_info_path: 'issues' })
+        .with(query, { first: 50 }, { fetch_all: true, nodes_path: 'issues', page_info_path: 'issues' })
         .and_return(issues_data)
     end
 
@@ -88,7 +88,7 @@ RSpec.describe LinearCli::Services::Analytics::DataFetcher do
 
     it 'returns an empty array when the response is empty' do
       allow(client).to receive(:fetch_paginated_data)
-        .with(query, { first: 20 }, { fetch_all: true, nodes_path: 'issues', page_info_path: 'issues' })
+        .with(query, { first: 50 }, { fetch_all: true, nodes_path: 'issues', page_info_path: 'issues' })
         .and_return([])
       issues = data_fetcher.fetch_issues
       expect(issues).to eq([])
@@ -96,7 +96,7 @@ RSpec.describe LinearCli::Services::Analytics::DataFetcher do
 
     it 'returns an empty array when the response nodes are nil' do
       allow(client).to receive(:fetch_paginated_data)
-        .with(query, { first: 20 }, { fetch_all: true, nodes_path: 'issues', page_info_path: 'issues' })
+        .with(query, { first: 50 }, { fetch_all: true, nodes_path: 'issues', page_info_path: 'issues' })
         .and_return(nil)
       issues = data_fetcher.fetch_issues
       expect(issues).to eq([])

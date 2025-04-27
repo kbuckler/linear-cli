@@ -1,7 +1,7 @@
 require 'httparty'
 require 'json'
 require 'active_support/core_ext/string/inflections'
-require_relative '../ui/progress_bar'
+require_relative '../ui/logger'
 
 module LinearCli
   module API
@@ -15,6 +15,10 @@ module LinearCli
       # Default timeout values (in seconds)
       DEFAULT_TIMEOUT = 30
       DEFAULT_OPEN_TIMEOUT = 10
+
+      # Default pagination values
+      DEFAULT_PAGE_SIZE = 50
+      DEFAULT_PAGE_LIMIT = 50
 
       # For test environment
       class << self
@@ -62,14 +66,9 @@ module LinearCli
                         "Executing #{operation_type}"
                       end
 
-        progress = LinearCli::UI::ProgressBar.create(description)
+        LinearCli::UI::Logger.info("#{description}...")
 
-        # Start progress
-        progress.advance(10)
         begin
-          # Simulate network delay for better visual feedback
-          progress.advance(30)
-
           # Make the actual request
           response = self.class.post(
             '',
@@ -82,18 +81,15 @@ module LinearCli
             open_timeout: @open_timeout
           )
 
-          # Almost done
-          progress.advance(50)
-
           result = handle_response(response)
 
-          # Complete the progress bar
-          progress.finish
+          # Log completion
+          LinearCli::UI::Logger.info("#{description} completed.")
 
           result
         rescue StandardError => e
-          # Complete the progress bar even on error
-          progress.finish
+          # Log error
+          LinearCli::UI::Logger.error("#{description} failed: #{e.message}")
           raise e
         end
       end
@@ -106,53 +102,30 @@ module LinearCli
       # @option options [Integer] :limit Maximum number of items to fetch
       # @option options [String] :nodes_path Path to nodes in the response (e.g., 'issues')
       # @option options [String] :page_info_path Path to pageInfo in the response (default: same as nodes_path)
-      # @option options [String] :count_query [String] Optional query to get total count
       # @return [Array] Array of data nodes
       def fetch_paginated_data(query, variables, options = {})
         fetch_all = options[:fetch_all] || false
-        limit = options[:limit] || 20
+        limit = options[:limit] || DEFAULT_PAGE_LIMIT
         nodes_path = options[:nodes_path] || 'issues'
         page_info_path = options[:page_info_path] || nodes_path
-        options[:count_query]
-        variables[:first] || 20
+        variables[:first] ||= DEFAULT_PAGE_SIZE
 
         # When fetch_all is true, ignore the limit
         limit = nil if fetch_all
 
-        # Create a progress bar for the count operation if needed
-        total_count = nil
-
-        # For the first page, we'll create a simple progress bar
-        progress_message = if total_count
-                             "Fetching #{total_count} #{nodes_path.capitalize.pluralize(total_count)}"
-                           else
-                             "Fetching #{nodes_path.capitalize} data"
-                           end
-
-        progress = LinearCli::UI::ProgressBar.create(progress_message)
+        # Create a progress logger for the operation
+        progress_message = "Fetching #{nodes_path.capitalize} data"
 
         all_items = []
         current_variables = variables.dup
         page_count = 0
         has_more_pages = true
-        estimated_total_pages = 5 # Start with a reasonable estimate until we know better
 
         begin
           while has_more_pages
             page_count += 1
 
-            # Update progress bar with current/estimated total pages
-            if page_count == 1 || estimated_total_pages > page_count
-              message = "[:bar] :percent Fetching #{nodes_path.capitalize} " \
-                        "(page #{page_count} of #{estimated_total_pages})"
-              progress.update(format: message)
-            else
-              progress.update(format: "[:bar] :percent Fetching #{nodes_path.capitalize} (page #{page_count})")
-            end
-
-            # Calculate progress based on what we know
-            progress_per_page = 100.0 / [estimated_total_pages, page_count].max
-            progress.advance(progress_per_page)
+            LinearCli::UI::Logger.info("#{progress_message} (page #{page_count})")
 
             # Execute the query for this page
             response = self.class.post(
@@ -188,32 +161,6 @@ module LinearCli
             # Determine if we should fetch the next page
             has_next_page = page_info && page_info['hasNextPage']
 
-            # If we're on the first page and there's a next page, we can try to peek ahead
-            # to get a better estimate of total pages
-            # Update our estimate based on items received so far
-            if page_count == 1 && has_next_page && fetch_all && current_items.size >= 10 && estimated_total_pages < 10
-              estimated_total_pages = 10
-              message = "[:bar] :percent Fetching #{nodes_path.capitalize} " \
-                        "(page #{page_count} of #{estimated_total_pages}+)"
-              progress.update(format: message)
-            end
-
-            # If we're approaching our estimated total, increase it
-            if page_count >= estimated_total_pages - 1 && has_next_page
-              estimated_total_pages *= 2
-              message = "[:bar] :percent Fetching #{nodes_path.capitalize} " \
-                        "(page #{page_count} of #{estimated_total_pages}+)"
-              progress.update(format: message)
-            end
-
-            # If we're at the end, update with the exact total
-            if !has_next_page && page_count > 1
-              estimated_total_pages = page_count
-              message = "[:bar] :percent Fetching #{nodes_path.capitalize} " \
-                        "(page #{page_count} of #{estimated_total_pages})"
-              progress.update(format: message)
-            end
-
             # Stop if we shouldn't fetch more pages
             break unless fetch_all
 
@@ -232,12 +179,13 @@ module LinearCli
           end
 
           # Complete the progress
-          progress.finish
+          LinearCli::UI::Logger.info("Fetched #{all_items.size} items across #{page_count} pages") if page_count > 1
+          LinearCli::UI::Logger.info("#{progress_message} completed.")
 
           all_items
         rescue StandardError => e
-          # Complete the progress bar even on error
-          progress.finish
+          # Log error
+          LinearCli::UI::Logger.error("#{progress_message} failed: #{e.message}")
           raise e
         end
       end
@@ -247,8 +195,7 @@ module LinearCli
       # @return [String] Team ID
       # @raise [RuntimeError] If team is not found
       def get_team_id_by_name(team_name)
-        progress = LinearCli::UI::ProgressBar.create("Finding team '#{team_name}'")
-        progress.advance(30)
+        LinearCli::UI::Logger.info("Finding team '#{team_name}'...")
 
         query = <<~GRAPHQL
           query Teams {
@@ -271,17 +218,13 @@ module LinearCli
           # Find team by case-insensitive name match
           team = teams.find { |t| t['name'].downcase == team_name.downcase }
 
-          progress.advance(60)
-
           if team.nil?
             available_teams = teams.map { |t| "#{t['name']} (#{t['key']})" }.join(', ')
             raise "Team '#{team_name}' not found. Available teams: #{available_teams}"
           end
 
-          progress.finish
           team['id']
         rescue StandardError => e
-          progress.finish
           raise e
         end
       end

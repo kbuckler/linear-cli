@@ -606,3 +606,49 @@
   - More consistent behavior for long-running operations
   - Addresses requirements for improved network security
   - Helps satisfy rate limiting support by providing better request control 
+
+## Replace TTY Progress Bars with Simple Logging
+
+- **Decision**: Replace TTY progress bars with simple logging for network operations
+- **Context**: The use of TTY progress bars added complexity and dependencies without providing significant value for most use cases
+- **Implementation**:
+  - Removed the `tty-progressbar` gem dependency
+  - Created a simplified `SimpleLogger` implementation in the `ProgressBar` module
+  - Modified API client methods to use simpler logging output
+  - Maintained identical interface to ensure backward compatibility
+- **Consequences**:
+  - Reduced dependency footprint by removing `tty-progressbar`
+  - Simplified code with easier-to-understand logging messages
+  - Improved compatibility with non-TTY environments
+  - Consistent behavior across all environments without special handling
+  - More reliable error messaging without visual progress display interfering 
+
+## Simplified Logging with Timestamps
+
+- **Decision**: Replace ProgressBar with a simpler timestamped logging system
+- **Context**: The ProgressBar module was overly complex for our needs and we wanted more consistent, timestamped logging
+- **Implementation**:
+  - Created a dedicated `Logger` class in the UI module
+  - Added timestamp formatting to all log messages
+  - Implemented info and error logging levels
+  - Removed the ProgressBar module and its dependencies
+- **Consequences**:
+  - Cleaner, more consistent logging output
+  - Better debugging with timestamped messages
+  - Simplified codebase by removing complex progress tracking
+  - More maintainable logging system
+
+## Standardized Pagination Defaults
+
+- **Decision**: Standardize pagination defaults across the application
+- **Context**: Different parts of the application were using inconsistent page sizes
+- **Implementation**:
+  - Added `DEFAULT_PAGE_SIZE` and `DEFAULT_PAGE_LIMIT` constants to the API client
+  - Set both defaults to 50 items for consistency
+  - Updated all pagination-related code to use these constants
+  - Updated tests to reflect the new default values
+- **Consequences**:
+  - Consistent pagination behavior across all API calls
+  - Better performance with larger page sizes
+  - More maintainable code with centralized pagination configuration
+  - Clearer expectations for API response sizes 
