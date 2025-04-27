@@ -442,3 +442,23 @@
   - Dynamic adjustment of progress bar as more information becomes available
   - Visual indication of estimated versus exact page counts with the "+" suffix
   - Eliminated errors from attempting to use unsupported API fields 
+
+## Removal of Capitalization Report and Enhanced Engineer Workload Report
+
+- **Decision**: Remove the capitalization report functionality and enhance the engineer workload report
+- **Context**: The capitalization report was no longer needed, and we wanted to improve the engineer workload report with additional features
+- **Implementation**:
+  - Removed the `capitalization` command and related code
+  - Added time period filtering to engineer workload report (month, quarter, year, all)
+  - Added view type option for summary or detailed display
+  - Improved data analysis to use completion date instead of creation date when available
+  - Added summary view that shows engineer workload across months in a single table
+  - Added more contextual information to displays (issue counts, point totals)
+  - Added better handling of period-specific reporting for non-monthly views
+- **Consequences**:
+  - Simplified codebase by removing unused functionality
+  - More flexible workload reporting with time period filtering
+  - Better visibility into engineer contributions with summary view
+  - More accurate work attribution by prioritizing completion date
+  - Improved user experience with more contextual information
+  - Consistent period filtering approach across reporting features 

@@ -68,6 +68,7 @@
 - [x] Add support for assigning generated issues to actual users on the Linear account
 - [x] Add support for generating historical completed issues with past dates
 - [x] Remove generator command and data generation code
+- [x] Remove capitalization reporting and enhance engineer workload analytics
 - [ ] Add enhanced error reporting for data generation
 - [ ] Add visualization for burndown charts
 - [ ] Support exporting reports to CSV/Excel
@@ -89,4 +90,5 @@
 - [ ] Advanced team performance metrics
 - [ ] Issue aging reports
 - [ ] Custom analytics dashboards
-- [x] Engineer workload analysis and project contribution metrics 
+- [x] Engineer workload analysis and project contribution metrics
+- [x] Enhanced engineer workload reporting with filtering and summary views 
