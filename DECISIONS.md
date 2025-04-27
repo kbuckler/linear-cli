@@ -362,3 +362,18 @@
   - Consistent error handling with the rest of the application
   - No functional changes to the pagination behavior
   - No impact on non-TTY environments (CI/CD, scripts) 
+
+## Linear API Schema Compatibility Update
+
+- **Decision**: Update the counting query to adapt to Linear API's GraphQL schema changes
+- **Context**: The API was returning an error because the "totalCount" field doesn't exist on the IssueConnection type in the Linear API
+- **Implementation**:
+  - Modified the count_issues query to get nodes instead of using a totalCount field
+  - Updated the fetch_paginated_data method to calculate the count by counting the nodes
+  - Improved string formatting for progress messages to properly display page information
+- **Consequences**:
+  - Fixed errors related to the "totalCount" field not existing
+  - Improved reliability when interacting with the Linear API
+  - Made the pagination system more robust against API schema changes
+  - Enhanced user experience with clearer progress information
+  - No impact on non-TTY environments (CI/CD, scripts) 
