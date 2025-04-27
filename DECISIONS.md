@@ -22,6 +22,8 @@
 
 ## Project Architecture
 - **Command-Line Interface**: Structured as a CLI with subcommands for different operations.
+  - **CLI Implementation**: Thor-based CLI class extracted into dedicated file (`lib/linear_cli/cli.rb`) for better separation of concerns.
+  - **CLI Structure**: Refactored CLI class to use private helper methods for better organization and maintainability.
 - **Models**: Ruby classes representing Linear entities (issues, projects, teams).
 - **Services**: Separate service classes handling API communication and business logic.
 

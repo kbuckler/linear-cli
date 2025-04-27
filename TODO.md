@@ -6,6 +6,7 @@
 - [x] Create configuration for storing Linear API key
 - [x] Add initial dependencies to Gemfile
 - [x] Create documentation on how to obtain a Linear API key
+- [x] Refactor CLI/Thor functionality into its own file and class
 
 ## Linear API Integration
 - [x] Implement authentication mechanism
