@@ -65,8 +65,7 @@ module LinearCli
         puts "\nMembers:"
         if team['members'] && !team['members']['nodes'].empty?
           team['members']['nodes'].each do |member|
-            user = member['user']
-            puts "- #{user['name']} (#{user['email']})"
+            puts "- #{member['name']} (#{member['email']})"
           end
         else
           puts 'No members.'

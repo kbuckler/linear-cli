@@ -24,11 +24,8 @@ module LinearCli
                   members {
                     nodes {
                       id
-                      user {
-                        id
-                        name
-                        email
-                      }
+                      name
+                      email
                     }
                   }
                 }
@@ -41,7 +38,7 @@ module LinearCli
         # @return [String] GraphQL query
         def self.get_team
           <<~GRAPHQL
-            query Team($id: ID!) {
+            query Team($id: String!) {
               team(id: $id) {
                 id
                 name
@@ -58,11 +55,8 @@ module LinearCli
                 members {
                   nodes {
                     id
-                    user {
-                      id
-                      name
-                      email
-                    }
+                    name
+                    email
                   }
                 }
                 labels {
@@ -87,4 +81,4 @@ module LinearCli
       end
     end
   end
-end 
+end
