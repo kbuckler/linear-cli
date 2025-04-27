@@ -13,7 +13,6 @@ module LinearCli
       option :assignee, type: :string, desc: 'Filter by assignee email or name'
       option :status, type: :string, desc: 'Filter by status name'
       option :limit, type: :numeric, default: 20, desc: 'Number of issues to fetch'
-      option :detail, type: :boolean, default: false, desc: 'Show detailed view with more attributes'
       def list
         client = LinearCli::API::Client.new
 
@@ -55,76 +54,49 @@ module LinearCli
         pastel = Pastel.new
         puts pastel.bold("Linear Issues (#{issues.size}):")
 
-        # Determine if we should show the detailed view
-        detailed_view = options[:detail]
-
         # Prepare the data
         rows = issues.map do |issue|
-          if detailed_view
-            # For detailed view - include priority, estimate, cycle, etc.
-            priority_values = { 0 => 'No priority', 1 => 'Urgent', 2 => 'High', 3 => 'Medium', 4 => 'Low' }
-            priority = issue['priority'] ? priority_values[issue['priority']] : 'Not set'
+          # For detailed view - include priority, estimate, cycle, etc.
+          priority_values = { 0 => 'No priority', 1 => 'Urgent', 2 => 'High', 3 => 'Medium', 4 => 'Low' }
+          priority = issue['priority'] ? priority_values[issue['priority']] : 'Not set'
 
-            cycle = issue['cycle'] ? issue['cycle']['name'] : 'No cycle'
+          cycle = issue['cycle'] ? issue['cycle']['name'] : 'No cycle'
 
-            labels = if issue['labels'] && issue['labels']['nodes']
-                       issue['labels']['nodes'].map { |l| l['name'] }.join(', ')
-                     else
-                       ''
-                     end
+          labels = if issue['labels'] && issue['labels']['nodes']
+                     issue['labels']['nodes'].map { |l| l['name'] }.join(', ')
+                   else
+                     ''
+                   end
 
-            [
-              issue['identifier'],
-              issue['title'],
-              issue['state']['name'],
-              issue['assignee'] ? issue['assignee']['name'] : 'Unassigned',
-              priority,
-              issue['estimate'] || 'Not set',
-              cycle,
-              labels,
-              issue['team']['name']
-            ]
-          else
-            # For basic view
-            [
-              issue['identifier'],
-              issue['title'],
-              issue['state']['name'],
-              issue['assignee'] ? issue['assignee']['name'] : 'Unassigned',
-              issue['team']['name']
-            ]
-          end
+          [
+            issue['identifier'],
+            issue['title'],
+            issue['state']['name'],
+            issue['assignee'] ? issue['assignee']['name'] : 'Unassigned',
+            priority,
+            issue['estimate'] || 'Not set',
+            cycle,
+            labels,
+            issue['team']['name']
+          ]
         end
 
         # Use simple output in test environments or when not in a terminal
         if !$stdout.tty? || ENV['RACK_ENV'] == 'test' || ENV['RAILS_ENV'] == 'test'
-          if detailed_view
-            puts 'ID | Title | Status | Assignee | Priority | Estimate | Cycle | Labels | Team'
-          else
-            puts 'ID | Title | Status | Assignee | Team'
-          end
+          puts 'ID | Title | Status | Assignee | Priority | Estimate | Cycle | Labels | Team'
           puts '-' * 80
           rows.each do |row|
             puts row.join(' | ')
           end
-        elsif detailed_view
-          # Create a table for display with fixed width
+        else
+          # Create a table for display
           header = %w[ID Title Status Assignee Priority Estimate Cycle Labels Team]
 
-          # Use a compact format for detailed view
+          # Use detailed view with nice formatting
           table = TTY::Table.new(header: header, rows: rows)
           puts table.render(:unicode, resize: false) do |renderer|
             renderer.border.separator = :each_row
-            # Set minimum column widths but don't restrict maximum widths
             renderer.width = [10, 30, 12, 15, 10, 10, 15, 20, 10]
-          end
-        else
-          header = %w[ID Title Status Assignee Team]
-          table = TTY::Table.new(header: header, rows: rows)
-
-          # Use basic renderer with minimal formatting for standard view
-          puts table.render(:basic, padding: [0, 1, 0, 1], resize: false) do |renderer|
-            renderer.width = [10, 30, 15, 20, 15]
           end
         end
       end

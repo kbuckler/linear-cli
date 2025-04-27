@@ -239,3 +239,19 @@
   - Consistent display across all table rendering in the application
   - Improved user experience with more readable tabular data
   - More predictable table layouts with standardized column widths 
+
+## Simplified Issue Table Display
+
+- **Decision**: Simplify issue table display to always show the detailed view
+- **Context**: The application previously offered both a standard and detailed view for issues, adding complexity with minimal benefit
+- **Implementation**:
+  - Removed the `--detail` flag from the issues list command
+  - Always display the comprehensive view with all issue attributes
+  - Kept the appropriate column widths for optimal display
+  - Maintained test environment handling for non-TTY output
+- **Consequences**:
+  - Simplified codebase by removing conditional rendering logic
+  - More consistent user experience with a single, information-rich view
+  - All important issue attributes are always visible
+  - Better contextual information for issue triage and management
+  - Reduced cognitive load by removing unnecessary command options 
