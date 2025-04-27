@@ -6,10 +6,19 @@ module LinearCli
     # Provides standard methods for info, warning, success and error messages
     module Logger
       class << self
+        # Check if running in test environment
+        # @return [Boolean] True if running in test environment
+        def in_test_environment?
+          defined?(RSpec) || ENV['RACK_ENV'] == 'test' ||
+            ENV['RAILS_ENV'] == 'test' || !$stdout.tty?
+        end
+
         # Log an informational message
         # @param message [String] The message to log
         # @return [void]
         def info(message)
+          return if in_test_environment?
+
           puts "#{timestamp} #{prefix('INFO', :blue)} #{message}"
         end
 
@@ -17,6 +26,8 @@ module LinearCli
         # @param message [String] The message to log
         # @return [void]
         def warn(message)
+          return if in_test_environment?
+
           puts "#{timestamp} #{prefix('WARN', :yellow)} #{message}"
         end
 
@@ -24,6 +35,8 @@ module LinearCli
         # @param message [String] The message to log
         # @return [void]
         def success(message)
+          return if in_test_environment?
+
           puts "#{timestamp} #{prefix('SUCCESS', :green)} #{message}"
         end
 
@@ -31,6 +44,8 @@ module LinearCli
         # @param message [String] The message to log
         # @return [void]
         def error(message)
+          return if in_test_environment?
+
           puts "#{timestamp} #{prefix('ERROR', :red)} #{message}"
         end
 

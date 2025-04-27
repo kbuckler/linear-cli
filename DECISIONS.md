@@ -49,6 +49,8 @@
   - **Simplification**: Removed explicit width settings, relying on default TTY::Table handling to avoid errors.
 - **Progress Indication & Logging**:
   - **Evolution**: Replaced TTY progress bars with simple timestamped logging (`Logger` class) for reduced complexity, better non-TTY compatibility, and clearer output.
+  - **Test Environment**: Logging output is suppressed in test environments to keep test output clean and focused on test results.
+  - **Implementation**: Logger detects test environments using the same approach as `TableRenderer` (checking for RSpec, RACK_ENV, RAILS_ENV, and TTY capability).
 
 ## Pagination & Data Handling
 - **Core Implementation**: Cursor-based pagination with `--all` flag to fetch all data beyond default limits.

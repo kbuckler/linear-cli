@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative '../../ui/logger'
+
 module LinearCli
   module Services
     module Analytics
@@ -69,9 +71,7 @@ module LinearCli
               end
             rescue ArgumentError
               # Handle invalid date format
-              if defined?(Rails)
-                Rails.logger.warn("Invalid date format: #{date_string}")
-              end
+              LinearCli::UI::Logger.warn("Invalid date format: #{date_string}")
               false
             end
           end
