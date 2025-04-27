@@ -43,20 +43,22 @@ RSpec.describe LinearCli::UI::TableRenderer do
       pastel_mock = double('Pastel')
       allow(Pastel).to receive(:new).and_return(pastel_mock)
       allow(pastel_mock).to receive(:bold) { |str| str }
+      # Mock Logger to avoid actual logging in tests
+      allow(LinearCli::UI::Logger).to receive(:info)
     end
 
     it 'outputs a table with title' do
       title = 'Test Table'
       allow(described_class).to receive(:render_table).and_return('Rendered Table')
-      expect(described_class).to receive(:puts).with("\nTest Table")
-      expect(described_class).to receive(:puts).with('Rendered Table')
+      expect(LinearCli::UI::Logger).to receive(:info).with("\nTest Table")
+      expect(LinearCli::UI::Logger).to receive(:info).with('Rendered Table')
 
       described_class.output_table(title, headers, rows, options)
     end
 
     it 'handles empty rows' do
-      expect(described_class).to receive(:puts).with("\nEmpty Table")
-      expect(described_class).to receive(:puts).with('No data available.')
+      expect(LinearCli::UI::Logger).to receive(:info).with("\nEmpty Table")
+      expect(LinearCli::UI::Logger).to receive(:info).with('No data available.')
 
       described_class.output_table('Empty Table', headers, [], options)
     end

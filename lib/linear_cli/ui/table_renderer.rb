@@ -2,6 +2,7 @@
 
 require 'tty-table'
 require 'pastel'
+require_relative 'logger'
 
 module LinearCli
   module UI
@@ -37,14 +38,14 @@ module LinearCli
       # @return [void]
       def self.output_table(title, headers, rows, options = {})
         pastel = Pastel.new
-        puts "\n#{pastel.bold(title)}" if title
+        LinearCli::UI::Logger.info("\n#{pastel.bold(title)}") if title
 
         if rows.empty?
-          puts 'No data available.'
+          LinearCli::UI::Logger.info('No data available.')
           return
         end
 
-        puts render_table(headers, rows, options)
+        LinearCli::UI::Logger.info(render_table(headers, rows, options))
       end
 
       # Renders a simple text table for test environments

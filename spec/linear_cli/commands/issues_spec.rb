@@ -9,6 +9,10 @@ RSpec.describe LinearCli::Commands::Issues do
 
   before do
     allow(LinearCli::API::Client).to receive(:new).and_return(client)
+    allow(LinearCli::UI::Logger).to receive(:info)
+    allow(LinearCli::UI::Logger).to receive(:error)
+    allow(LinearCli::UI::Logger).to receive(:success)
+    allow(LinearCli::UI::Logger).to receive(:warn)
   end
 
   describe '#list' do
@@ -30,7 +34,8 @@ RSpec.describe LinearCli::Commands::Issues do
       end
 
       it 'lists all issues' do
-        expect { command.list }.to output(/Linear Issues \(1\):/).to_stdout
+        expect(LinearCli::UI::Logger).to receive(:info).with("\n\e[1mLinear Issues (1):\e[0m")
+        command.list
       end
     end
 
@@ -55,7 +60,8 @@ RSpec.describe LinearCli::Commands::Issues do
 
       it 'fetches all pages of issues' do
         command.options = { all: true }
-        expect { command.list }.to output(/Linear Issues \(2\):/).to_stdout
+        expect(LinearCli::UI::Logger).to receive(:info).with("\n\e[1mLinear Issues (2):\e[0m")
+        command.list
       end
     end
 
@@ -69,7 +75,8 @@ RSpec.describe LinearCli::Commands::Issues do
 
       it 'filters issues by team' do
         command.options = { team: 'Engineering' }
-        expect { command.list }.to output(/Linear Issues \(1\):/).to_stdout
+        expect(LinearCli::UI::Logger).to receive(:info).with("\n\e[1mLinear Issues (1):\e[0m")
+        command.list
       end
     end
 
@@ -79,7 +86,8 @@ RSpec.describe LinearCli::Commands::Issues do
       end
 
       it 'displays a message' do
-        expect { command.list }.to output(/No issues found matching your criteria/).to_stdout
+        expect(LinearCli::UI::Logger).to receive(:info).with('No issues found matching your criteria.')
+        command.list
       end
     end
 
@@ -92,19 +100,22 @@ RSpec.describe LinearCli::Commands::Issues do
       it 'sanitizes team name input' do
         command.options = { team: '  Engineering  ' }
         expect(client).to receive(:get_team_id_by_name).with('Engineering')
-        expect { command.list }.to output.to_stdout
+        expect(LinearCli::UI::Logger).to receive(:info).with("\n\e[1mLinear Issues (1):\e[0m")
+        command.list
       end
 
       it 'validates and caps limit' do
         command.options = { limit: 150 }
-        expect { command.list }.to output.to_stdout
+        expect(LinearCli::UI::Logger).to receive(:info).with("\n\e[1mLinear Issues (1):\e[0m")
+        command.list
         expect(command.instance_variable_get(:@options)[:limit]).to eq(150)
       end
 
       it 'validates email format in assignee field' do
         allow(LinearCli::Validators::InputValidator).to receive(:validate_email).with('user@example.com').and_return(true)
         command.options = { assignee: 'user@example.com' }
-        expect { command.list }.to output.to_stdout
+        expect(LinearCli::UI::Logger).to receive(:info).with("\n\e[1mLinear Issues (1):\e[0m")
+        command.list
       end
     end
   end
@@ -137,7 +148,8 @@ RSpec.describe LinearCli::Commands::Issues do
       end
 
       it 'displays issue details' do
-        expect { command.view('ENG-1') }.to output(/ENG-1: Test Issue/).to_stdout
+        expect(LinearCli::UI::Logger).to receive(:info).with(/ENG-1: Test Issue/)
+        command.view('ENG-1')
       end
     end
 
@@ -147,7 +159,8 @@ RSpec.describe LinearCli::Commands::Issues do
       end
 
       it 'displays an error message' do
-        expect { command.view('ENG-999') }.to output(/Issue not found: ENG-999/).to_stdout
+        expect(LinearCli::UI::Logger).to receive(:error).with('Issue not found: ENG-999')
+        command.view('ENG-999')
       end
     end
 
@@ -157,11 +170,13 @@ RSpec.describe LinearCli::Commands::Issues do
       end
 
       it 'sanitizes issue ID input' do
-        expect { command.view('  ENG-1  ') }.to output(/ENG-1: Test Issue/).to_stdout
+        expect(LinearCli::UI::Logger).to receive(:info).with(/ENG-1: Test Issue/)
+        command.view('  ENG-1  ')
       end
 
       it 'validates issue ID format but continues on warning' do
-        expect { command.view('invalid-id') }.to output(/Warning: Invalid issue ID format/).to_stdout
+        expect(LinearCli::UI::Logger).to receive(:warn).with(/Warning: Invalid issue ID format/)
+        command.view('invalid-id')
       end
     end
   end
@@ -188,7 +203,8 @@ RSpec.describe LinearCli::Commands::Issues do
           team: 'Engineering',
           description: 'Test description'
         }
-        expect { command.create }.to output(/Issue created successfully/).to_stdout
+        expect(LinearCli::UI::Logger).to receive(:success).with(/Issue created successfully/)
+        command.create
       end
     end
 
@@ -219,7 +235,8 @@ RSpec.describe LinearCli::Commands::Issues do
           title: '  Test Issue  ',
           team: 'Engineering'
         }
-        expect { command.create }.to output(/Issue created successfully/).to_stdout
+        expect(LinearCli::UI::Logger).to receive(:success).with(/Issue created successfully/)
+        command.create
       end
 
       it 'validates and sanitizes team name input' do
@@ -227,7 +244,8 @@ RSpec.describe LinearCli::Commands::Issues do
           title: 'Test Issue',
           team: '  Engineering  '
         }
-        expect { command.create }.to output(/Issue created successfully/).to_stdout
+        expect(LinearCli::UI::Logger).to receive(:success).with(/Issue created successfully/)
+        command.create
       end
 
       it 'validates priority range' do
@@ -236,7 +254,8 @@ RSpec.describe LinearCli::Commands::Issues do
           team: 'Engineering',
           priority: 5
         }
-        expect { command.create }.to output(/Error: Invalid priority value/).to_stdout
+        expect(LinearCli::UI::Logger).to receive(:error).with(/Error: Invalid priority value/)
+        command.create
       end
 
       it 'sanitizes labels array' do
@@ -250,7 +269,8 @@ RSpec.describe LinearCli::Commands::Issues do
           { 'issueCreate' => { 'success' => true, 'issue' => issue } }
         end
 
-        expect { command.create }.to output(/Issue created successfully/).to_stdout
+        expect(LinearCli::UI::Logger).to receive(:success).with(/Issue created successfully/)
+        command.create
       end
 
       it 'validates email format for assignee' do
@@ -266,7 +286,8 @@ RSpec.describe LinearCli::Commands::Issues do
           team: 'Engineering',
           assignee: 'user@example.com'
         }
-        expect { command.create }.to output(/Issue created successfully/).to_stdout
+        expect(LinearCli::UI::Logger).to receive(:success).with(/Issue created successfully/)
+        command.create
       end
 
       it 'rejects empty title' do
@@ -274,7 +295,8 @@ RSpec.describe LinearCli::Commands::Issues do
           title: '',
           team: 'Engineering'
         }
-        expect { command.create }.to output(/Error: Title cannot be blank/).to_stdout
+        expect(LinearCli::UI::Logger).to receive(:error).with(/Error: Title cannot be blank/)
+        command.create
       end
     end
   end
@@ -295,14 +317,16 @@ RSpec.describe LinearCli::Commands::Issues do
 
       it 'updates the issue' do
         command.options = { title: 'Updated Issue' }
-        expect { command.update('ENG-1') }.to output(/Issue updated successfully/).to_stdout
+        expect(LinearCli::UI::Logger).to receive(:success).with(/Issue updated successfully/)
+        command.update('ENG-1')
       end
     end
 
     context 'when no update parameters are provided' do
       it 'displays a message' do
         command.options = {}
-        expect { command.update('ENG-1') }.to output(/No update parameters provided/).to_stdout
+        expect(LinearCli::UI::Logger).to receive(:warn).with('No update parameters provided.')
+        command.update('ENG-1')
       end
     end
 
@@ -313,7 +337,8 @@ RSpec.describe LinearCli::Commands::Issues do
 
       it 'sanitizes issue ID input' do
         command.options = { title: 'Updated Issue' }
-        expect { command.update('  ENG-1  ') }.to output(/Issue updated successfully/).to_stdout
+        expect(LinearCli::UI::Logger).to receive(:success).with(/Issue updated successfully/)
+        command.update('  ENG-1  ')
       end
 
       it 'validates issue ID format' do
@@ -323,12 +348,14 @@ RSpec.describe LinearCli::Commands::Issues do
 
       it 'validates title input' do
         command.options = { title: '' }
-        expect { command.update('ENG-1') }.to output(/Error: Title cannot be blank/).to_stdout
+        expect(LinearCli::UI::Logger).to receive(:error).with(/Error: Title cannot be blank/)
+        command.update('ENG-1')
       end
 
       it 'validates priority range' do
         command.options = { priority: 5 }
-        expect { command.update('ENG-1') }.to output(/Error: Invalid priority value/).to_stdout
+        expect(LinearCli::UI::Logger).to receive(:error).with(/Error: Invalid priority value/)
+        command.update('ENG-1')
       end
     end
   end
@@ -340,7 +367,8 @@ RSpec.describe LinearCli::Commands::Issues do
       end
 
       it 'adds the comment' do
-        expect { command.comment('ENG-1', 'Test comment') }.to output(/Comment added successfully/).to_stdout
+        expect(LinearCli::UI::Logger).to receive(:success).with(/Comment added successfully/)
+        command.comment('ENG-1', 'Test comment')
       end
 
       it 'passes the correct parameters to the API' do
@@ -355,7 +383,8 @@ RSpec.describe LinearCli::Commands::Issues do
 
     context 'when comment body is empty' do
       it 'displays an error message' do
-        expect { command.comment('ENG-1') }.to output(/Error: Comment body cannot be blank/).to_stdout
+        expect(LinearCli::UI::Logger).to receive(:error).with(/Error: Comment body cannot be blank/)
+        command.comment('ENG-1')
       end
     end
 
@@ -365,7 +394,8 @@ RSpec.describe LinearCli::Commands::Issues do
       end
 
       it 'displays an error message' do
-        expect { command.comment('ENG-1', 'Test comment') }.to output(/Failed to add comment/).to_stdout
+        expect(LinearCli::UI::Logger).to receive(:error).with('Failed to add comment.')
+        command.comment('ENG-1', 'Test comment')
       end
     end
 
@@ -375,25 +405,30 @@ RSpec.describe LinearCli::Commands::Issues do
       end
 
       it 'sanitizes issue ID input' do
-        expect { command.comment('  ENG-1  ', 'Test comment') }.to output(/Comment added successfully/).to_stdout
+        expect(LinearCli::UI::Logger).to receive(:success).with(/Comment added successfully/)
+        command.comment('  ENG-1  ', 'Test comment')
       end
 
       it 'validates issue ID format' do
         allow(LinearCli::Validators::InputValidator).to receive(:validate_issue_id).and_call_original
-        expect { command.comment('ENG-1', 'Test comment') }.to output(/Comment added successfully/).to_stdout
+        expect(LinearCli::UI::Logger).to receive(:success).with(/Comment added successfully/)
+        command.comment('ENG-1', 'Test comment')
         expect(LinearCli::Validators::InputValidator).to have_received(:validate_issue_id)
       end
 
       it 'sanitizes comment body input' do
-        expect { command.comment('ENG-1', '  Test comment  ') }.to output(/Comment added successfully/).to_stdout
+        expect(LinearCli::UI::Logger).to receive(:success).with(/Comment added successfully/)
+        command.comment('ENG-1', '  Test comment  ')
       end
 
       it 'validates comment body is not empty' do
-        expect { command.comment('ENG-1', '') }.to output(/Error: Comment body cannot be blank/).to_stdout
+        expect(LinearCli::UI::Logger).to receive(:error).with(/Error: Comment body cannot be blank/)
+        command.comment('ENG-1', '')
       end
 
       it 'joins multiple comment parts' do
-        expect { command.comment('ENG-1', 'part1', 'part2', 'part3') }.to output(/Comment added successfully/).to_stdout
+        expect(LinearCli::UI::Logger).to receive(:success).with(/Comment added successfully/)
+        command.comment('ENG-1', 'part1', 'part2', 'part3')
 
         expect(client).to have_received(:query) do |_query, params|
           expect(params[:body]).to eq('part1 part2 part3')

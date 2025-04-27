@@ -3,6 +3,7 @@
 require 'thor'
 require 'pastel'
 require_relative '../ui/table_renderer'
+require_relative '../ui/logger'
 
 module LinearCli
   module Commands
@@ -72,7 +73,7 @@ module LinearCli
         )
 
         if all_issues.empty?
-          puts 'No issues found matching your criteria.'
+          LinearCli::UI::Logger.info('No issues found matching your criteria.')
           return
         end
 
@@ -135,7 +136,7 @@ module LinearCli
             LinearCli::Validators::InputValidator.validate_issue_id(sanitized_id)
           end
         rescue ArgumentError => e
-          puts "Warning: #{e.message}"
+          LinearCli::UI::Logger.warn("Warning: #{e.message}")
           # Continue anyway as the API will validate the ID
         end
 
@@ -147,26 +148,26 @@ module LinearCli
         issue = result['issue']
 
         if issue.nil?
-          puts "Issue not found: #{id}"
+          LinearCli::UI::Logger.error("Issue not found: #{id}")
           return
         end
 
         pastel = Pastel.new
-        puts pastel.bold("#{issue['identifier']}: #{issue['title']}")
-        puts "Status: #{issue['state']['name']}"
-        puts "Team: #{issue['team']['name']}"
-        puts "Assignee: #{issue['assignee'] ? issue['assignee']['name'] : 'Unassigned'}"
-        puts "Priority: #{issue['priority'] || 'Not set'}"
-        puts "\nDescription:"
-        puts issue['description'] || 'No description provided.'
+        LinearCli::UI::Logger.info(pastel.bold("#{issue['identifier']}: #{issue['title']}"))
+        LinearCli::UI::Logger.info("Status: #{issue['state']['name']}")
+        LinearCli::UI::Logger.info("Team: #{issue['team']['name']}")
+        LinearCli::UI::Logger.info("Assignee: #{issue['assignee'] ? issue['assignee']['name'] : 'Unassigned'}")
+        LinearCli::UI::Logger.info("Priority: #{issue['priority'] || 'Not set'}")
+        LinearCli::UI::Logger.info("\nDescription:")
+        LinearCli::UI::Logger.info(issue['description'] || 'No description provided.')
 
         return unless issue['comments'] && !issue['comments']['nodes'].empty?
 
-        puts "\nComments:"
+        LinearCli::UI::Logger.info("\nComments:")
         issue['comments']['nodes'].each do |comment|
-          puts "#{comment['user']['name']} at #{comment['createdAt']}"
-          puts comment['body']
-          puts '---'
+          LinearCli::UI::Logger.info("#{comment['user']['name']} at #{comment['createdAt']}")
+          LinearCli::UI::Logger.info(comment['body'])
+          LinearCli::UI::Logger.info('---')
         end
       end
 
@@ -234,13 +235,13 @@ module LinearCli
 
           if result['issueCreate'] && result['issueCreate']['success']
             issue = result['issueCreate']['issue']
-            puts "Issue created successfully: #{issue['identifier']} - #{issue['title']}"
-            puts "URL: #{issue['url']}"
+            LinearCli::UI::Logger.success("Issue created successfully: #{issue['identifier']} - #{issue['title']}")
+            LinearCli::UI::Logger.info("URL: #{issue['url']}")
           else
-            puts 'Failed to create issue.'
+            LinearCli::UI::Logger.error('Failed to create issue.')
           end
         rescue ArgumentError => e
-          puts "Error: #{e.message}"
+          LinearCli::UI::Logger.error("Error: #{e.message}")
         end
       end
 
@@ -299,7 +300,7 @@ module LinearCli
         end
 
         if input.empty?
-          puts 'No update parameters provided.'
+          LinearCli::UI::Logger.warn('No update parameters provided.')
           return
         end
 
@@ -309,13 +310,13 @@ module LinearCli
 
         if result['issueUpdate'] && result['issueUpdate']['success']
           issue = result['issueUpdate']['issue']
-          puts "Issue updated successfully: #{issue['identifier']} - #{issue['title']}"
-          puts "URL: #{issue['url']}"
+          LinearCli::UI::Logger.success("Issue updated successfully: #{issue['identifier']} - #{issue['title']}")
+          LinearCli::UI::Logger.info("URL: #{issue['url']}")
         else
-          puts 'Failed to update issue.'
+          LinearCli::UI::Logger.error('Failed to update issue.')
         end
       rescue ArgumentError, RuntimeError => e
-        puts "Error: #{e.message}"
+        LinearCli::UI::Logger.error("Error: #{e.message}")
       end
 
       desc 'comment ID BODY', 'Add a comment to an issue'
@@ -352,12 +353,12 @@ module LinearCli
                                       })
 
         if comment_result['commentCreate'] && comment_result['commentCreate']['success']
-          puts "Comment added successfully to #{sanitized_id.upcase}"
+          LinearCli::UI::Logger.success("Comment added successfully to #{sanitized_id.upcase}")
         else
-          puts 'Failed to add comment.'
+          LinearCli::UI::Logger.error('Failed to add comment.')
         end
       rescue ArgumentError, RuntimeError => e
-        puts "Error: #{e.message}"
+        LinearCli::UI::Logger.error("Error: #{e.message}")
       end
     end
   end
