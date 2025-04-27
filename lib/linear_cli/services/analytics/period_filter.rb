@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module LinearCli
   module Services
     module Analytics
@@ -67,7 +69,9 @@ module LinearCli
               end
             rescue ArgumentError
               # Handle invalid date format
-              Rails.logger.warn("Invalid date format: #{date_string}") if defined?(Rails)
+              if defined?(Rails)
+                Rails.logger.warn("Invalid date format: #{date_string}")
+              end
               false
             end
           end
@@ -87,7 +91,8 @@ module LinearCli
         def calculate_cutoff_date(current_time)
           # Calculate exactly N months ago using Date arithmetic for accuracy
           require 'date' unless defined?(Date)
-          date = Date.new(current_time.year, current_time.month, current_time.day)
+          date = Date.new(current_time.year, current_time.month,
+                          current_time.day)
           months_ago = date << MONTHS_LOOKBACK
           months_ago.strftime('%Y-%m-%d')
         end

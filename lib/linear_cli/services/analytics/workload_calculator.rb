@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module LinearCli
   module Services
     module Analytics
@@ -113,13 +115,17 @@ module LinearCli
           # Calculate percentages
           result[:contributors].each_value do |contributor|
             contributor[:projects].each_value do |project|
-              project[:percentage] = calculate_percentage(project[:points], contributor[:total_points])
+              project[:percentage] =
+                calculate_percentage(project[:points],
+                                     contributor[:total_points])
             end
           end
 
           result[:projects].each_value do |project|
             project[:contributors].each_value do |contributor|
-              contributor[:percentage] = calculate_percentage(contributor[:points], project[:total_points])
+              contributor[:percentage] =
+                calculate_percentage(contributor[:points],
+                                     project[:total_points])
             end
           end
 
@@ -238,13 +244,17 @@ module LinearCli
           result.each_value do |team|
             team[:engineers].each_value do |engineer|
               engineer[:projects].each_value do |project|
-                project[:percentage] = calculate_percentage(project[:points], engineer[:total_points])
+                project[:percentage] =
+                  calculate_percentage(project[:points],
+                                       engineer[:total_points])
               end
             end
 
             team[:projects].each_value do |project|
               project[:engineers].each_value do |engineer|
-                engineer[:percentage] = calculate_percentage(engineer[:points], project[:total_points])
+                engineer[:percentage] =
+                  calculate_percentage(engineer[:points],
+                                       project[:total_points])
               end
             end
           end

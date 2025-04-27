@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'lib/linear_cli/version'
 
 Gem::Specification.new do |spec|
@@ -32,13 +34,6 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'tty-table', '~> 0.12.0'
   spec.add_dependency 'yaml', '~> 0.2.0'
 
-  # Development dependencies
-  spec.add_development_dependency 'bundler', '~> 2.0'
-  spec.add_development_dependency 'rake', '~> 13.0'
-  spec.add_development_dependency 'rspec', '~> 3.12'
-  spec.add_development_dependency 'rubocop', '~> 1.50'
-  spec.add_development_dependency 'vcr', '~> 6.1'
-  spec.add_development_dependency 'webmock', '~> 3.18'
-  spec.add_development_dependency 'yard', '~> 0.9.34'
+  # Development dependencies are specified in the Gemfile
   spec.metadata['rubygems_mfa_required'] = 'true'
 end

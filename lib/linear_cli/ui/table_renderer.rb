@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'tty-table'
 require 'pastel'
 
@@ -8,7 +10,8 @@ module LinearCli
       # Check if running in test environment
       # @return [Boolean] True if running in test environment
       def self.in_test_environment?
-        defined?(RSpec) || ENV['RACK_ENV'] == 'test' || ENV['RAILS_ENV'] == 'test' || !$stdout.tty?
+        defined?(RSpec) || ENV['RACK_ENV'] == 'test' ||
+          ENV['RAILS_ENV'] == 'test' || !$stdout.tty?
       end
 
       # Renders a TTY table with consistent styling
@@ -16,7 +19,7 @@ module LinearCli
       # @param rows [Array<Array>] Table data rows
       # @param options [Hash] Additional rendering options
       # @option options [Hash] :widths Column widths mapping header to width
-      # @option options [Boolean] :border_separator Whether to add separator between rows
+      # @option options [Boolean] :border_separator Add row separators
       # @return [String] Rendered table
       def self.render_table(headers, rows, options = {})
         if in_test_environment?
@@ -73,7 +76,10 @@ module LinearCli
         }
 
         # Add border separator if requested
-        renderer_options[:border] = { separator: :each_row } if options[:border_separator]
+        if options[:border_separator]
+          renderer_options[:border] =
+            { separator: :each_row }
+        end
 
         # Render the table with consistent styling
         table.render(renderer_options)

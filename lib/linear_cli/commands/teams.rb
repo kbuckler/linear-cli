@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'thor'
 require 'pastel'
 require_relative '../ui/table_renderer'

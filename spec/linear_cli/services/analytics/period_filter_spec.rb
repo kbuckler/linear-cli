@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 RSpec.describe LinearCli::Services::Analytics::PeriodFilter do
@@ -139,7 +141,9 @@ RSpec.describe LinearCli::Services::Analytics::PeriodFilter do
 
       it 'skips issues with invalid date formats' do
         # Only include the warning in tests if Rails is defined
-        expect(Rails.logger).to receive(:warn).with(/Invalid date format/).at_least(:once) if defined?(Rails)
+        if defined?(Rails)
+          expect(Rails.logger).to receive(:warn).with(/Invalid date format/).at_least(:once)
+        end
 
         result = period_filter.filter_issues_by_period(issues_with_invalid_dates, 'month')
         expect(result.map { |i| i['id'] }).to include('4')

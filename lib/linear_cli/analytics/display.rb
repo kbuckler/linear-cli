@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'terminal-table'
 require 'colorize'
 require 'tty-spinner'
@@ -57,16 +59,24 @@ module LinearCli
         puts "Issues: #{summary[:issues_count]}"
 
         # Issues by status
-        display_status_table(summary[:issues_by_status]) if summary[:issues_by_status].any?
+        if summary[:issues_by_status].any?
+          display_status_table(summary[:issues_by_status])
+        end
 
         # Issues by team
-        display_team_table(summary[:issues_by_team]) if summary[:issues_by_team].any?
+        if summary[:issues_by_team].any?
+          display_team_table(summary[:issues_by_team])
+        end
 
         # Team completion rates
-        display_completion_table(summary[:team_completion_rates]) if summary[:team_completion_rates].any?
+        if summary[:team_completion_rates].any?
+          display_completion_table(summary[:team_completion_rates])
+        end
 
         # Capitalization metrics
-        display_capitalization_metrics(summary[:capitalization_metrics]) if summary[:capitalization_metrics]
+        return unless summary[:capitalization_metrics]
+
+        display_capitalization_metrics(summary[:capitalization_metrics])
       end
 
       # Display status distribution table
@@ -112,25 +122,39 @@ module LinearCli
           'Team Completion Rates:',
           headers,
           rows,
-          widths: { 'Team' => 15, 'Completed' => 12, 'Total' => 12, 'Rate (%)' => 12 }
+          widths: { 'Team' => 15, 'Completed' => 12, 'Total' => 12,
+                    'Rate (%)' => 12 }
         )
       end
 
       # Display capitalization metrics
       # @param capitalization_data [Hash] Capitalization metrics data
       # @param options [Hash] Display options
-      def self.display_capitalization_metrics(capitalization_data, _options = {})
-        return puts 'No capitalization data available.'.yellow unless capitalization_data&.any?
+      def self.display_capitalization_metrics(capitalization_data,
+                                              _options = {})
+        unless capitalization_data&.any?
+          return puts 'No capitalization data available.'.yellow
+        end
 
-        display_overall_capitalization_rate(capitalization_data) if capitalization_data[:capitalization_rate]
+        if capitalization_data[:capitalization_rate]
+          display_overall_capitalization_rate(capitalization_data)
+        end
 
-        display_capitalized_projects(capitalization_data) if capitalization_data[:capitalized_projects]&.any?
+        if capitalization_data[:capitalized_projects]&.any?
+          display_capitalized_projects(capitalization_data)
+        end
 
-        display_team_capitalization(capitalization_data) if capitalization_data[:team_capitalization]&.any?
+        if capitalization_data[:team_capitalization]&.any?
+          display_team_capitalization(capitalization_data)
+        end
 
-        display_project_engineer_workload(capitalization_data) if capitalization_data[:project_engineer_workload]&.any?
+        if capitalization_data[:project_engineer_workload]&.any?
+          display_project_engineer_workload(capitalization_data)
+        end
 
-        display_engineer_workload_summary(capitalization_data) if capitalization_data[:engineer_workload]&.any?
+        return unless capitalization_data[:engineer_workload]&.any?
+
+        display_engineer_workload_summary(capitalization_data)
       end
 
       # Display the overall capitalization rate
@@ -174,7 +198,8 @@ module LinearCli
           rows: rows
         )
 
-        puts table.render(:unicode, padding: [0, 1], resize: false) do |renderer|
+        puts table.render(:unicode, padding: [0, 1],
+                                    resize: false) do |renderer|
           renderer.width = [20, 30, 15, 15]
         end
       end
@@ -212,7 +237,8 @@ module LinearCli
             rows: rows
           )
 
-          puts table.render(:unicode, padding: [0, 1], resize: false) do |renderer|
+          puts table.render(:unicode, padding: [0, 1],
+                                      resize: false) do |renderer|
             renderer.width = [20, 12, 10, 12, 12, 12, 15]
           end
 
@@ -255,11 +281,13 @@ module LinearCli
         rows = rows.sort_by { |row| -row[3].to_f }
 
         table = Terminal::Table.new(
-          headings: ['Engineer', 'Cap Issues', 'Total', 'Cap %', 'Cap Points', 'Total Points', 'Cap Points %'],
+          headings: ['Engineer', 'Cap Issues', 'Total', 'Cap %', 'Cap Points',
+                     'Total Points', 'Cap Points %'],
           rows: rows
         )
 
-        puts table.render(:unicode, padding: [0, 1], resize: false) do |renderer|
+        puts table.render(:unicode, padding: [0, 1],
+                                    resize: false) do |renderer|
           renderer.width = [20, 12, 10, 12, 12, 12, 15]
         end
       end

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'httparty'
 require 'json'
 require 'active_support/core_ext/string/inflections'
@@ -6,12 +8,15 @@ require 'net/http'
 
 module LinearCli
   module API
-    # Linear API client
+    # GraphQL API client for Linear
+    #
+    # This is the main client for interacting with the Linear API.
+    # It handles authentication, query execution, and error handling.
     class Client
       include HTTParty
 
       # Default API URL for Linear GraphQL endpoint
-      API_URL = 'https://api.linear.app/graphql'.freeze
+      API_URL = 'https://api.linear.app/graphql'
 
       # Default timeout values (in seconds)
       DEFAULT_TIMEOUT = 30
@@ -19,7 +24,7 @@ module LinearCli
 
       # Default pagination values
       DEFAULT_PAGE_SIZE = 50
-      DEFAULT_PAGE_LIMIT = 50
+      DEFAULT_PAGE_LIMIT = 500
 
       # For test environment
       class << self
@@ -31,13 +36,16 @@ module LinearCli
       # @param api_url [String] Optional custom API URL
       # @param timeout [Integer] Request timeout in seconds
       # @param open_timeout [Integer] Connection open timeout in seconds
-      def initialize(api_key = nil, api_url = nil, timeout = DEFAULT_TIMEOUT, open_timeout = DEFAULT_OPEN_TIMEOUT)
+      def initialize(api_key = nil, api_url = nil, timeout = DEFAULT_TIMEOUT,
+                     open_timeout = DEFAULT_OPEN_TIMEOUT)
         @api_key = api_key || ENV.fetch('LINEAR_API_KEY', nil)
         @api_url = api_url || ENV['LINEAR_API_URL'] || API_URL
         @timeout = timeout
         @open_timeout = open_timeout
 
-        raise 'Linear API key is required! Please set LINEAR_API_KEY in your .env file.' unless @api_key
+        unless @api_key
+          raise 'Linear API key is required! Please set LINEAR_API_KEY in your .env file.'
+        end
 
         self.class.base_uri @api_url
       end
@@ -48,7 +56,9 @@ module LinearCli
       # @return [Hash] Response data
       def query(query, variables = {})
         # Use mock response in tests if provided
-        return self.class.mock_response if defined?(RSpec) && self.class.mock_response
+        if defined?(RSpec) && self.class.mock_response
+          return self.class.mock_response
+        end
 
         # Check if this is a mutation and safe mode is enabled
         if LinearCli.safe_mode? && query.strip.start_with?('mutation')
@@ -138,19 +148,26 @@ module LinearCli
           )
 
           body = JSON.parse(response.body)
-          handle_error(body, response.code) if response.code != 200 || body['errors']
+          if response.code != 200 || body['errors']
+            handle_error(body,
+                         response.code)
+          end
           result = body['data'] || {}
 
           # Extract nodes
           current_path = nodes_path.split('.')
           current_data = result
-          current_path.each { |path| current_data = current_data[path] if current_data }
+          current_path.each do |path|
+            current_data = current_data[path] if current_data
+          end
 
           # Extract items and pageInfo
           current_items = (current_data && current_data['nodes']) || []
           page_info_path_parts = page_info_path.split('.')
           page_info_data = result
-          page_info_path_parts.each { |path| page_info_data = page_info_data[path] if page_info_data }
+          page_info_path_parts.each do |path|
+            page_info_data = page_info_data[path] if page_info_data
+          end
           page_info = page_info_data && page_info_data['pageInfo']
 
           # Add current items to the result
@@ -177,7 +194,9 @@ module LinearCli
         end
 
         # Complete the progress
-        LinearCli::UI::Logger.info("Fetched #{all_items.size} items across #{page_count} pages") if page_count > 1
+        if page_count > 1
+          LinearCli::UI::Logger.info("Fetched #{all_items.size} items across #{page_count} pages")
+        end
         LinearCli::UI::Logger.info("#{progress_message} completed.")
 
         all_items
@@ -209,13 +228,17 @@ module LinearCli
         result = query(query)
         teams = result['teams']['nodes']
 
-        raise 'No teams found in your Linear workspace. Please create a team first.' if teams.empty?
+        if teams.empty?
+          raise 'No teams found in your Linear workspace. Please create a team first.'
+        end
 
         # Find team by case-insensitive name match
         team = teams.find { |t| t['name'].downcase == team_name.downcase }
 
         if team.nil?
-          available_teams = teams.map { |t| "#{t['name']} (#{t['key']})" }.join(', ')
+          available_teams = teams.map do |t|
+            "#{t['name']} (#{t['key']})"
+          end.join(', ')
           raise "Team '#{team_name}' not found. Available teams: #{available_teams}"
         end
 
@@ -294,11 +317,18 @@ module LinearCli
         body = JSON.parse(response.body)
 
         # For debugging in tests
-        puts "DEBUG - Response body data: #{body['data'].inspect}" if defined?(RSpec)
-        puts "DEBUG - Response body errors: #{body['errors'].inspect}" if defined?(RSpec)
+        if defined?(RSpec)
+          puts "DEBUG - Response body data: #{body['data'].inspect}"
+        end
+        if defined?(RSpec)
+          puts "DEBUG - Response body errors: #{body['errors'].inspect}"
+        end
 
         # For all requests, validate normally
-        handle_error(body, response.code) if response.code != 200 || body['errors']
+        if response.code != 200 || body['errors']
+          handle_error(body,
+                       response.code)
+        end
 
         body['data'] || {}
       end

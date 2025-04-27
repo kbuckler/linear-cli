@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module LinearCli
   module API
     module Queries

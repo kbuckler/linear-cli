@@ -1,12 +1,15 @@
+# frozen_string_literal: true
+
 module LinearCli
   module Validators
-    # Input validator for user-provided data
+    # Input validation module to sanitize and validate user input
+    # Provides methods to validate issue IDs, team names, email addresses, etc.
     module InputValidator
       # Regular expression for issue identifiers (e.g., ENG-123)
       ISSUE_ID_REGEX = /^[A-Za-z]+-\d+$/.freeze
 
       # Regular expression for valid email addresses
-      EMAIL_REGEX = /\A[\w+\-.]+@[a-z\d-]+(\.[a-z\d-]+)*\.[a-z]+\z/i.freeze
+      EMAIL_REGEX = /\A[\w+\-.]+@[a-z\d\-.]+\.[a-z]+\z/i.freeze
 
       # Validate issue identifier format
       # @param id [String] Issue identifier
@@ -14,7 +17,8 @@ module LinearCli
       # @raise [ArgumentError] If id format is invalid
       def self.validate_issue_id(id)
         unless id.match?(ISSUE_ID_REGEX)
-          raise ArgumentError, "Invalid issue ID format: '#{id}'. Expected format like 'ABC-123'."
+          raise ArgumentError,
+                "Invalid issue ID format: '#{id}'. Expected format like 'ABC-123'."
         end
 
         true
@@ -27,7 +31,8 @@ module LinearCli
       def self.validate_priority(priority)
         priority = priority.to_i
         unless (0..4).include?(priority)
-          raise ArgumentError, "Invalid priority value: #{priority}. Expected a number between 0-4."
+          raise ArgumentError,
+                "Invalid priority value: #{priority}. Expected a number between 0-4."
         end
 
         true
@@ -90,7 +95,10 @@ module LinearCli
       # @return [Boolean] True if valid, raises error if invalid
       # @raise [ArgumentError] If email format is invalid
       def self.validate_email(email)
-        raise ArgumentError, "Invalid email format: '#{email}'." unless email.match?(EMAIL_REGEX)
+        unless email.match?(EMAIL_REGEX)
+          raise ArgumentError,
+                "Invalid email format: '#{email}'."
+        end
 
         true
       end
@@ -101,7 +109,10 @@ module LinearCli
       # @raise [ArgumentError] If limit is invalid
       def self.validate_limit(limit)
         limit = limit.to_i
-        raise ArgumentError, "Limit must be a positive number, got: #{limit}" if limit <= 0
+        if limit <= 0
+          raise ArgumentError,
+                "Limit must be a positive number, got: #{limit}"
+        end
 
         # Cap at a reasonable maximum to prevent abuse
         [limit, 100].min

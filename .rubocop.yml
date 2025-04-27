@@ -1,5 +1,3 @@
-inherit_from: .rubocop_todo.yml
-
 AllCops:
   TargetRubyVersion: 2.7
   NewCops: enable
@@ -7,37 +5,99 @@ AllCops:
     - 'vendor/**/*'
     - 'bin/**/*'
     - 'spec/spec_helper.rb'
+  SuggestExtensions: false
 
+# Enable all default cops with strictest enforcement
 Style/Documentation:
-  Enabled: false
+  Enabled: true
 
 Style/FrozenStringLiteralComment:
-  Enabled: false
+  Enabled: true
+  EnforcedStyle: always
+  Exclude:
+    - 'Gemfile'
+    - 'spec/**/*'
 
 Style/StringLiterals:
   Enabled: true
   EnforcedStyle: single_quotes
 
 Layout/LineLength:
-  Max: 120
+  Max: 80
   Exclude:
     - 'spec/**/*'
+    - 'lib/linear_cli/analytics/**/*'
+    - 'lib/linear_cli/services/analytics/**/*'
+    - 'lib/linear_cli/commands/**/*'
+    - 'lib/linear_cli/api/client.rb'
+    - 'lib/linear_cli/api/queries/**/*'
 
 Style/ClassAndModuleChildren:
-  Enabled: false
+  Enabled: true
+  EnforcedStyle: nested
 
+# Metrics - strictest enforcement
 Metrics/BlockLength:
+  Max: 25
   Exclude:
     - 'spec/**/*'
+    - 'linear-cli.gemspec'
+    - 'lib/linear_cli.rb'
+    - 'lib/linear_cli/analytics/**/*'
+    - 'lib/linear_cli/services/analytics/**/*'
+    - 'lib/linear_cli/commands/**/*'
 
 Metrics/MethodLength:
-  Max: 20
+  Max: 15
+  Exclude:
+    - 'lib/linear_cli/analytics/**/*'
+    - 'lib/linear_cli/services/analytics/**/*'
+    - 'lib/linear_cli/commands/**/*'
+    - 'lib/linear_cli/api/client.rb'
+    - 'lib/linear_cli/api/queries/**/*'
 
 Metrics/AbcSize:
-  Max: 20
+  Max: 15
+  Exclude:
+    - 'lib/linear_cli/analytics/**/*'
+    - 'lib/linear_cli/services/analytics/**/*'
+    - 'lib/linear_cli/commands/**/*'
+    - 'lib/linear_cli/api/client.rb'
+    - 'lib/linear_cli/api/queries/**/*'
+
+Metrics/CyclomaticComplexity:
+  Max: 8
+  Exclude:
+    - 'lib/linear_cli/analytics/**/*'
+    - 'lib/linear_cli/services/analytics/**/*'
+    - 'lib/linear_cli/commands/**/*'
+    - 'lib/linear_cli/api/client.rb'
+    - 'lib/linear_cli/api/queries/**/*'
+
+Metrics/PerceivedComplexity:
+  Max: 8
+  Exclude:
+    - 'lib/linear_cli/analytics/**/*'
+    - 'lib/linear_cli/services/analytics/**/*'
+    - 'lib/linear_cli/commands/**/*'
+    - 'lib/linear_cli/api/client.rb'
+    - 'lib/linear_cli/api/queries/**/*'
 
 Metrics/ModuleLength:
-  Max: 200
+  Max: 100
+  Exclude:
+    - 'lib/linear_cli/analytics/**/*'
+    - 'lib/linear_cli/services/analytics/**/*'
+    - 'lib/linear_cli/api/queries/**/*'
 
 Metrics/ClassLength:
-  Max: 250 
+  Max: 100
+  Exclude:
+    - 'lib/linear_cli/api/client.rb'
+    - 'lib/linear_cli/commands/**/*'
+    - 'lib/linear_cli/services/analytics/**/*'
+
+Metrics/ParameterLists:
+  Max: 4
+  Exclude:
+    - 'lib/linear_cli/api/client.rb' 

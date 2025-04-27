@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'thor'
 require 'httparty'
 require 'dotenv'
@@ -10,7 +12,9 @@ require 'yaml'
 Dotenv.load
 
 # Require all files in the linear_cli directory
-Dir[File.join(__dir__, 'linear_cli', '**', '*.rb')].sort.each { |file| require file }
+Dir[File.join(__dir__, 'linear_cli', '**', '*.rb')].sort.each do |file|
+  require file
+end
 
 module LinearCli
   # Global configuration for read-only safe mode
@@ -38,7 +42,9 @@ module LinearCli
     def initialize(*args)
       super
       # Disable safe mode if allow_mutations flag is provided
-      LinearCli.safe_mode = !options[:allow_mutations] if options[:allow_mutations]
+      return unless options[:allow_mutations]
+
+      LinearCli.safe_mode = !options[:allow_mutations]
     end
 
     desc 'version', 'Display the Linear CLI version'
@@ -47,9 +53,12 @@ module LinearCli
     end
 
     # Register all command classes
-    register LinearCli::Commands::Issues, 'issues', 'issues [COMMAND]', 'Manage Linear issues'
-    register LinearCli::Commands::Teams, 'teams', 'teams [COMMAND]', 'Manage Linear teams'
-    register LinearCli::Commands::Projects, 'projects', 'projects [COMMAND]', 'Manage Linear projects'
+    register LinearCli::Commands::Issues, 'issues', 'issues [COMMAND]',
+             'Manage Linear issues'
+    register LinearCli::Commands::Teams, 'teams', 'teams [COMMAND]',
+             'Manage Linear teams'
+    register LinearCli::Commands::Projects, 'projects', 'projects [COMMAND]',
+             'Manage Linear projects'
     register LinearCli::Commands::Analytics, 'analytics', 'analytics [COMMAND]',
              'Analytics and reporting for Linear data'
 

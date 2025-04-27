@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'thor'
 require 'tty-table'
 require 'json'
@@ -15,7 +17,8 @@ module LinearCli
   module Commands
     # Commands related to analytics and reporting for Linear data
     class Analytics < Thor
-      desc 'report', 'Generate a comprehensive report from Linear workspace data'
+      desc 'report',
+           'Generate a comprehensive report from Linear workspace data'
       long_desc <<-LONGDESC
         Generates a comprehensive report of your Linear workspace data.
 
@@ -63,7 +66,8 @@ module LinearCli
         end
       end
 
-      desc 'team_workload', 'Generate a monthly report of team workload by project and contributor'
+      desc 'team_workload',
+           'Generate a monthly report of team workload by project and contributor'
       long_desc <<-LONGDESC
         Generates a detailed report of workload for a specific team across projects.
 
@@ -118,12 +122,15 @@ module LinearCli
         monthly_processor = LinearCli::Services::Analytics::MonthlyProcessor.new
 
         # Filter issues for the last 6 months
-        issues_data = period_filter.filter_issues_by_period(all_issues_data, 'all')
+        issues_data = period_filter.filter_issues_by_period(all_issues_data,
+                                                            'all')
 
         puts "Analyzing #{issues_data.size} issues from the past 6 months..."
 
         # Group issues by month for the past 6 months and calculate workload for the specific team
-        monthly_reports = monthly_processor.process_monthly_team_data(issues_data, team, projects_data)
+        monthly_reports = monthly_processor.process_monthly_team_data(
+          issues_data, team, projects_data
+        )
 
         # Output based on requested format
         if format == 'json'
@@ -134,7 +141,8 @@ module LinearCli
       end
 
       # For backward compatibility - will be deprecated
-      desc 'engineer_workload', 'Generate a monthly report of engineer contributions by project and team'
+      desc 'engineer_workload',
+           'Generate a monthly report of engineer contributions by project and team'
       long_desc <<-LONGDESC
         This command is deprecated and will be removed in a future release.
         Please use 'team_workload' instead for more focused reporting.
@@ -171,12 +179,14 @@ module LinearCli
         monthly_processor = LinearCli::Services::Analytics::MonthlyProcessor.new
 
         # Filter issues for the last 6 months
-        issues_data = period_filter.filter_issues_by_period(all_issues_data, 'all')
+        issues_data = period_filter.filter_issues_by_period(all_issues_data,
+                                                            'all')
 
         puts "Analyzing #{issues_data.size} issues from the past 6 months..."
 
         # Group issues by month for the past 6 months
-        monthly_reports = monthly_processor.process_monthly_data(issues_data, teams_data, projects_data)
+        monthly_reports = monthly_processor.process_monthly_data(issues_data,
+                                                                 teams_data, projects_data)
 
         # Output based on requested format
         if format == 'json'
@@ -205,7 +215,9 @@ module LinearCli
         sorted_months = monthly_reports.keys.sort
 
         # Check if team has data in any month
-        has_data = sorted_months.any? { |month| monthly_reports[month][:contributors].any? }
+        has_data = sorted_months.any? do |month|
+          monthly_reports[month][:contributors].any?
+        end
 
         unless has_data
           puts '  No data available for this team in the past 6 months.'
@@ -299,7 +311,9 @@ module LinearCli
           puts('=' * 80)
 
           # Check if team has data in any month
-          has_team_data = sorted_months.any? { |month| monthly_reports[month][team_id] }
+          has_team_data = sorted_months.any? do |month|
+            monthly_reports[month][team_id]
+          end
 
           unless has_team_data
             puts '  No data available for this team in the past 6 months.'

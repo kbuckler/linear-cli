@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module LinearCli
   module Analytics
     # Reporting functionality for Linear data analysis
@@ -7,7 +9,8 @@ module LinearCli
       # @return [Hash] Counts of issues by status
       def self.count_issues_by_status(issues)
         issues.each_with_object(Hash.new(0)) do |issue, counts|
-          status = issue.dig('state', 'name') || issue.dig(:state, :name) || 'Unknown'
+          status = issue.dig('state',
+                             'name') || issue.dig(:state, :name) || 'Unknown'
           counts[status] += 1
         end
       end
@@ -17,7 +20,8 @@ module LinearCli
       # @return [Hash] Counts of issues by team
       def self.count_issues_by_team(issues)
         issues.each_with_object(Hash.new(0)) do |issue, counts|
-          team = issue.dig('team', 'name') || issue.dig(:team, :name) || 'Unknown'
+          team = issue.dig('team',
+                           'name') || issue.dig(:team, :name) || 'Unknown'
           counts[team] += 1
         end
       end
@@ -32,7 +36,9 @@ module LinearCli
 
         team_issues.transform_values do |team_issues_list|
           total = team_issues_list.size
-          completed = team_issues_list.count { |i| i['completedAt'] || i[:completedAt] }
+          completed = team_issues_list.count do |i|
+            i['completedAt'] || i[:completedAt]
+          end
           {
             total: total,
             completed: completed,
@@ -47,7 +53,9 @@ module LinearCli
       # @param capitalization_labels [Array<String>] Project labels that indicate capitalization
       # @return [Hash] Capitalization metrics
       def self.calculate_capitalization_metrics(issues, projects,
-                                                capitalization_labels = ['capitalization', 'capex', 'fixed asset'])
+                                                capitalization_labels = [
+                                                  'capitalization', 'capex', 'fixed asset'
+                                                ])
         return {} unless issues&.any?
 
         # Extract projects that have capitalization labels
@@ -65,11 +73,15 @@ module LinearCli
                    end
 
           # Check if any label matches capitalization criteria
-          labels.any? { |label_name| capitalization_labels.include?(label_name.downcase) }
+          labels.any? do |label_name|
+            capitalization_labels.include?(label_name.downcase)
+          end
         end
 
         # Get project IDs supporting both symbol and string keys
-        capitalized_project_ids = capitalized_projects.map { |p| p[:id] || p['id'] }
+        capitalized_project_ids = capitalized_projects.map do |p|
+          p[:id] || p['id']
+        end
 
         # Filter issues into capitalized vs non-capitalized
         capitalized_issues = issues.select do |i|
@@ -85,10 +97,12 @@ module LinearCli
         capitalization_rate = total_issues.zero? ? 0 : ((capitalized_count.to_f / total_issues) * 100).round(2)
 
         # Calculate team capitalization metrics
-        team_capitalization = calculate_team_capitalization(capitalized_issues, non_capitalized_issues)
+        team_capitalization = calculate_team_capitalization(capitalized_issues,
+                                                            non_capitalized_issues)
 
         # Calculate engineer workload metrics
-        engineer_workload = calculate_engineer_workload(issues, capitalized_project_ids)
+        engineer_workload = calculate_engineer_workload(issues,
+                                                        capitalized_project_ids)
 
         # Extract project names for display
         capitalized_project_names = capitalized_projects.map do |p|
@@ -96,7 +110,8 @@ module LinearCli
         end
 
         # Group engineers by capitalized project
-        project_engineer_workload = calculate_project_engineer_workload(issues, capitalized_projects)
+        project_engineer_workload = calculate_project_engineer_workload(issues,
+                                                                        capitalized_projects)
 
         {
           capitalized_count: capitalized_count,
@@ -114,19 +129,24 @@ module LinearCli
       # @param capitalized_issues [Array<Hash>] Array of capitalized issues
       # @param non_capitalized_issues [Array<Hash>] Array of non-capitalized issues
       # @return [Hash] Team capitalization metrics
-      def self.calculate_team_capitalization(capitalized_issues, non_capitalized_issues)
+      def self.calculate_team_capitalization(capitalized_issues,
+                                             non_capitalized_issues)
         teams = {}
 
         # Process capitalized issues
         capitalized_issues.each do |issue|
-          team_name = issue.dig(:team, :name) || issue.dig('team', 'name') || 'Unassigned'
+          team_name = issue.dig(:team,
+                                :name) || issue.dig('team',
+                                                    'name') || 'Unassigned'
           teams[team_name] ||= { capitalized: 0, non_capitalized: 0 }
           teams[team_name][:capitalized] += 1
         end
 
         # Process non-capitalized issues
         non_capitalized_issues.each do |issue|
-          team_name = issue.dig(:team, :name) || issue.dig('team', 'name') || 'Unassigned'
+          team_name = issue.dig(:team,
+                                :name) || issue.dig('team',
+                                                    'name') || 'Unassigned'
           teams[team_name] ||= { capitalized: 0, non_capitalized: 0 }
           teams[team_name][:non_capitalized] += 1
         end
@@ -135,7 +155,8 @@ module LinearCli
         teams.each_value do |counts|
           total = counts[:capitalized] + counts[:non_capitalized]
           counts[:total] = total
-          counts[:percentage] = total.zero? ? 0 : ((counts[:capitalized].to_f / total) * 100).round(2)
+          counts[:percentage] =
+            total.zero? ? 0 : ((counts[:capitalized].to_f / total) * 100).round(2)
         end
 
         teams
@@ -205,7 +226,9 @@ module LinearCli
         issues.each do |issue|
           next unless issue[:project]
 
-          project = capitalized_projects.find { |p| p[:id] == issue[:project][:id] }
+          project = capitalized_projects.find do |p|
+            p[:id] == issue[:project][:id]
+          end
           next unless project
 
           project_name = project[:name]
@@ -262,7 +285,8 @@ module LinearCli
             issues_by_status: count_issues_by_status(issues),
             issues_by_team: count_issues_by_team(issues),
             team_completion_rates: calculate_team_completion_rates(issues),
-            capitalization_metrics: calculate_capitalization_metrics(issues, projects)
+            capitalization_metrics: calculate_capitalization_metrics(issues,
+                                                                     projects)
           }
         }
       end

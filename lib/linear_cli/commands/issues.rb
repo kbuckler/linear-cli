@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'thor'
 require 'pastel'
 require_relative '../ui/table_renderer'
@@ -12,8 +14,10 @@ module LinearCli
       option :team, type: :string, desc: 'Filter by team name'
       option :assignee, type: :string, desc: 'Filter by assignee email or name'
       option :status, type: :string, desc: 'Filter by status name'
-      option :limit, type: :numeric, default: 20, desc: 'Number of issues to fetch'
-      option :all, type: :boolean, desc: 'Fetch all issues, overrides limit option'
+      option :limit, type: :numeric, default: 20,
+                     desc: 'Number of issues to fetch'
+      option :all, type: :boolean,
+                   desc: 'Fetch all issues, overrides limit option'
       def list
         client = LinearCli::API::Client.new
 
@@ -42,7 +46,9 @@ module LinearCli
           # TODO: Implement resolving assignee name/email to ID
           sanitized_assignee = LinearCli::Validators::InputValidator.sanitize_string(options[:assignee])
           # If it looks like an email, validate it
-          LinearCli::Validators::InputValidator.validate_email(sanitized_assignee) if sanitized_assignee.include?('@')
+          if sanitized_assignee.include?('@')
+            LinearCli::Validators::InputValidator.validate_email(sanitized_assignee)
+          end
           variables[:assigneeId] = sanitized_assignee
         end
 
@@ -71,10 +77,12 @@ module LinearCli
         end
 
         # Prepare the data
-        headers = %w[ID Title Status Assignee Priority Estimate Cycle Labels Team]
+        headers = %w[ID Title Status Assignee Priority Estimate Cycle Labels
+                     Team]
         rows = all_issues.map do |issue|
           # For detailed view - include priority, estimate, cycle, etc.
-          priority_values = { 0 => 'No priority', 1 => 'Urgent', 2 => 'High', 3 => 'Medium', 4 => 'Low' }
+          priority_values = { 0 => 'No priority', 1 => 'Urgent', 2 => 'High',
+                              3 => 'Medium', 4 => 'Low' }
           priority = issue['priority'] ? priority_values[issue['priority']] : 'Not set'
 
           cycle = issue['cycle'] ? issue['cycle']['name'] : 'No cycle'
@@ -123,7 +131,9 @@ module LinearCli
         begin
           sanitized_id = LinearCli::Validators::InputValidator.sanitize_string(id)
           # Only validate format if it looks like an ID pattern
-          LinearCli::Validators::InputValidator.validate_issue_id(sanitized_id) if sanitized_id.include?('-')
+          if sanitized_id.include?('-')
+            LinearCli::Validators::InputValidator.validate_issue_id(sanitized_id)
+          end
         rescue ArgumentError => e
           puts "Warning: #{e.message}"
           # Continue anyway as the API will validate the ID
@@ -132,7 +142,8 @@ module LinearCli
         client = LinearCli::API::Client.new
 
         # Execute the query
-        result = client.query(LinearCli::API::Queries::Issues.issue, { id: sanitized_id })
+        result = client.query(LinearCli::API::Queries::Issues.issue,
+                              { id: sanitized_id })
         issue = result['issue']
 
         if issue.nil?
@@ -189,14 +200,17 @@ module LinearCli
           if options[:assignee]
             sanitized_assignee = LinearCli::Validators::InputValidator.sanitize_string(options[:assignee])
             # If it looks like an email, validate it
-            LinearCli::Validators::InputValidator.validate_email(sanitized_assignee) if sanitized_assignee.include?('@')
+            if sanitized_assignee.include?('@')
+              LinearCli::Validators::InputValidator.validate_email(sanitized_assignee)
+            end
             input[:assigneeId] = sanitized_assignee # TODO: Implement resolving assignee name/email to ID
           end
 
           # Add status if provided
           if options[:status]
             # TODO: Implement resolving status name to ID
-            input[:stateId] = LinearCli::Validators::InputValidator.sanitize_string(options[:status])
+            input[:stateId] =
+              LinearCli::Validators::InputValidator.sanitize_string(options[:status])
           end
 
           # Add priority if provided
@@ -215,7 +229,8 @@ module LinearCli
           end
 
           # Execute the mutation
-          result = client.query(LinearCli::API::Queries::Issues.create_issue, { input: input })
+          result = client.query(LinearCli::API::Queries::Issues.create_issue,
+                                { input: input })
 
           if result['issueCreate'] && result['issueCreate']['success']
             issue = result['issueCreate']['issue']
@@ -239,7 +254,9 @@ module LinearCli
         # Validate and sanitize issue ID
         sanitized_id = LinearCli::Validators::InputValidator.sanitize_string(id)
         # Only validate format if it looks like an ID pattern
-        LinearCli::Validators::InputValidator.validate_issue_id(sanitized_id) if sanitized_id.include?('-')
+        if sanitized_id.include?('-')
+          LinearCli::Validators::InputValidator.validate_issue_id(sanitized_id)
+        end
 
         client = LinearCli::API::Client.new
 
@@ -247,25 +264,32 @@ module LinearCli
         input = {}
 
         # Validate and add title if provided
-        input[:title] = LinearCli::Validators::InputValidator.validate_title(options[:title]) if options[:title]
+        if options[:title]
+          input[:title] =
+            LinearCli::Validators::InputValidator.validate_title(options[:title])
+        end
 
         # Validate and add description if provided
         if options[:description]
-          input[:description] = LinearCli::Validators::InputValidator.validate_description(options[:description])
+          input[:description] =
+            LinearCli::Validators::InputValidator.validate_description(options[:description])
         end
 
         # Add assignee if provided
         if options[:assignee]
           sanitized_assignee = LinearCli::Validators::InputValidator.sanitize_string(options[:assignee])
           # If it looks like an email, validate it
-          LinearCli::Validators::InputValidator.validate_email(sanitized_assignee) if sanitized_assignee.include?('@')
+          if sanitized_assignee.include?('@')
+            LinearCli::Validators::InputValidator.validate_email(sanitized_assignee)
+          end
           input[:assigneeId] = sanitized_assignee # TODO: Implement resolving assignee name/email to ID
         end
 
         # Add status if provided
         if options[:status]
           # TODO: Implement resolving status name to ID
-          input[:stateId] = LinearCli::Validators::InputValidator.sanitize_string(options[:status])
+          input[:stateId] =
+            LinearCli::Validators::InputValidator.sanitize_string(options[:status])
         end
 
         # Add priority if provided
@@ -280,7 +304,8 @@ module LinearCli
         end
 
         # Execute the mutation
-        result = client.query(LinearCli::API::Queries::Issues.update_issue, { id: sanitized_id, input: input })
+        result = client.query(LinearCli::API::Queries::Issues.update_issue,
+                              { id: sanitized_id, input: input })
 
         if result['issueUpdate'] && result['issueUpdate']['success']
           issue = result['issueUpdate']['issue']
@@ -307,7 +332,9 @@ module LinearCli
         # Validate and sanitize issue ID
         sanitized_id = LinearCli::Validators::InputValidator.sanitize_string(issue_identifier)
         # Only validate format if it looks like an ID pattern
-        LinearCli::Validators::InputValidator.validate_issue_id(sanitized_id) if sanitized_id.include?('-')
+        if sanitized_id.include?('-')
+          LinearCli::Validators::InputValidator.validate_issue_id(sanitized_id)
+        end
 
         client = LinearCli::API::Client.new
 

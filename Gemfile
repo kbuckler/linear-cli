@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 source 'https://rubygems.org'
 
 # CLI framework
@@ -22,8 +24,12 @@ gem 'yaml', '~> 0.2.0'
 # CSV support (required for tty-table)
 gem 'csv', '~> 3.2'
 
+# Ruby Active Support
+gem 'activesupport', '~> 7.0'
+
 group :development, :test do
   # Testing
+  gem 'bundler', '~> 2.0'
   gem 'rake', '~> 13.0'
   gem 'rspec', '~> 3.12'
   gem 'vcr', '~> 6.1'
@@ -35,5 +41,3 @@ group :development, :test do
   # Documentation
   gem 'yard', '~> 0.9.34'
 end
-
-gem 'activesupport', '~> 7.0'

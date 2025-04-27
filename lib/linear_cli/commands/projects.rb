@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'thor'
 require 'pastel'
 require_relative '../ui/table_renderer'
@@ -41,7 +43,8 @@ module LinearCli
           "Linear Projects (#{projects.size}):",
           headers,
           rows,
-          widths: { 'Name' => 30, 'State' => 15, 'Progress' => 10, 'Teams' => 25, 'Lead' => 20 }
+          widths: { 'Name' => 30, 'State' => 15, 'Progress' => 10,
+                    'Teams' => 25, 'Lead' => 20 }
         )
       end
 
@@ -50,7 +53,8 @@ module LinearCli
         client = LinearCli::API::Client.new
 
         # Execute the query
-        result = client.query(LinearCli::API::Queries::Projects.project, { id: id })
+        result = client.query(LinearCli::API::Queries::Projects.project,
+                              { id: id })
         project = result['project']
 
         if project.nil?
