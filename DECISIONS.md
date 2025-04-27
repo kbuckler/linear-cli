@@ -270,3 +270,17 @@
   - Consistent user experience across all tabular data displays
   - Easier to update or modify table styling globally
   - Simplified test environment handling with automatic format switching 
+
+## Simplified TTY Table Rendering
+
+- **Decision**: Simplify TTY table rendering to avoid width constraint issues
+- **Context**: The TTY::Table width handling was causing errors when rendering tables with the message "undefined method '<=' for an instance of Array"
+- **Implementation**:
+  - Removed explicit width array setting in the TableRenderer module
+  - Used default TTY::Table width handling which better adapts to content
+  - Fixed GraphQL query structure for team members to match Linear API schema
+- **Consequences**:
+  - More robust table rendering with fewer errors
+  - Tables automatically adapt to content size
+  - Better compatibility with the Linear API's expected GraphQL structure
+  - Simplified renderer code with fewer potential points of failure 
