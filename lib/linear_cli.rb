@@ -60,8 +60,8 @@ module LinearCli
         puts pastel.bold('Linear CLI - Command Line Interface for Linear')
         puts pastel.cyan('A powerful tool for interacting with Linear from your terminal')
         puts "\n#{pastel.dim('• Manage issues, teams, and projects')}"
-        puts "#{pastel.dim('• Run analytics and reporting on your Linear data')}"
-        puts "#{pastel.dim('• Supports structured output for scripting')}"
+        puts pastel.dim('• Run analytics and reporting on your Linear data')
+        puts pastel.dim('• Supports structured output for scripting')
         puts "\n#{pastel.underline('Available Commands:')}"
 
         puts "\n#{pastel.bold('Global Commands:')}"

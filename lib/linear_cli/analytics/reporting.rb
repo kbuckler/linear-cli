@@ -36,7 +36,7 @@ module LinearCli
           {
             total: total,
             completed: completed,
-            rate: total > 0 ? (completed.to_f / total * 100).round(2) : 0
+            rate: total.positive? ? (completed.to_f / total * 100).round(2) : 0
           }
         end
       end
@@ -132,7 +132,7 @@ module LinearCli
         end
 
         # Calculate totals and percentages
-        teams.each do |team, counts|
+        teams.each_value do |counts|
           total = counts[:capitalized] + counts[:non_capitalized]
           counts[:total] = total
           counts[:percentage] = total.zero? ? 0 : ((counts[:capitalized].to_f / total) * 100).round(2)
@@ -170,7 +170,7 @@ module LinearCli
         end
 
         # Calculate percentages
-        engineers.each do |_name, stats|
+        engineers.each_value do |stats|
           stats[:percentage] =
             stats[:total_issues].zero? ? 0 : ((stats[:capitalized_issues].to_f / stats[:total_issues]) * 100).round(2)
           stats[:estimate_percentage] =

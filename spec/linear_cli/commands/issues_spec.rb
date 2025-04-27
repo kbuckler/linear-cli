@@ -243,7 +243,7 @@ RSpec.describe LinearCli::Commands::Issues do
           team: 'Engineering',
           labels: ['  Bug  ', '  Feature  ']
         }
-        expect(client).to receive(:query) do |query, variables|
+        expect(client).to receive(:query) do |_query, variables|
           expect(variables[:input][:labelIds]).to eq(%w[Bug Feature])
           { 'issueCreate' => { 'success' => true, 'issue' => issue } }
         end
@@ -393,7 +393,7 @@ RSpec.describe LinearCli::Commands::Issues do
       it 'joins multiple comment parts' do
         expect { command.comment('ENG-1', 'part1', 'part2', 'part3') }.to output(/Comment added successfully/).to_stdout
 
-        expect(client).to have_received(:query) do |query, params|
+        expect(client).to have_received(:query) do |_query, params|
           expect(params[:body]).to eq('part1 part2 part3')
           { 'commentCreate' => { 'success' => true } }
         end

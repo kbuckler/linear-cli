@@ -116,7 +116,7 @@ RSpec.describe LinearCli::Services::Analytics::MonthlyProcessor do
 
         # Should have 6 months of empty data
         expect(result.keys.count).to eq(6)
-        result.each do |_month_key, month_data|
+        result.each_value do |month_data|
           expect(month_data[:issue_count]).to eq(0)
         end
       end
@@ -128,7 +128,7 @@ RSpec.describe LinearCli::Services::Analytics::MonthlyProcessor do
 
         # Should have 6 months of empty data
         expect(result.keys.count).to eq(6)
-        result.each do |_month_key, month_data|
+        result.each_value do |month_data|
           expect(month_data[:issue_count]).to eq(0)
         end
       end
@@ -152,7 +152,7 @@ RSpec.describe LinearCli::Services::Analytics::MonthlyProcessor do
         result = monthly_processor.process_monthly_data(issues_data, teams_data, projects_data)
 
         # All months should have 0 issues
-        result.each do |_month_key, month_data|
+        result.each_value do |month_data|
           expect(month_data[:issue_count]).to eq(0)
         end
       end

@@ -3,10 +3,10 @@ module LinearCli
     # Input validator for user-provided data
     module InputValidator
       # Regular expression for issue identifiers (e.g., ENG-123)
-      ISSUE_ID_REGEX = /^[A-Za-z]+-\d+$/
+      ISSUE_ID_REGEX = /^[A-Za-z]+-\d+$/.freeze
 
       # Regular expression for valid email addresses
-      EMAIL_REGEX = /\A[\w+\-.]+@[a-z\d-]+(\.[a-z\d-]+)*\.[a-z]+\z/i
+      EMAIL_REGEX = /\A[\w+\-.]+@[a-z\d-]+(\.[a-z\d-]+)*\.[a-z]+\z/i.freeze
 
       # Validate issue identifier format
       # @param id [String] Issue identifier

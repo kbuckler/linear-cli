@@ -23,20 +23,21 @@ Gem::Specification.new do |spec|
   spec.require_paths = ['lib']
 
   # Dependencies
-  spec.add_dependency 'thor', '~> 1.2'
-  spec.add_dependency 'httparty', '~> 0.21.0'
   spec.add_dependency 'dotenv', '~> 2.8'
-  spec.add_dependency 'tty-table', '~> 0.12.0'
-  spec.add_dependency 'tty-spinner', '~> 0.9.3'
+  spec.add_dependency 'httparty', '~> 0.21.0'
   spec.add_dependency 'pastel', '~> 0.8.0'
+  spec.add_dependency 'thor', '~> 1.2'
+  spec.add_dependency 'tty-spinner', '~> 0.9.3'
+  spec.add_dependency 'tty-table', '~> 0.12.0'
   spec.add_dependency 'yaml', '~> 0.2.0'
 
   # Development dependencies
   spec.add_development_dependency 'bundler', '~> 2.0'
   spec.add_development_dependency 'rake', '~> 13.0'
   spec.add_development_dependency 'rspec', '~> 3.12'
-  spec.add_development_dependency 'webmock', '~> 3.18'
-  spec.add_development_dependency 'vcr', '~> 6.1'
   spec.add_development_dependency 'rubocop', '~> 1.50'
+  spec.add_development_dependency 'vcr', '~> 6.1'
+  spec.add_development_dependency 'webmock', '~> 3.18'
   spec.add_development_dependency 'yard', '~> 0.9.34'
-end 
+  spec.metadata['rubygems_mfa_required'] = 'true'
+end

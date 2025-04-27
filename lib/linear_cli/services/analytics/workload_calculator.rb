@@ -8,7 +8,7 @@ module LinearCli
         # @param teams [Array<Hash>] Array of team data
         # @param projects [Array<Hash>] Array of project data
         # @return [Hash] Engineer workload data
-        def calculate_engineer_project_workload(issues, teams, projects)
+        def calculate_engineer_project_workload(issues, teams, _projects)
           result = {}
 
           # Ensure issues is an array to avoid nil errors
@@ -32,7 +32,7 @@ module LinearCli
             next unless issue['team'] && issue['estimate']
 
             team_id = issue['team']['id']
-            team_name = issue['team']['name']
+            issue['team']['name']
             project_id = issue['project'] ? issue['project']['id'] : 'no_project'
             project_name = issue['project'] ? issue['project']['name'] : 'No Project'
             engineer_id = issue['assignee'] ? issue['assignee']['id'] : 'unassigned'
@@ -76,15 +76,15 @@ module LinearCli
           end
 
           # Calculate percentages
-          result.each do |_team_id, team|
-            team[:engineers].each do |_engineer_id, engineer|
-              engineer[:projects].each do |_project_id, project|
+          result.each_value do |team|
+            team[:engineers].each_value do |engineer|
+              engineer[:projects].each_value do |project|
                 project[:percentage] = calculate_percentage(project[:points], engineer[:total_points])
               end
             end
 
-            team[:projects].each do |_project_id, project|
-              project[:engineers].each do |_engineer_id, engineer|
+            team[:projects].each_value do |project|
+              project[:engineers].each_value do |engineer|
                 engineer[:percentage] = calculate_percentage(engineer[:points], project[:total_points])
               end
             end

@@ -119,7 +119,7 @@ module LinearCli
       # Display capitalization metrics
       # @param capitalization_data [Hash] Capitalization metrics data
       # @param options [Hash] Display options
-      def self.display_capitalization_metrics(capitalization_data, options = {})
+      def self.display_capitalization_metrics(capitalization_data, _options = {})
         return puts 'No capitalization data available.'.yellow unless capitalization_data&.any?
 
         display_overall_capitalization_rate(capitalization_data) if capitalization_data[:capitalization_rate]
@@ -154,9 +154,8 @@ module LinearCli
       def self.display_team_capitalization(capitalization_data)
         puts "\n#{'Team Capitalization Rates:'.bold}"
 
-        rows = []
-        capitalization_data[:team_capitalization].each do |team, metrics|
-          rows << [
+        rows = capitalization_data[:team_capitalization].map do |team, metrics|
+          [
             team,
             metrics[:capitalized],
             metrics[:non_capitalized],
@@ -237,9 +236,8 @@ module LinearCli
       def self.display_engineer_workload_summary(capitalization_data)
         puts "\n#{'Engineer Workload Summary:'.bold}"
 
-        rows = []
-        capitalization_data[:engineer_workload].each do |engineer, metrics|
-          rows << [
+        rows = capitalization_data[:engineer_workload].map do |engineer, metrics|
+          [
             engineer,
             metrics[:capitalized_issues],
             metrics[:total_issues],

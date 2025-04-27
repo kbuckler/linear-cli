@@ -256,7 +256,7 @@ module LinearCli
 
           puts "\n#{'=' * 80}"
           puts "Team: #{team_name.bold}"
-          puts "#{'=' * 80}"
+          puts('=' * 80)
 
           # Check if team has data in any month
           has_team_data = sorted_months.any? { |month| monthly_reports[month][team_id] }
@@ -295,11 +295,11 @@ module LinearCli
             end
 
             # Add row only if engineer has points
-            rows << row if row[1..-1].sum > 0
+            rows << row if row[1..].sum.positive?
           end
 
           # Sort rows by total points (highest first)
-          rows = rows.sort_by { |row| -row[1..-1].sum }
+          rows = rows.sort_by { |row| -row[1..].sum }
 
           # Create headers with month names
           headers = ['Engineer']
@@ -310,7 +310,7 @@ module LinearCli
           # Add a total column
           headers << 'Total'
           rows.each do |row|
-            row << row[1..-1].sum
+            row << row[1..].sum
           end
 
           # Use the centralized table renderer
@@ -330,13 +330,13 @@ module LinearCli
             team_data = monthly_reports[month][team_id]
 
             # Display projects for this team in this month
-            team_data[:projects].each do |project_id, project|
+            team_data[:projects].each_value do |project|
               next if project[:engineers].empty?
 
               puts "  #{'Project:'.bold} #{project[:name]} (#{project[:total_points]} points)"
 
               # List engineers who worked on this project
-              project[:engineers].each do |_engineer_id, engineer|
+              project[:engineers].each_value do |engineer|
                 puts "    - #{engineer[:name]}: #{engineer[:points]} points (#{engineer[:percentage]}%)"
               end
             end

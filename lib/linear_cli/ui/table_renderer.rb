@@ -44,8 +44,6 @@ module LinearCli
         puts render_table(headers, rows, options)
       end
 
-      private
-
       # Renders a simple text table for test environments
       # @param headers [Array<String>] Table headers
       # @param rows [Array<Array>] Table data rows

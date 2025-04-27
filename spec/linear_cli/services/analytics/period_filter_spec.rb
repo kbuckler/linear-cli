@@ -30,7 +30,7 @@ RSpec.describe LinearCli::Services::Analytics::PeriodFilter do
       let(:issues) do
         [
           { 'id' => '1', 'completedAt' => six_months_ago },
-          { 'id' => '2', 'completedAt' => (current_time - 30 * 24 * 60 * 60).strftime('%Y-%m-%d') },
+          { 'id' => '2', 'completedAt' => (current_time - (30 * 24 * 60 * 60)).strftime('%Y-%m-%d') },
           { 'id' => '3', 'completedAt' => seven_months_ago },
           { 'id' => '4', 'createdAt' => six_months_ago, 'completedAt' => nil },
           { 'id' => '5', 'createdAt' => seven_months_ago, 'completedAt' => nil }

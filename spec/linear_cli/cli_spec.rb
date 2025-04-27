@@ -9,7 +9,7 @@ RSpec.describe LinearCli::CLI do
 
         begin
           # Create CLI instance with allow_mutations flag
-          cli = described_class.new([], { allow_mutations: true })
+          described_class.new([], { allow_mutations: true })
 
           # Verify that safe mode is disabled
           expect(LinearCli.safe_mode?).to eq(false)
@@ -27,7 +27,7 @@ RSpec.describe LinearCli::CLI do
 
         begin
           # Create CLI instance without allow_mutations flag
-          cli = described_class.new
+          described_class.new
 
           # Verify that safe mode is enabled
           expect(LinearCli.safe_mode?).to eq(true)

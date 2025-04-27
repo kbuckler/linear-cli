@@ -21,7 +21,7 @@ module LinearCli
       # @param api_key [String] Linear API key
       # @param api_url [String] Optional custom API URL
       def initialize(api_key = nil, api_url = nil)
-        @api_key = api_key || ENV['LINEAR_API_KEY']
+        @api_key = api_key || ENV.fetch('LINEAR_API_KEY', nil)
         @api_url = api_url || ENV['LINEAR_API_URL'] || API_URL
 
         raise 'Linear API key is required! Please set LINEAR_API_KEY in your .env file.' unless @api_key
@@ -57,8 +57,6 @@ module LinearCli
 
         # Start progress
         progress.advance(10)
-
-        response = nil
         begin
           # Simulate network delay for better visual feedback
           progress.advance(30)
@@ -104,15 +102,14 @@ module LinearCli
         limit = options[:limit] || 20
         nodes_path = options[:nodes_path] || 'issues'
         page_info_path = options[:page_info_path] || nodes_path
-        count_query = options[:count_query]
-        page_size = variables[:first] || 20
+        options[:count_query]
+        variables[:first] || 20
 
         # When fetch_all is true, ignore the limit
         limit = nil if fetch_all
 
         # Create a progress bar for the count operation if needed
         total_count = nil
-        total_pages = nil
 
         # For the first page, we'll create a simple progress bar
         progress_message = if total_count
@@ -164,7 +161,7 @@ module LinearCli
             current_path.each { |path| current_data = current_data[path] if current_data }
 
             # Extract items and pageInfo
-            current_items = current_data && current_data['nodes'] || []
+            current_items = (current_data && current_data['nodes']) || []
             page_info_path_parts = page_info_path.split('.')
             page_info_data = result
             page_info_path_parts.each { |path| page_info_data = page_info_data[path] if page_info_data }
