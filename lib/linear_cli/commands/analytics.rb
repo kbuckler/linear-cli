@@ -8,6 +8,7 @@ require_relative '../ui/table_renderer'
 require_relative '../services/analytics/workload_calculator'
 require_relative '../services/analytics/period_filter'
 require_relative '../services/analytics/data_fetcher'
+require_relative '../services/analytics/monthly_processor'
 
 module LinearCli
   module API
@@ -215,6 +216,7 @@ module LinearCli
         all_issues_data = data_fetcher.fetch_issues
 
         period_filter = LinearCli::Services::Analytics::PeriodFilter.new
+        monthly_processor = LinearCli::Services::Analytics::MonthlyProcessor.new
 
         # Filter issues for the last 6 months
         issues_data = period_filter.filter_issues_by_period(all_issues_data, 'all')
@@ -222,7 +224,7 @@ module LinearCli
         puts "Analyzing #{issues_data.size} issues from the past 6 months..."
 
         # Group issues by month for the past 6 months
-        monthly_reports = process_monthly_data(issues_data, teams_data, projects_data)
+        monthly_reports = monthly_processor.process_monthly_data(issues_data, teams_data, projects_data)
 
         # Output based on requested format
         if format == 'json'
@@ -238,46 +240,6 @@ module LinearCli
         return if %w[json table].include?(format)
 
         raise "Invalid format: #{format}. Must be 'json' or 'table'."
-      end
-
-      def process_monthly_data(issues_data, teams_data, projects_data)
-        workload_calculator = LinearCli::Services::Analytics::WorkloadCalculator.new
-        monthly_issues = {}
-
-        # Group issues by month for the past 6 months
-        (0..5).each do |months_ago|
-          month_date = (Time.now - (months_ago * 30 * 24 * 60 * 60))
-          month_key = month_date.strftime('%Y-%m')
-          month_name = month_date.strftime('%B %Y')
-
-          # Filter issues for this month based on completion date or creation date
-          monthly_issues[month_key] = {
-            name: month_name,
-            issues: issues_data.select do |issue|
-              # Use completedAt if available, otherwise fall back to createdAt
-              date_to_check = issue['completedAt'] || issue['createdAt']
-              next false unless date_to_check
-
-              date_time = Time.parse(date_to_check)
-              date_time.strftime('%Y-%m') == month_key
-            end
-          }
-        end
-
-        # Process data for each month
-        monthly_reports = {}
-        monthly_issues.each do |month_key, month_data|
-          # Calculate engineer workload for this month's issues
-          monthly_reports[month_key] = workload_calculator.calculate_engineer_project_workload(
-            month_data[:issues],
-            teams_data,
-            projects_data
-          )
-          monthly_reports[month_key][:name] = month_data[:name]
-          monthly_reports[month_key][:issue_count] = month_data[:issues].size
-        end
-
-        monthly_reports
       end
 
       # Display the engineer workload report for monthly data
