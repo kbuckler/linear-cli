@@ -255,3 +255,18 @@
   - All important issue attributes are always visible
   - Better contextual information for issue triage and management
   - Reduced cognitive load by removing unnecessary command options 
+
+## Centralized TTY Table Rendering
+
+- **Decision**: Create a centralized table rendering module to manage all TTY table rendering with consistent styling
+- **Context**: Table rendering logic was scattered across multiple files with inconsistent styling and duplicated test environment handling
+- **Implementation**:
+  - Created `LinearCli::UI::TableRenderer` module with standardized rendering methods
+  - Consolidated test environment detection logic
+  - Provided consistent styling defaults while allowing customization
+  - Simplified API for both simple and complex table rendering needs
+- **Consequences**:
+  - Improved code maintainability with single source of truth for table styling
+  - Consistent user experience across all tabular data displays
+  - Easier to update or modify table styling globally
+  - Simplified test environment handling with automatic format switching 

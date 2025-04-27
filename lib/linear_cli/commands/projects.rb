@@ -1,6 +1,6 @@
 require 'thor'
 require 'pastel'
-require 'tty-table'
+require_relative '../ui/table_renderer'
 
 module LinearCli
   module Commands
@@ -21,28 +21,28 @@ module LinearCli
           return
         end
 
-        # Create a table for display
-        table = TTY::Table.new(
-          header: %w[Name State Progress Teams Lead],
-          rows: projects.map do |project|
-            lead_name = project['lead'] ? project['lead']['name'] : 'None'
-            teams = project['teams']['nodes'].map { |t| t['name'] }.join(', ')
+        # Prepare data for table rendering
+        headers = %w[Name State Progress Teams Lead]
+        rows = projects.map do |project|
+          lead_name = project['lead'] ? project['lead']['name'] : 'None'
+          teams = project['teams']['nodes'].map { |t| t['name'] }.join(', ')
 
-            [
-              project['name'],
-              project['state'],
-              "#{project['progress'] || 0}%",
-              teams,
-              lead_name
-            ]
-          end
-        )
-
-        pastel = Pastel.new
-        puts pastel.bold("Linear Projects (#{projects.size}):")
-        puts table.render(:unicode, padding: [0, 1, 0, 1], resize: false) do |renderer|
-          renderer.width = [30, 15, 10, 25, 20]
+          [
+            project['name'],
+            project['state'],
+            "#{project['progress'] || 0}%",
+            teams,
+            lead_name
+          ]
         end
+
+        # Use the centralized table renderer
+        LinearCli::UI::TableRenderer.output_table(
+          "Linear Projects (#{projects.size}):",
+          headers,
+          rows,
+          widths: { 'Name' => 30, 'State' => 15, 'Progress' => 10, 'Teams' => 25, 'Lead' => 20 }
+        )
       end
 
       desc 'view ID', 'View details of a specific project'
@@ -91,19 +91,20 @@ module LinearCli
         # Display issues
         puts "\nIssues:"
         if project['issues'] && !project['issues']['nodes'].empty?
-          issues_table = TTY::Table.new(
-            header: %w[ID Title Status],
-            rows: project['issues']['nodes'].map do |issue|
-              [
-                issue['identifier'],
-                issue['title'],
-                issue['state']['name']
-              ]
-            end
-          )
-          puts issues_table.render(:unicode, padding: [0, 1, 0, 1], resize: false) do |renderer|
-            renderer.width = [10, 40, 15]
+          headers = %w[ID Title Status]
+          rows = project['issues']['nodes'].map do |issue|
+            [
+              issue['identifier'],
+              issue['title'],
+              issue['state']['name']
+            ]
           end
+
+          puts LinearCli::UI::TableRenderer.render_table(
+            headers,
+            rows,
+            widths: { 'ID' => 10, 'Title' => 40, 'Status' => 15 }
+          )
         else
           puts 'No issues.'
         end

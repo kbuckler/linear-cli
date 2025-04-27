@@ -4,6 +4,7 @@ require 'json'
 require_relative '../api/client'
 require_relative '../analytics/reporting'
 require_relative '../analytics/display'
+require_relative '../ui/table_renderer'
 
 module LinearCli
   module API
@@ -546,15 +547,20 @@ module LinearCli
               # Sort rows by percentage (highest first)
               rows = rows.sort_by { |row| -row[1] }
 
-              # Create and display the table
-              table = TTY::Table.new(
-                ['Engineer', 'Project Points', 'Total Points', 'Percentage'],
-                rows
-              )
+              # Create table headers
+              headers = ['Engineer', 'Project Points', 'Total Points', 'Percentage']
 
-              puts table.render(:unicode, padding: [0, 1], resize: false) do |renderer|
-                renderer.width = [20, 15, 15, 15]
-              end
+              # Use the centralized table renderer
+              puts LinearCli::UI::TableRenderer.render_table(
+                headers,
+                rows,
+                widths: {
+                  'Engineer' => 20,
+                  'Project Points' => 15,
+                  'Total Points' => 15,
+                  'Percentage' => 15
+                }
+              )
             end
           end
         end

@@ -1,6 +1,6 @@
 require 'thor'
 require 'pastel'
-require 'tty-table'
+require_relative '../ui/table_renderer'
 
 module LinearCli
   module Commands
@@ -51,10 +51,8 @@ module LinearCli
           return
         end
 
-        pastel = Pastel.new
-        puts pastel.bold("Linear Issues (#{issues.size}):")
-
         # Prepare the data
+        headers = %w[ID Title Status Assignee Priority Estimate Cycle Labels Team]
         rows = issues.map do |issue|
           # For detailed view - include priority, estimate, cycle, etc.
           priority_values = { 0 => 'No priority', 1 => 'Urgent', 2 => 'High', 3 => 'Medium', 4 => 'Low' }
@@ -81,23 +79,24 @@ module LinearCli
           ]
         end
 
-        # Use simple output in test environments or when not in a terminal
-        if !$stdout.tty? || ENV['RACK_ENV'] == 'test' || ENV['RAILS_ENV'] == 'test'
-          puts 'ID | Title | Status | Assignee | Priority | Estimate | Cycle | Labels | Team'
-          puts '-' * 80
-          rows.each do |row|
-            puts row.join(' | ')
-          end
-        else
-          # Create a table for display
-          header = %w[ID Title Status Assignee Priority Estimate Cycle Labels Team]
-
-          # Use simple TTY table view with nice formatting
-          table = TTY::Table.new(header: header, rows: rows)
-          puts table.render(resize: true) do |renderer|
-            renderer.border.separator = :each_row
-          end
-        end
+        # Use the centralized table renderer with a title and row separators
+        LinearCli::UI::TableRenderer.output_table(
+          "Linear Issues (#{issues.size}):",
+          headers,
+          rows,
+          widths: {
+            'ID' => 10,
+            'Title' => 30,
+            'Status' => 15,
+            'Assignee' => 20,
+            'Priority' => 15,
+            'Estimate' => 10,
+            'Cycle' => 15,
+            'Labels' => 20,
+            'Team' => 15
+          },
+          border_separator: true
+        )
       end
 
       desc 'view ID', 'View details of a specific issue'

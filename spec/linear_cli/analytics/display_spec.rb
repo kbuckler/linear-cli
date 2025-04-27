@@ -53,6 +53,9 @@ RSpec.describe LinearCli::Analytics::Display do
     allow(described_class).to receive(:puts)
     # Force test environment
     allow(described_class).to receive(:in_test_environment?).and_return(true)
+    # Stub TableRenderer methods to prevent direct output
+    allow(LinearCli::UI::TableRenderer).to receive(:output_table)
+    allow(LinearCli::UI::TableRenderer).to receive(:render_table).and_return('')
   end
 
   describe '.in_test_environment?' do
@@ -67,34 +70,42 @@ RSpec.describe LinearCli::Analytics::Display do
 
   describe '.display_teams' do
     it 'displays a table of teams' do
-      expect(described_class).to receive(:puts).with("\nTeams:")
-      expect(described_class).to receive(:puts).with('Name | Key | ID')
-      expect(described_class).to receive(:puts).with('-----+-----+----')
-      expect(described_class).to receive(:puts).with('Engineering | ENG | team1')
-      expect(described_class).to receive(:puts).with('Design | DSG | team2')
+      expect(LinearCli::UI::TableRenderer).to receive(:output_table).with(
+        'Teams:',
+        %w[Name Key ID],
+        [
+          %w[Engineering ENG team1],
+          %w[Design DSG team2]
+        ],
+        hash_including(widths: { 'Name' => 25, 'Key' => 8, 'ID' => 10 })
+      )
 
       described_class.display_teams(teams)
     end
 
     it 'handles empty teams array' do
-      expect(described_class).not_to receive(:puts)
+      expect(LinearCli::UI::TableRenderer).not_to receive(:output_table)
       described_class.display_teams([])
     end
   end
 
   describe '.display_projects' do
     it 'displays a table of projects' do
-      expect(described_class).to receive(:puts).with("\nProjects:")
-      expect(described_class).to receive(:puts).with('Name | State | ID')
-      expect(described_class).to receive(:puts).with('-----+-------+----')
-      expect(described_class).to receive(:puts).with('Project A | started | proj1')
-      expect(described_class).to receive(:puts).with('Project B | completed | proj2')
+      expect(LinearCli::UI::TableRenderer).to receive(:output_table).with(
+        'Projects:',
+        %w[Name State ID],
+        [
+          ['Project A', 'started', 'proj1'],
+          ['Project B', 'completed', 'proj2']
+        ],
+        hash_including(widths: { 'Name' => 25, 'State' => 15, 'ID' => 10 })
+      )
 
       described_class.display_projects(projects)
     end
 
     it 'handles empty projects array' do
-      expect(described_class).not_to receive(:puts)
+      expect(LinearCli::UI::TableRenderer).not_to receive(:output_table)
       described_class.display_projects([])
     end
   end
@@ -117,12 +128,16 @@ RSpec.describe LinearCli::Analytics::Display do
 
   describe '.display_status_table' do
     it 'displays a table of issue statuses' do
-      expect(described_class).to receive(:puts).with("\nIssues by Status:")
-      expect(described_class).to receive(:puts).with('Status | Count')
-      expect(described_class).to receive(:puts).with('-------+------')
-      expect(described_class).to receive(:puts).with('Todo | 5')
-      expect(described_class).to receive(:puts).with('In Progress | 8')
-      expect(described_class).to receive(:puts).with('Done | 3')
+      expect(LinearCli::UI::TableRenderer).to receive(:output_table).with(
+        'Issues by Status:',
+        %w[Status Count],
+        [
+          ['Todo', 5],
+          ['In Progress', 8],
+          ['Done', 3]
+        ],
+        hash_including(widths: { 'Status' => 25, 'Count' => 10 })
+      )
 
       described_class.display_status_table(status_data)
     end
@@ -130,11 +145,15 @@ RSpec.describe LinearCli::Analytics::Display do
 
   describe '.display_team_table' do
     it 'displays a table of issues by team' do
-      expect(described_class).to receive(:puts).with("\nIssues by Team:")
-      expect(described_class).to receive(:puts).with('Team | Count')
-      expect(described_class).to receive(:puts).with('------+------')
-      expect(described_class).to receive(:puts).with('Engineering | 10')
-      expect(described_class).to receive(:puts).with('Design | 6')
+      expect(LinearCli::UI::TableRenderer).to receive(:output_table).with(
+        'Issues by Team:',
+        %w[Team Count],
+        [
+          ['Engineering', 10],
+          ['Design', 6]
+        ],
+        hash_including(widths: { 'Team' => 20, 'Count' => 12 })
+      )
 
       described_class.display_team_table(team_data)
     end
@@ -142,11 +161,15 @@ RSpec.describe LinearCli::Analytics::Display do
 
   describe '.display_completion_table' do
     it 'displays a table of team completion rates' do
-      expect(described_class).to receive(:puts).with("\nTeam Completion Rates:")
-      expect(described_class).to receive(:puts).with('Team | Completed | Total | Rate (%)')
-      expect(described_class).to receive(:puts).with('------+-----------+-------+--------')
-      expect(described_class).to receive(:puts).with('Engineering | 4 | 10 | 40.0')
-      expect(described_class).to receive(:puts).with('Design | 2 | 6 | 33.33')
+      expect(LinearCli::UI::TableRenderer).to receive(:output_table).with(
+        'Team Completion Rates:',
+        ['Team', 'Completed', 'Total', 'Rate (%)'],
+        [
+          ['Engineering', 4, 10, 40.0],
+          ['Design', 2, 6, 33.33]
+        ],
+        hash_including(widths: { 'Team' => 15, 'Completed' => 12, 'Total' => 12, 'Rate (%)' => 12 })
+      )
 
       described_class.display_completion_table(completion_data)
     end

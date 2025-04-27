@@ -1,6 +1,6 @@
 require 'thor'
 require 'pastel'
-require 'tty-table'
+require_relative '../ui/table_renderer'
 
 module LinearCli
   module Commands
@@ -21,27 +21,27 @@ module LinearCli
           return
         end
 
-        # Create a table for display
-        table = TTY::Table.new(
-          header: %w[Key Name Members States],
-          rows: teams.map do |team|
-            members_count = team['members']['nodes'].size
-            states_count = team['states']['nodes'].size
+        # Prepare data for table rendering
+        headers = %w[Key Name Members States]
+        rows = teams.map do |team|
+          members_count = team['members']['nodes'].size
+          states_count = team['states']['nodes'].size
 
-            [
-              team['key'],
-              team['name'],
-              members_count,
-              states_count
-            ]
-          end
-        )
-
-        pastel = Pastel.new
-        puts pastel.bold("Linear Teams (#{teams.size}):")
-        puts table.render(:unicode, padding: [0, 1, 0, 1], resize: false) do |renderer|
-          renderer.width = [8, 25, 10, 10]
+          [
+            team['key'],
+            team['name'],
+            members_count,
+            states_count
+          ]
         end
+
+        # Use the centralized table renderer
+        LinearCli::UI::TableRenderer.output_table(
+          "Linear Teams (#{teams.size}):",
+          headers,
+          rows,
+          widths: { 'Key' => 8, 'Name' => 25, 'Members' => 10, 'States' => 10 }
+        )
       end
 
       desc 'view ID', 'View details of a specific team'
@@ -75,19 +75,20 @@ module LinearCli
         # Display states
         puts "\nStates:"
         if team['states'] && !team['states']['nodes'].empty?
-          states_table = TTY::Table.new(
-            header: %w[Name Color Position],
-            rows: team['states']['nodes'].map do |state|
-              [
-                state['name'],
-                state['color'],
-                state['position']
-              ]
-            end
-          )
-          puts states_table.render(:unicode, padding: [0, 1, 0, 1], resize: false) do |renderer|
-            renderer.width = [20, 15, 10]
+          headers = %w[Name Color Position]
+          rows = team['states']['nodes'].map do |state|
+            [
+              state['name'],
+              state['color'],
+              state['position']
+            ]
           end
+
+          puts LinearCli::UI::TableRenderer.render_table(
+            headers,
+            rows,
+            widths: { 'Name' => 20, 'Color' => 15, 'Position' => 10 }
+          )
         else
           puts 'No states.'
         end
@@ -95,18 +96,19 @@ module LinearCli
         # Display labels
         puts "\nLabels:"
         if team['labels'] && !team['labels']['nodes'].empty?
-          labels_table = TTY::Table.new(
-            header: %w[Name Color],
-            rows: team['labels']['nodes'].map do |label|
-              [
-                label['name'],
-                label['color']
-              ]
-            end
-          )
-          puts labels_table.render(:unicode, padding: [0, 1, 0, 1], resize: false) do |renderer|
-            renderer.width = [25, 15]
+          headers = %w[Name Color]
+          rows = team['labels']['nodes'].map do |label|
+            [
+              label['name'],
+              label['color']
+            ]
           end
+
+          puts LinearCli::UI::TableRenderer.render_table(
+            headers,
+            rows,
+            widths: { 'Name' => 25, 'Color' => 15 }
+          )
         else
           puts 'No labels.'
         end
@@ -114,19 +116,20 @@ module LinearCli
         # Display cycles
         puts "\nCycles:"
         if team['cycles'] && !team['cycles']['nodes'].empty?
-          cycles_table = TTY::Table.new(
-            header: ['Name', 'Start Date', 'End Date'],
-            rows: team['cycles']['nodes'].map do |cycle|
-              [
-                cycle['name'],
-                cycle['startsAt'],
-                cycle['endsAt']
-              ]
-            end
-          )
-          puts cycles_table.render(:unicode, padding: [0, 1, 0, 1], resize: false) do |renderer|
-            renderer.width = [25, 15, 15]
+          headers = ['Name', 'Start Date', 'End Date']
+          rows = team['cycles']['nodes'].map do |cycle|
+            [
+              cycle['name'],
+              cycle['startsAt'],
+              cycle['endsAt']
+            ]
           end
+
+          puts LinearCli::UI::TableRenderer.render_table(
+            headers,
+            rows,
+            widths: { 'Name' => 25, 'Start Date' => 15, 'End Date' => 15 }
+          )
         else
           puts 'No cycles.'
         end
