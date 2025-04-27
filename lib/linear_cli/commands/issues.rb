@@ -92,11 +92,10 @@ module LinearCli
           # Create a table for display
           header = %w[ID Title Status Assignee Priority Estimate Cycle Labels Team]
 
-          # Use detailed view with nice formatting
+          # Use simple TTY table view with nice formatting
           table = TTY::Table.new(header: header, rows: rows)
-          puts table.render(:unicode, resize: false) do |renderer|
+          puts table.render(resize: true) do |renderer|
             renderer.border.separator = :each_row
-            renderer.width = [10, 30, 12, 15, 10, 10, 15, 20, 10]
           end
         end
       end
