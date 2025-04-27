@@ -8,8 +8,7 @@ The analytics module offers various reports and metrics that help you understand
 
 - Overall workspace activity
 - Team performance and completion rates
-- Software capitalization tracking
-- Engineer workload distribution
+- Team workload and contributor distribution
 - Project-level analytics
 
 ## Available Analytics Commands
@@ -17,31 +16,54 @@ The analytics module offers various reports and metrics that help you understand
 ### General Reporting
 
 ```
-linear analytics report
+linear analytics report [options]
 ```
 
 This command generates a comprehensive report of your Linear workspace, including:
 - Teams and projects summary
 - Issue distribution by status and team
 - Team completion rates
-- Capitalization metrics (if applicable)
 
-### Capitalization Reporting
+**Options:**
+- `--format TEXT`: Output format, either 'json' or 'table' (default: 'table')
+
+**Examples:**
+```bash
+# Generate a standard report
+linear analytics report
+
+# Export data in JSON format for further analysis
+linear analytics report --format json
+```
+
+### Team Workload Analysis
 
 ```
-linear analytics capitalization
+linear analytics team_workload --team TEAM_NAME [options]
 ```
 
-This specialized command provides detailed software capitalization metrics, useful for financial reporting and tracking development investments.
+This command provides detailed workload analysis for a specific team, showing:
+- Monthly contributor breakdown
+- Project distribution
+- Completion metrics
+- Contributor focus analysis
 
-#### Capitalization Features
+**Options:**
+- `--team TEXT`: Team name (required)
+- `--format TEXT`: Output format, either 'json' or 'table' (default: 'table')
+- `--period TEXT`: Time period to analyze ('month', '3month', '6month', 'year', or 'all') (default: '6month')
 
-The capitalization reporting includes:
-- Overall capitalization rate
-- List of capitalized projects (identified by labels)
-- Team-level capitalization breakdown
-- Engineer workload on capitalized projects
-- Distribution of work between capitalized and non-capitalized projects
+**Examples:**
+```bash
+# Analyze Engineering team workload over the past 6 months
+linear analytics team_workload --team "Engineering"
+
+# Analyze Design team workload for the past year
+linear analytics team_workload --team "Design" --period year
+
+# Export team workload data in JSON format
+linear analytics team_workload --team "Design" --format json
+```
 
 ## Understanding the Reports
 
@@ -52,30 +74,14 @@ Team completion rates show what percentage of issues each team has completed. Th
 - Teams that might need additional support
 - Overall productivity patterns
 
-### Capitalization Metrics
+### Team Workload Analysis
 
-Software capitalization metrics are important for financial reporting in many organizations. They help track which development efforts should be capitalized (treated as fixed assets) versus expensed.
+The team workload report provides insights into:
 
-#### How Capitalization is Determined
-
-Projects are considered "capitalized" if they have any of the following labels:
-- `capitalization`
-- `capex`
-- `fixed asset`
-
-The tool analyzes all issues in these projects and provides metrics on how much work is being done on capitalized vs. non-capitalized projects.
-
-#### Capitalization Report Components
-
-1. **Overall Capitalization Rate**: The percentage of all issues that are part of capitalized projects
-
-2. **Capitalized Projects**: A list of all projects identified as capitalized based on their labels
-
-3. **Team Capitalization Rates**: Shows what percentage of each team's work is on capitalized projects
-
-4. **Engineers by Capitalized Project**: Lists all engineers working on each capitalized project, including their assigned issues and estimated points
-
-5. **Engineer Workload Summary**: Shows how each engineer's time is distributed between capitalized and non-capitalized work
+- **Monthly Trends**: How team focus has changed over the past 6 months
+- **Contributor Breakdown**: How work is distributed among team members
+- **Project Distribution**: Which projects the team is focusing on
+- **Contribution Metrics**: Completion rates and story point distribution
 
 ## Interpreting the Output
 
@@ -92,35 +98,36 @@ The reports use tables with clear headings to organize data for easy reading. Pr
 
 ## Example Workflows
 
-### Financial Reporting
-
-```bash
-# Generate capitalization metrics for quarterly financial reporting
-linear analytics capitalization
-
-# Export the results for finance team
-linear analytics capitalization --output=json > q2_capitalization.json
-```
-
-### Performance Analysis
+### Team Performance Analysis
 
 ```bash
 # Generate overall workspace analysis
 linear analytics report
 
-# Focus on specific teams
-linear analytics report --team="Engineering"
+# Focus on specific team workload
+linear analytics team_workload --team "Engineering"
+```
+
+### Historical Analysis
+
+```bash
+# Analyze team workload over different time periods
+linear analytics team_workload --team "Engineering" --period month
+linear analytics team_workload --team "Engineering" --period 3month
+linear analytics team_workload --team "Engineering" --period year
 ```
 
 ## Extending Analytics
 
 The analytics module is designed to be extensible. Future enhancements will include:
-- Time-based analytics (trends over time)
+- Time-based analytics for trend analysis
 - Velocity metrics for teams and individuals
 - Cycle time and lead time analysis
 - Advanced team performance metrics
 - Issue aging reports
 - Custom analytics dashboards
+- CSV/Excel export capabilities
+- Interactive visualizations
 
 ## Technical Details
 

@@ -40,11 +40,15 @@ This module contains methods to calculate various metrics from Linear data:
 - `count_issues_by_status`: Counts issues by status
 - `count_issues_by_team`: Counts issues by team
 - `calculate_team_completion_rates`: Calculates completion rates for each team
-- `calculate_capitalization_metrics`: Calculates software capitalization metrics
-- `calculate_team_capitalization`: Analyzes team-level capitalization metrics
-- `calculate_engineer_workload`: Analyzes engineer time allocation
-- `calculate_project_engineer_workload`: Groups engineers by capitalized project
 - `generate_report`: Generates a complete report from workspace data
+
+### Services::Analytics
+
+This module contains specialized services for analytics processing:
+
+- `DataFetcher`: Handles API data retrieval
+- `PeriodFilter`: Manages time-based filtering
+- `MonthlyProcessor`: Processes monthly data for team workload analysis
 
 ### Analytics::Display
 
@@ -56,75 +60,46 @@ This module formats and displays the calculated metrics:
 - `display_status_table`: Displays status distribution
 - `display_team_table`: Displays team distribution
 - `display_completion_table`: Displays completion rates
-- `display_capitalization_metrics`: Displays capitalization metrics
-- `display_overall_capitalization_rate`: Shows overall capitalization rate
-- `display_capitalized_projects`: Lists capitalized projects
-- `display_team_capitalization`: Shows team capitalization breakdown
-- `display_project_engineer_workload`: Lists engineers by project
-- `display_engineer_workload_summary`: Shows engineer workload summary
 - `format_percentage`: Formats percentages with color-coding
 
 ## Data Structures
 
-### Capitalization Metrics
+### Monthly Team Data
 
 ```ruby
 {
-  capitalized_count: Integer,          # Number of issues in capitalized projects
-  non_capitalized_count: Integer,      # Number of issues in non-capitalized projects
-  total_issues: Integer,               # Total number of issues
-  capitalization_rate: Float,          # Percentage of issues in capitalized projects
-  team_capitalization: Hash,           # Team-level capitalization metrics
-  engineer_workload: Hash,             # Engineer workload distribution
-  capitalized_projects: Array,         # List of capitalized projects
-  project_engineer_workload: Hash      # Engineer grouping by project
-}
-```
-
-### Team Capitalization
-
-```ruby
-{
-  "Team Name" => {
-    capitalized: Integer,              # Issues on capitalized projects
-    non_capitalized: Integer,          # Issues on non-capitalized projects
-    total: Integer,                    # Total issues for team
-    percentage: Float                  # Capitalization percentage
-  }
-}
-```
-
-### Engineer Workload
-
-```ruby
-{
-  "Engineer Name" => {
-    total_issues: Integer,             # Total assigned issues
-    capitalized_issues: Integer,       # Issues on capitalized projects
-    total_estimate: Integer,           # Total estimate points
-    capitalized_estimate: Integer,     # Estimate points on capitalized projects
-    percentage: Float,                 # Percentage of issues on capitalized projects
-    estimate_percentage: Float         # Percentage of points on capitalized projects
-  }
-}
-```
-
-### Project Engineer Workload
-
-```ruby
-{
-  "Project Name" => {
-    id: String,                        # Project ID
-    total_issues: Integer,             # Total issues in project
-    assigned_issues: Integer,          # Assigned issues in project
-    engineers: {                       # Engineers working on project
-      "Engineer ID" => {
-        id: String,                    # Engineer ID
-        name: String,                  # Engineer name
-        email: String,                 # Engineer email
-        issues_count: Integer,         # Number of issues assigned
-        total_estimate: Integer,       # Total estimate points
-        issues: Array                  # List of assigned issues
+  "YYYY-MM" => {
+    name: String,                      # Month name (e.g., "January 2023")
+    issue_count: Integer,              # Total issues for the month
+    "team_id" => {
+      name: String,                    # Team name
+      total_points: Integer,           # Total story points
+      completed_points: Integer,       # Completed story points
+      projects: {                      # Projects the team worked on
+        "project_id" => {
+          name: String,                # Project name
+          total_points: Integer,       # Total story points
+          contributors: {              # Contributors on the project
+            "user_id" => {
+              name: String,            # Contributor name
+              points: Integer,         # Story points
+              percentage: Float        # Percentage of project
+            }
+          }
+        }
+      },
+      contributors: {                  # Team contributors
+        "user_id" => {
+          name: String,                # Contributor name
+          total_points: Integer,       # Total story points
+          projects: {                  # Projects contributor worked on
+            "project_id" => {
+              name: String,            # Project name
+              points: Integer,         # Story points
+              percentage: Float        # Percentage of contributor's work
+            }
+          }
+        }
       }
     }
   }
@@ -135,7 +110,7 @@ This module formats and displays the calculated metrics:
 
 Follow these steps to add a new analytics feature:
 
-1. Define the calculation logic in `Analytics::Reporting`
+1. Define the calculation logic in `Analytics::Reporting` or appropriate service class
 2. Create display methods in `Analytics::Display`
 3. Add a new command in `Commands::Analytics` to expose the feature
 
@@ -222,7 +197,6 @@ end
 ```ruby
 desc 'cycle_time', 'Analyze cycle time metrics'
 def cycle_time
-  puts 'Fetching issues data...'
   issues = fetch_issues_with_dates
   
   cycle_time_data = Analytics::Reporting.calculate_cycle_time(issues)
@@ -261,4 +235,5 @@ The analytics module is planned to include:
 - CSV/Excel export capabilities
 - Interactive visualizations
 - Custom report templates
-- Integration with external BI tools 
+- Integration with external BI tools
+- Velocity metrics and team performance indicators 
