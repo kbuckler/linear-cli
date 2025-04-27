@@ -94,8 +94,7 @@ module LinearCli
             'Cycle' => 15,
             'Labels' => 20,
             'Team' => 15
-          },
-          border_separator: true
+          }
         )
       end
 

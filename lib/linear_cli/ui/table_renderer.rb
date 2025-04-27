@@ -78,7 +78,7 @@ module LinearCli
         renderer_options[:border] = { separator: :each_row } if options[:border_separator]
 
         # Render the table with consistent styling
-        table.render(:unicode, renderer_options)
+        table.render(renderer_options)
 
         # Return the rendered table without setting width
         # This avoids issues with the TTY::Table width handling
