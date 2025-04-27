@@ -30,7 +30,9 @@ module LinearCli
             %w[Name Key ID],
             teams.map { |t| [t['name'], t['key'], t['id']] }
           )
-          puts table.render(:unicode, padding: [0, 1], resize: false)
+          puts table.render(:unicode, padding: [0, 1], resize: false) do |renderer|
+            renderer.width = [25, 8, 10]
+          end
         end
       end
 
@@ -52,7 +54,9 @@ module LinearCli
             %w[Name State ID],
             projects.map { |p| [p['name'], p['state'], p['id']] }
           )
-          puts table.render(:unicode, padding: [0, 1], resize: false)
+          puts table.render(:unicode, padding: [0, 1], resize: false) do |renderer|
+            renderer.width = [25, 15, 10]
+          end
         end
       end
 
@@ -94,7 +98,9 @@ module LinearCli
             %w[Status Count],
             status_data.map { |status, count| [status, count] }
           )
-          puts table.render(:unicode, padding: [0, 1], resize: false)
+          puts table.render(:unicode, padding: [0, 1], resize: false) do |renderer|
+            renderer.width = [25, 10]
+          end
         end
       end
 
@@ -114,7 +120,9 @@ module LinearCli
             %w[Team Count],
             team_data.map { |team, count| [team, count] }
           )
-          puts table.render(:unicode, padding: [0, 1], resize: false)
+          puts table.render(:unicode, padding: [0, 1], resize: false) do |renderer|
+            renderer.width = [20, 12, 10, 12]
+          end
         end
       end
 
@@ -136,7 +144,9 @@ module LinearCli
               [team, data[:completed], data[:total], data[:rate]]
             end
           )
-          puts table.render(:unicode, padding: [0, 1], resize: false)
+          puts table.render(:unicode, padding: [0, 1], resize: false) do |renderer|
+            renderer.width = [15, 12, 12, 12, 10]
+          end
         end
       end
 
@@ -197,7 +207,9 @@ module LinearCli
           rows: rows
         )
 
-        puts table.render(:unicode, padding: [0, 1], resize: false)
+        puts table.render(:unicode, padding: [0, 1], resize: false) do |renderer|
+          renderer.width = [20, 30, 15, 15]
+        end
       end
 
       # Display engineers grouped by capitalized projects
@@ -232,7 +244,9 @@ module LinearCli
             rows: rows
           )
 
-          puts table.render(:unicode, padding: [0, 1], resize: false)
+          puts table.render(:unicode, padding: [0, 1], resize: false) do |renderer|
+            renderer.width = [20, 12, 10, 12, 12, 12, 15]
+          end
 
           # If in test mode, also show issues for each engineer
           next unless ENV['LINEAR_CLI_TEST']
@@ -278,7 +292,9 @@ module LinearCli
           rows: rows
         )
 
-        puts table.render(:unicode, padding: [0, 1], resize: false)
+        puts table.render(:unicode, padding: [0, 1], resize: false) do |renderer|
+          renderer.width = [20, 12, 10, 12, 12, 12, 15]
+        end
       end
 
       # Format a percentage value

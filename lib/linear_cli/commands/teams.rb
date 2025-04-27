@@ -39,7 +39,9 @@ module LinearCli
 
         pastel = Pastel.new
         puts pastel.bold("Linear Teams (#{teams.size}):")
-        puts table.render(:unicode, padding: [0, 1, 0, 1], resize: false)
+        puts table.render(:unicode, padding: [0, 1, 0, 1], resize: false) do |renderer|
+          renderer.width = [8, 25, 10, 10]
+        end
       end
 
       desc 'view ID', 'View details of a specific team'
@@ -83,7 +85,9 @@ module LinearCli
               ]
             end
           )
-          puts states_table.render(:unicode, padding: [0, 1, 0, 1], resize: false)
+          puts states_table.render(:unicode, padding: [0, 1, 0, 1], resize: false) do |renderer|
+            renderer.width = [20, 15, 10]
+          end
         else
           puts 'No states.'
         end
@@ -100,7 +104,9 @@ module LinearCli
               ]
             end
           )
-          puts labels_table.render(:unicode, padding: [0, 1, 0, 1], resize: false)
+          puts labels_table.render(:unicode, padding: [0, 1, 0, 1], resize: false) do |renderer|
+            renderer.width = [25, 15]
+          end
         else
           puts 'No labels.'
         end
@@ -118,7 +124,9 @@ module LinearCli
               ]
             end
           )
-          puts cycles_table.render(:unicode, padding: [0, 1, 0, 1], resize: false)
+          puts cycles_table.render(:unicode, padding: [0, 1, 0, 1], resize: false) do |renderer|
+            renderer.width = [25, 15, 15]
+          end
         else
           puts 'No cycles.'
         end

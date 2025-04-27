@@ -552,7 +552,9 @@ module LinearCli
                 rows
               )
 
-              puts table.render(:unicode, padding: [0, 1], resize: false)
+              puts table.render(:unicode, padding: [0, 1], resize: false) do |renderer|
+                renderer.width = [20, 15, 15, 15]
+              end
             end
           end
         end

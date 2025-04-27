@@ -40,7 +40,9 @@ module LinearCli
 
         pastel = Pastel.new
         puts pastel.bold("Linear Projects (#{projects.size}):")
-        puts table.render(:unicode, padding: [0, 1, 0, 1], resize: false)
+        puts table.render(:unicode, padding: [0, 1, 0, 1], resize: false) do |renderer|
+          renderer.width = [30, 15, 10, 25, 20]
+        end
       end
 
       desc 'view ID', 'View details of a specific project'
@@ -99,7 +101,9 @@ module LinearCli
               ]
             end
           )
-          puts issues_table.render(:unicode, padding: [0, 1, 0, 1], resize: false)
+          puts issues_table.render(:unicode, padding: [0, 1, 0, 1], resize: false) do |renderer|
+            renderer.width = [10, 40, 15]
+          end
         else
           puts 'No issues.'
         end

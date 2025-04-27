@@ -230,10 +230,12 @@
 - **Context**: Tables were exceeding the set width, causing errors with message "the table size exceeds the currently set width"
 - **Implementation**:
   - Added `resize: false` to all TTY::Table render calls
-  - Removed explicit width constraints but kept column width specifications
+  - Removed explicit width constraints but kept column width specifications 
+  - Added consistent column width specifications to all tables for better display
   - Maintained existing padding for consistent visual appearance
 - **Consequences**:
   - Tables will always display in horizontal orientation
   - Column sizes will adapt to content while maintaining minimum widths
   - Consistent display across all table rendering in the application
-  - Improved user experience with more readable tabular data 
+  - Improved user experience with more readable tabular data
+  - More predictable table layouts with standardized column widths 

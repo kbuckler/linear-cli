@@ -123,7 +123,9 @@ module LinearCli
           table = TTY::Table.new(header: header, rows: rows)
 
           # Use basic renderer with minimal formatting for standard view
-          puts table.render(:basic, padding: [0, 1, 0, 1], resize: false)
+          puts table.render(:basic, padding: [0, 1, 0, 1], resize: false) do |renderer|
+            renderer.width = [10, 30, 15, 20, 15]
+          end
         end
       end
 
