@@ -331,3 +331,19 @@
   - Better indication of operation progress, especially for paginated queries
   - Consistent progress bar styling across all operations
   - No impact on non-TTY environments (CI/CD, scripts) 
+
+## Enhanced Progress Bar with Page Counting
+
+- **Decision**: Enhance progress bars with total page count information
+- **Context**: Users need better visibility into pagination progress when fetching large datasets
+- **Implementation**:
+  - Added an initial count query to determine total number of items before pagination
+  - Added a totalCount query to the Issues GraphQL schema
+  - Enhanced progress bar to display page numbers (e.g., "page 1/5")
+  - Calculated accurate progress percentages based on total page count
+  - Gracefully falls back to incremental progress if count is unavailable
+- **Consequences**:
+  - Improved user experience with clear indication of pagination progress
+  - More accurate progress percentage based on actual number of pages
+  - Added one additional network call for the count query
+  - Better feedback during long-running fetch operations with many pages 
