@@ -143,11 +143,19 @@ RSpec.describe LinearCli::API::Client do
       end
 
       it 'blocks mutation queries' do
+        # Allow real API calls to test the mutation blocking logic
+        LinearCli::API::Client.allow_real_api_calls_in_test = true
+
+        # This will now attempt to make a "real" API call, which will be intercepted by WebMock
+        # We just need it to get past our initial API call prevention check
         expect { client.query(mutation_query, variables) }
           .to raise_error(RuntimeError, /Operation blocked: Safe mode is enabled/)
       end
 
       it 'provides instructions to disable safe mode in the error message' do
+        # Allow real API calls to test the mutation blocking logic
+        LinearCli::API::Client.allow_real_api_calls_in_test = true
+
         expect { client.query(mutation_query, variables) }
           .to raise_error(RuntimeError, /Use the --allow-mutations flag/)
       end
@@ -166,6 +174,37 @@ RSpec.describe LinearCli::API::Client do
       it 'allows mutation queries' do
         LinearCli::API::Client.mock_response = { 'issueCreate' => { 'success' => true } }
         expect { client.query(mutation_query, variables) }.not_to raise_error
+      end
+    end
+
+    context 'when attempting real API calls in test environment' do
+      it 'raises an error with instructions when mock_response is not set' do
+        LinearCli::API::Client.mock_response = nil
+        LinearCli::API::Client.allow_real_api_calls_in_test = false
+
+        expect { client.query(read_query, variables) }
+          .to raise_error(RuntimeError, /Attempted to make a real API call in test environment/)
+      end
+
+      it 'attempts to make a real API call when explicitly permitted' do
+        # This test won't actually make a real API call because WebMock/VCR blocks all
+        # external connections, but it should get past our initial check
+        LinearCli::API::Client.mock_response = nil
+        LinearCli::API::Client.allow_real_api_calls_in_test = true
+
+        # When using VCR with WebMock, we might get either a WebMock::NetConnectNotAllowedError
+        # or a VCR::Errors::UnhandledHTTPRequestError
+        expect do
+          client.query(read_query, variables)
+          # If no error is raised (shouldn't happen), fail the test
+          raise 'Expected an HTTP blocking error but none was raised'
+        rescue VCR::Errors::UnhandledHTTPRequestError, WebMock::NetConnectNotAllowedError
+          # This is what we expect - the request was blocked because no real HTTP is allowed
+          raise 'Expected blocking error'
+        rescue StandardError => e
+          # Any other error is unexpected
+          raise "Got unexpected error: #{e.class.name}: #{e.message}"
+        end.to raise_error('Expected blocking error')
       end
     end
   end

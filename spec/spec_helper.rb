@@ -14,8 +14,8 @@ VCR.configure do |config|
   # Filter out sensitive data
   config.filter_sensitive_data('<LINEAR_API_KEY>') { ENV['LINEAR_API_KEY'] }
   
-  # Allow HTTP connections when no cassette is in use
-  config.allow_http_connections_when_no_cassette = true
+  # Do not allow HTTP connections when no cassette is in use (changed from true to false)
+  config.allow_http_connections_when_no_cassette = false
   
   # Ignore localhost requests
   config.ignore_localhost = true
@@ -46,4 +46,9 @@ RSpec.configure do |config|
 
   config.order = :random
   Kernel.srand config.seed
+
+  # Set up the API client to disallow real API calls in tests
+  config.before(:each) do
+    LinearCli::API::Client.allow_real_api_calls_in_test = false
+  end
 end 

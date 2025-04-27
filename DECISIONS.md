@@ -31,6 +31,9 @@
 - **API Mocking**: Simple mock response approach using a class-level `mock_response` attribute for API client testing.
   - **Rationale**: Avoids complexity of WebMock/VCR for unit tests, though VCR can still be used for integration tests.
   - **Benefits**: Simplified test setup, decoupled tests from HTTP implementation, easier maintenance.
+  - **Enhanced Protection**: Enforced prevention of real API calls in test environments by default. Tests that attempt to make real API calls will fail unless explicitly allowed.
+  - **Implementation**: Combines WebMock's `disable_net_connect!` with API client checks that prevent calls when `mock_response` is not set.
+  - **Override**: Tests that need to make real API calls can set `LinearCli::API::Client.allow_real_api_calls_in_test = true` when necessary.
 - **Terminal Output in Tests**: Use simplified text output instead of TTY::Table rendering in test environments to avoid terminal capability issues.
   - **Rationale**: TTY::Table requires terminal capabilities not present in test runners (e.g., StringIO).
   - **Implementation**: Check for test environment (`RACK_ENV` or `RAILS_ENV`) and use basic string formatting.

@@ -29,6 +29,17 @@ module LinearCli
       # For test environment
       class << self
         attr_accessor :mock_response
+        attr_writer :allow_real_api_calls_in_test
+
+        # Determines if real API calls are allowed in tests
+        # @return [Boolean] Whether real API calls are allowed in tests
+        def allow_real_api_calls_in_test?
+          unless @allow_real_api_calls_in_test.nil?
+            return @allow_real_api_calls_in_test
+          end
+
+          false # Default to disallowing real API calls in tests
+        end
       end
 
       # Initialize the client with an API key
@@ -58,6 +69,13 @@ module LinearCli
         # Use mock response in tests if provided
         if defined?(RSpec) && self.class.mock_response
           return self.class.mock_response
+        end
+
+        # Prevent real API calls in test environment unless explicitly allowed
+        if defined?(RSpec) && !self.class.mock_response && !self.class.allow_real_api_calls_in_test?
+          raise "Error: Attempted to make a real API call in test environment.\n" \
+                'Please set LinearCli::API::Client.mock_response for this test or ' \
+                'enable real API calls with LinearCli::API::Client.allow_real_api_calls_in_test = true'
         end
 
         # Check if this is a mutation and safe mode is enabled
@@ -135,24 +153,8 @@ module LinearCli
 
           LinearCli::UI::Logger.info("#{progress_message} (page #{page_count})")
 
-          # Execute the query for this page
-          response = self.class.post(
-            '',
-            headers: headers,
-            body: {
-              query: query,
-              variables: current_variables
-            }.to_json,
-            timeout: @timeout,
-            open_timeout: @open_timeout
-          )
-
-          body = JSON.parse(response.body)
-          if response.code != 200 || body['errors']
-            handle_error(body,
-                         response.code)
-          end
-          result = body['data'] || {}
+          # Use the query method which already handles mocking and test checks
+          result = query(query, current_variables)
 
           # Extract nodes
           current_path = nodes_path.split('.')
@@ -247,6 +249,11 @@ module LinearCli
 
       # @return [Boolean] True if the call was successful
       def check_url_connection
+        # Prevent real network connections in tests
+        if defined?(RSpec) && !self.class.allow_real_api_calls_in_test?
+          return true # Just return success in tests
+        end
+
         uri = URI.parse(@api_url)
         response = Net::HTTP.get_response(uri)
         response.code.to_i < 400
