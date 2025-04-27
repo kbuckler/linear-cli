@@ -462,3 +462,35 @@
   - More accurate work attribution by prioritizing completion date
   - Improved user experience with more contextual information
   - Consistent period filtering approach across reporting features 
+
+## Defensive Programming for Analytics Processing
+
+- **Decision**: Ensure all analytics processing methods defensively handle nil inputs
+- **Context**: There was an issue where `calculate_engineer_project_workload` method would fail with `undefined method '[]' for nil:NilClass` when `issues` parameter was nil
+- **Implementation**:
+  - Added nil check to convert nil issues to empty arrays
+  - Added unit tests to verify nil handling behaviors
+  - Added test cases for empty arrays and invalid/incomplete data
+- **Consequences**:
+  - Improved robustness of the analytics module
+  - Better error handling for edge cases
+  - Consistent approach to handling nil inputs prevents similar errors
+  - Comprehensive test coverage for input validation ensures stability 
+
+## Analytics Module Refactoring
+
+- **Decision**: Refactor analytics module to use service-based architecture
+- **Context**: The analytics module had grown large with many responsibilities mixed together, making it hard to test and maintain
+- **Implementation**:
+  - Extracted data fetching logic into `LinearCli::Services::Analytics::DataFetcher`
+  - Extracted period filtering logic into `LinearCli::Services::Analytics::PeriodFilter`
+  - Extracted workload calculation logic into `LinearCli::Services::Analytics::WorkloadCalculator`
+  - Added comprehensive tests for each service class
+  - Improved error handling and edge case coverage
+- **Consequences**:
+  - Improved maintainability with smaller, focused service classes
+  - Better separation of concerns
+  - More testable code with clear boundaries
+  - More robust handling of edge cases like nil inputs
+  - Easier to extend with new functionality in the future
+  - Cleaner command class that delegates to specialized services 

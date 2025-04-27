@@ -5,6 +5,9 @@ require_relative '../api/client'
 require_relative '../analytics/reporting'
 require_relative '../analytics/display'
 require_relative '../ui/table_renderer'
+require_relative '../services/analytics/workload_calculator'
+require_relative '../services/analytics/period_filter'
+require_relative '../services/analytics/data_fetcher'
 
 module LinearCli
   module API
@@ -145,15 +148,12 @@ module LinearCli
         validate_format(format)
 
         client = LinearCli::API::Client.new
+        data_fetcher = LinearCli::Services::Analytics::DataFetcher.new(client)
 
-        # Get all teams
-        teams_data = fetch_teams(client)
-
-        # Get all projects
-        projects_data = fetch_projects(client)
-
-        # Get all issues
-        issues_data = fetch_issues(client)
+        # Fetch all required data
+        teams_data = data_fetcher.fetch_teams
+        projects_data = data_fetcher.fetch_projects
+        issues_data = data_fetcher.fetch_issues
 
         # Create reporting data structure
         report_data = LinearCli::Analytics::Reporting.generate_report(
@@ -219,28 +219,33 @@ module LinearCli
         validate_view(view)
 
         client = LinearCli::API::Client.new
+        data_fetcher = LinearCli::Services::Analytics::DataFetcher.new(client)
 
         # Get all teams
         puts 'Fetching teams data...'
-        teams_data = fetch_teams(client)
+        teams_data = data_fetcher.fetch_teams
 
         # Get all projects
         puts 'Fetching projects data...'
-        projects_data = fetch_projects(client)
+        projects_data = data_fetcher.fetch_projects
 
         # Get all issues
         puts 'Fetching issues data...'
-        all_issues_data = fetch_issues(client)
+        all_issues_data = data_fetcher.fetch_issues
+
+        period_filter = LinearCli::Services::Analytics::PeriodFilter.new
+        workload_calculator = LinearCli::Services::Analytics::WorkloadCalculator.new
 
         # Filter issues by time period if needed
-        issues_data = filter_issues_by_period(all_issues_data, period)
+        issues_data = period_filter.filter_issues_by_period(all_issues_data, period)
 
         time_desc = period == 'all' ? 'the past 6 months' : "the current #{period}"
         puts "Analyzing #{issues_data.size} issues from #{time_desc}..."
 
         if period == 'all'
           # Group issues by month for the past 6 months
-          monthly_reports = process_monthly_data(issues_data, teams_data, projects_data)
+          monthly_reports = process_monthly_data(issues_data, teams_data, projects_data, workload_calculator,
+                                                 period_filter)
 
           # Output based on requested format
           if format == 'json'
@@ -252,7 +257,8 @@ module LinearCli
           end
         else
           # Process single period data
-          workload_data = calculate_engineer_project_workload(issues_data, teams_data, projects_data)
+          workload_data = workload_calculator.calculate_engineer_project_workload(issues_data, teams_data,
+                                                                                  projects_data)
 
           if format == 'json'
             puts JSON.pretty_generate(workload_data)
@@ -265,24 +271,6 @@ module LinearCli
       end
 
       private
-
-      def fetch_teams(client)
-        query = LinearCli::API::Queries::Analytics.list_teams
-        result = client.query(query)
-        result.dig('teams', 'nodes') || []
-      end
-
-      def fetch_projects(client)
-        query = LinearCli::API::Queries::Analytics.list_projects
-        result = client.query(query)
-        result.dig('projects', 'nodes') || []
-      end
-
-      def fetch_issues(client)
-        query = LinearCli::API::Queries::Analytics.list_issues
-        result = client.query(query)
-        result.dig('issues', 'nodes') || []
-      end
 
       def validate_format(format)
         return if %w[json table].include?(format)
@@ -302,55 +290,7 @@ module LinearCli
         raise "Invalid view: #{view}. Must be 'detailed' or 'summary'."
       end
 
-      def filter_issues_by_period(issues, period)
-        current_time = Time.now
-
-        if period == 'all'
-          # For 'all', get the last 6 months of issues based on completion date or creation date
-          six_months_ago = (Time.now - (6 * 30 * 24 * 60 * 60)).strftime('%Y-%m-%d')
-
-          issues.select do |issue|
-            # Use completedAt if available, otherwise fall back to createdAt
-            date_to_check = issue['completedAt'] || issue['createdAt']
-            next false unless date_to_check
-
-            date_to_check >= six_months_ago
-          end
-        else
-          issues.select do |issue|
-            # Use completedAt if available, otherwise fall back to createdAt
-            date_to_check = issue['completedAt'] || issue['createdAt']
-            next false unless date_to_check
-
-            date_time = Time.parse(date_to_check)
-
-            case period
-            when 'month'
-              same_month_and_year?(date_time, current_time)
-            when 'quarter'
-              same_quarter_and_year?(date_time, current_time)
-            when 'year'
-              same_year?(date_time, current_time)
-            else
-              true
-            end
-          end
-        end
-      end
-
-      def same_month_and_year?(time1, time2)
-        time1.year == time2.year && time1.month == time2.month
-      end
-
-      def same_quarter_and_year?(time1, time2)
-        time1.year == time2.year && ((time1.month - 1) / 3) == ((time2.month - 1) / 3)
-      end
-
-      def same_year?(time1, time2)
-        time1.year == time2.year
-      end
-
-      def process_monthly_data(issues_data, teams_data, projects_data)
+      def process_monthly_data(issues_data, teams_data, projects_data, workload_calculator, period_filter)
         monthly_issues = {}
 
         # Group issues by month for the past 6 months
@@ -377,7 +317,7 @@ module LinearCli
         monthly_reports = {}
         monthly_issues.each do |month_key, month_data|
           # Calculate engineer workload for this month's issues
-          monthly_reports[month_key] = calculate_engineer_project_workload(
+          monthly_reports[month_key] = workload_calculator.calculate_engineer_project_workload(
             month_data[:issues],
             teams_data,
             projects_data
@@ -387,89 +327,6 @@ module LinearCli
         end
 
         monthly_reports
-      end
-
-      # Calculate engineer workload across projects
-      def calculate_engineer_project_workload(issues, teams, projects)
-        result = {}
-
-        # Initialize teams structure
-        teams.each do |team|
-          team_id = team['id']
-          team_name = team['name']
-
-          result[team_id] = {
-            name: team_name,
-            projects: {},
-            engineers: {}
-          }
-        end
-
-        # Process each issue
-        issues.each do |issue|
-          # Skip issues without teams or estimates
-          next unless issue['team'] && issue['estimate']
-
-          team_id = issue['team']['id']
-          team_name = issue['team']['name']
-          project_id = issue['project'] ? issue['project']['id'] : 'no_project'
-          project_name = issue['project'] ? issue['project']['name'] : 'No Project'
-          engineer_id = issue['assignee'] ? issue['assignee']['id'] : 'unassigned'
-          engineer_name = issue['assignee'] ? issue['assignee']['name'] : 'Unassigned'
-          points = issue['estimate'].to_i
-
-          # Skip if points is zero
-          next if points.zero?
-
-          # Initialize project in team if needed
-          result[team_id][:projects][project_id] ||= {
-            name: project_name,
-            total_points: 0,
-            engineers: {}
-          }
-
-          # Initialize engineer in team if needed
-          result[team_id][:engineers][engineer_id] ||= {
-            name: engineer_name,
-            total_points: 0,
-            projects: {}
-          }
-
-          # Initialize engineer in project if needed
-          result[team_id][:projects][project_id][:engineers][engineer_id] ||= {
-            name: engineer_name,
-            points: 0
-          }
-
-          # Initialize project in engineer if needed
-          result[team_id][:engineers][engineer_id][:projects][project_id] ||= {
-            name: project_name,
-            points: 0
-          }
-
-          # Update points
-          result[team_id][:projects][project_id][:total_points] += points
-          result[team_id][:projects][project_id][:engineers][engineer_id][:points] += points
-          result[team_id][:engineers][engineer_id][:total_points] += points
-          result[team_id][:engineers][engineer_id][:projects][project_id][:points] += points
-        end
-
-        # Calculate percentages
-        result.each do |_team_id, team|
-          team[:engineers].each do |_engineer_id, engineer|
-            engineer[:projects].each do |_project_id, project|
-              project[:percentage] = ((project[:points].to_f / engineer[:total_points]) * 100).round(2)
-            end
-          end
-
-          team[:projects].each do |_project_id, project|
-            project[:engineers].each do |_engineer_id, engineer|
-              engineer[:percentage] = ((engineer[:points].to_f / project[:total_points]) * 100).round(2)
-            end
-          end
-        end
-
-        result
       end
 
       # Display the engineer workload report for monthly data
