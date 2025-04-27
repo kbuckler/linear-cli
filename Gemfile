@@ -24,6 +24,7 @@ gem 'csv', '~> 3.2'
 
 group :development, :test do
   # Testing
+  gem 'rake', '~> 13.0'
   gem 'rspec', '~> 3.12'
   gem 'vcr', '~> 6.1'
   gem 'webmock', '~> 3.18'

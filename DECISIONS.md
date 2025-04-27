@@ -527,3 +527,19 @@
   - More resilient code that properly handles nil inputs and date parsing
   - Easier to extend the analytics functionality in the future
   - Cleaner command class with better delegation to specialized services 
+
+## RuboCop Integration in Test Suite
+
+- **Decision**: Integrate RuboCop into the test suite to enforce code style and quality
+- **Context**: Code quality is important for maintainability and collaboration, and should be enforced automatically
+- **Implementation**:
+  - Added `rake` gem to development dependencies
+  - Created a Rakefile with tasks for running RSpec tests and RuboCop
+  - Added `.rubocop.yml` with project-specific configuration
+  - Configured the default Rake task to run both RSpec and RuboCop
+- **Consequences**:
+  - Ensures consistent code style across the codebase
+  - Catches potential issues early in development
+  - Makes code quality part of the regular testing process
+  - Helps maintain a clean, readable codebase
+  - Simplifies CI/CD pipelines by providing a single command for full testing 
