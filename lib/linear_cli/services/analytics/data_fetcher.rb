@@ -31,11 +31,17 @@ module LinearCli
         end
 
         # Fetch projects from the Linear API
+        # Projects can belong to multiple teams (many-to-many relationship).
+        # Since Linear's GraphQL API doesn't support filtering projects by team directly,
+        # we fetch all projects and then filter them on the client side by checking
+        # each project's teams collection.
         # @param team_id [String] Optional team ID to filter projects by
         # @return [Array<Hash>] Array of project data
         def fetch_projects(team_id: nil)
           query = LinearCli::API::Queries::Analytics.list_projects(team_id: team_id)
-          result = @client.fetch_paginated_data(query, { first: 50 }, {
+          variables = { first: 50 }
+
+          result = @client.fetch_paginated_data(query, variables, {
                                                   fetch_all: true,
                                                   nodes_path: 'projects',
                                                   page_info_path: 'projects'
@@ -54,6 +60,8 @@ module LinearCli
         end
 
         # Fetch issues from the Linear API
+        # Issues belong to exactly one team (one-to-many relationship),
+        # so we filter them directly in the GraphQL query using the teamId parameter.
         # @param team_id [String] Optional team ID to filter issues by
         # @return [Array<Hash>] Array of issue data
         def fetch_issues(team_id: nil)

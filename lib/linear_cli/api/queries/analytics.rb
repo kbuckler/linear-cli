@@ -41,12 +41,18 @@ module LinearCli
         end
 
         # GraphQL query to list all projects
-        # @param team_id [String, nil] Team ID to filter projects
+        # Note: Projects can belong to multiple teams, but Linear's GraphQL API doesn't
+        # support filtering by team directly. Client-side filtering is applied in
+        # DataFetcher#fetch_projects after retrieving all projects.
+        # @param team_id [String, nil] Team ID used for reference only (not used in query)
         # @return [String] GraphQL query
-        def self.list_projects(_team_id = nil)
+        def self.list_projects(team_id = nil)
           <<~GRAPHQL
-            query Projects {
-              projects(first: 100) {
+            query Projects($first: Int, $after: String) {
+              projects(
+                first: $first
+                after: $after
+              ) {
                 nodes {
                   id
                   name
@@ -62,15 +68,21 @@ module LinearCli
                   createdAt
                   updatedAt
                 }
+                pageInfo {
+                  hasNextPage
+                  endCursor
+                }
               }
             }
           GRAPHQL
         end
 
         # GraphQL query to list all issues for analytics
+        # Issues belong to exactly one team, so we can filter directly in the API
+        # using the teamId parameter.
         # @param team_id [String, nil] Team ID to filter issues
         # @return [String] GraphQL query
-        def self.list_issues(_team_id = nil)
+        def self.list_issues(team_id = nil)
           <<~GRAPHQL
             query Issues($teamId: ID, $first: Int, $after: String) {
               issues(
