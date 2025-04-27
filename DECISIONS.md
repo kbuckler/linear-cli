@@ -347,3 +347,18 @@
   - More accurate progress percentage based on actual number of pages
   - Added one additional network call for the count query
   - Better feedback during long-running fetch operations with many pages 
+
+## Progress Bar Optimization for Pagination
+
+- **Decision**: Modify pagination to use direct HTTP requests instead of nested query calls
+- **Context**: When fetching paginated data, nested calls to the `query` method were creating multiple progress bars for each API call, creating a confusing user experience
+- **Implementation**:
+  - Modified `fetch_paginated_data` to make direct HTTP requests using HTTParty instead of calling the `query` method
+  - Implemented manual response handling to maintain the same error handling as the `query` method
+  - Maintained the same progress bar UX but eliminated nested progress bars
+- **Consequences**:
+  - Improved user experience with a single progress bar for each operation
+  - Clearer visual feedback during pagination operations
+  - Consistent error handling with the rest of the application
+  - No functional changes to the pagination behavior
+  - No impact on non-TTY environments (CI/CD, scripts) 

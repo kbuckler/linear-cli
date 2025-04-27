@@ -115,7 +115,19 @@ module LinearCli
           count_progress.advance(50)
 
           begin
-            count_result = self.query(count_query, variables)
+            # Execute count query directly with HTTParty to avoid nested progress bars
+            count_response = self.class.post(
+              '',
+              headers: headers,
+              body: {
+                query: count_query,
+                variables: variables
+              }.to_json
+            )
+
+            count_body = JSON.parse(count_response.body)
+            handle_error(count_body, count_response.code) if count_response.code != 200 || count_body['errors']
+            count_result = count_body['data'] || {}
 
             # Extract count from the result
             count_path = nodes_path.split('.')
@@ -177,8 +189,19 @@ module LinearCli
             # Advance the progress bar
             progress.advance(progress_per_page)
 
-            # Execute the query
-            result = query(query, current_variables)
+            # Execute the query directly with HTTParty to avoid nested progress bars
+            response = self.class.post(
+              '',
+              headers: headers,
+              body: {
+                query: query,
+                variables: current_variables
+              }.to_json
+            )
+
+            body = JSON.parse(response.body)
+            handle_error(body, response.code) if response.code != 200 || body['errors']
+            result = body['data'] || {}
 
             # Extract the nodes using the provided path
             current_path = nodes_path.split('.')
