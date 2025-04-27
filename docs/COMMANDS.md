@@ -273,23 +273,6 @@ linear analytics team_workload --team "Design" --format json
 - **Contribution Percentages**: Percentage of each contributor's time spent on different projects
 - **Monthly Trends**: View how team focus has shifted over time
 
-### Engineer Workload Reporting (Deprecated)
-
-**Note**: This command is deprecated. Please use `team_workload` instead.
-
-```
-linear analytics engineer_workload [options]
-```
-
-**Options:**
-- `--format TEXT`: Output format, either 'json' or 'table' (default: 'table')
-
-**Examples:**
-```bash
-# Use this command instead
-linear analytics team_workload --team "Engineering"
-```
-
 ### Capitalization Reporting
 
 Generate detailed software capitalization metrics, useful for financial reporting and tracking development investments.

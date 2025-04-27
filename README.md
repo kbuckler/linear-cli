@@ -118,6 +118,9 @@ linear analytics report
 
 # Export complete data in JSON format for further analysis
 linear analytics report --format json
+
+# Generate team workload report
+linear analytics team_workload --team "Engineering"
 ```
 
 The reporting system provides detailed analytics including:
@@ -125,6 +128,7 @@ The reporting system provides detailed analytics including:
 - Issue distribution by team
 - Team completion rates and productivity metrics
 - Overall workspace analytics and insights
+- Team workload insights with contributor breakdowns
 
 The analytics engine uses a modular architecture for extensibility and is designed to help teams gain valuable insights from their Linear data.
 
@@ -202,3 +206,14 @@ bundle exec rake build
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+# Linear CLI Command Reference
+
+## Global Options
+
+These options can be used with any command:
+
+- `--help`: Display help for a specific command
+- `--allow-mutations`: Disable read-only safe mode to allow data-modifying operations
+
+By default, the CLI operates in a read-only safe mode to prevent accidental data modifications. Any command that would modify data in Linear (create, update, delete operations) will be blocked unless the `--allow-mutations` flag is provided.
