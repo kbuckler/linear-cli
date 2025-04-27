@@ -248,12 +248,48 @@ module LinearCli
               points_per_issue = contributor[:issues_count] > 0 ? (contributor[:points].to_f / contributor[:issues_count]).round(1) : 0
               issue_percentage = project[:issues_count] > 0 ? ((contributor[:issues_count].to_f / project[:issues_count]) * 100).round(1) : 0
 
-              puts "    - #{contributor[:name]}: #{contributor[:points]} points (#{contributor[:percentage].round(1)}%), " +
+              # Find the percentage of this project of the contributor's total work
+              # We can simplify this by finding the contributor in the main contributor list
+              contributor_id = find_contributor_id_by_name(contributor[:name], monthly_reports[month][:contributors])
+              project_of_total_percentage = 0
+
+              if contributor_id
+                # Get the contributor's total data
+                total_contributor = monthly_reports[month][:contributors][contributor_id]
+                # Find this project in the contributor's projects
+                project_data = total_contributor[:projects][project_id_from_name(project[:name], monthly_reports[month][:projects])]
+                if project_data
+                  project_of_total_percentage = project_data[:percentage].round(1)
+                end
+              end
+
+              puts "    - #{contributor[:name]}: #{contributor[:points]} points (#{contributor[:percentage].round(1)}% of project), " +
                    "#{contributor[:issues_count]} issues (#{issue_percentage}%), " +
-                   "#{points_per_issue} points/issue"
+                   "#{points_per_issue} points/issue, " +
+                   "#{project_of_total_percentage}% of contributor's work"
             end
           end
         end
+      end
+
+      # Helper to find a contributor ID from a name
+      def find_contributor_id_by_name(name, contributors)
+        contributors.each do |id, contributor|
+          return id if contributor[:name] == name
+        end
+        return 'unassigned' if name == 'Unassigned'
+
+        nil
+      end
+
+      # Helper to find a project ID from a name
+      def project_id_from_name(name, projects)
+        projects.each do |id, project|
+          return id if project[:name] == name
+        end
+        return 'no_project' if name == 'No Project'
+
+        nil
       end
     end
   end

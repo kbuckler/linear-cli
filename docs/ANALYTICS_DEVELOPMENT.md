@@ -79,10 +79,12 @@ This module formats and displays the calculated metrics:
         "project_id" => {
           name: String,                # Project name
           total_points: Integer,       # Total story points
+          issues_count: Integer,       # Total number of issues
           contributors: {              # Contributors on the project
             "user_id" => {
               name: String,            # Contributor name
               points: Integer,         # Story points
+              issues_count: Integer,   # Number of issues completed
               percentage: Float        # Percentage of project
             }
           }
@@ -92,10 +94,12 @@ This module formats and displays the calculated metrics:
         "user_id" => {
           name: String,                # Contributor name
           total_points: Integer,       # Total story points
+          issues_count: Integer,       # Total number of issues completed
           projects: {                  # Projects contributor worked on
             "project_id" => {
               name: String,            # Project name
               points: Integer,         # Story points
+              issues_count: Integer,   # Number of issues completed
               percentage: Float        # Percentage of contributor's work
             }
           }
@@ -105,6 +109,25 @@ This module formats and displays the calculated metrics:
   }
 }
 ```
+
+## Contributor Metrics
+
+The analytics module calculates and displays the following metrics for each contributor:
+
+1. **Points per Project**: The total number of story points a contributor has earned on a given project.
+2. **Project Contribution Percentage**: What percentage of the project's total points the contributor was responsible for.
+3. **Issues per Project**: The number of issues a contributor has completed on a given project.
+4. **Issue Percentage**: What percentage of the project's total issues the contributor was responsible for.
+5. **Points per Issue**: The average number of story points per issue, which can indicate the complexity of work the contributor takes on.
+6. **Project Work Percentage**: What percentage of the contributor's total work (measured in points) was spent on this particular project.
+
+These metrics help teams understand work distribution and individual contribution patterns. For example:
+
+```
+Kenny Buckler: 83 points (75.5% of project), 15 issues (62.5%), 5.5 points/issue, 34.6% of contributor's work
+```
+
+This shows that Kenny earned 83 points, which is 75.5% of the project's total points. He completed 15 issues (62.5% of all issues), with an average of 5.5 points per issue. This project represents 34.6% of Kenny's total work across all projects.
 
 ## How to Add a New Analytics Feature
 
