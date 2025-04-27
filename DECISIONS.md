@@ -543,3 +543,33 @@
   - Makes code quality part of the regular testing process
   - Helps maintain a clean, readable codebase
   - Simplifies CI/CD pipelines by providing a single command for full testing 
+
+## Analytics Module Pagination
+
+- **Decision**: Implement pagination for all analytics data fetching to include all available data
+- **Context**: The analytics module was only fetching the first page of data from the Linear API, potentially missing important information
+- **Implementation**:
+  - Created `LinearCli::API::Queries::Analytics` module with proper GraphQL queries supporting pagination parameters
+  - Updated `DataFetcher` service to use the client's `fetch_paginated_data` method for all queries
+  - Ensured all analytics queries include `pageInfo` with `hasNextPage` and `endCursor` fields
+  - Set `fetch_all: true` to retrieve all pages of data for comprehensive analytics
+- **Consequences**:
+  - All analytics reports now include the complete dataset rather than just the first page
+  - More accurate and comprehensive analytics results
+  - Better user experience with complete data in reports
+  - Consistent approach to pagination across the application 
+
+## Linear API Schema Adaptation for Projects
+
+- **Decision**: Update GraphQL queries and processing logic to adapt to Linear API schema changes
+- **Context**: The Linear API schema was changed so that Projects no longer have a direct `team` field but instead have a `teams` connection and a `lead` field
+- **Implementation**:
+  - Updated GraphQL queries in `LinearCli::API::Queries::Analytics` to use `teams { nodes { id name } }` instead of `team { id name }`
+  - Added the `lead` field to maintain comprehensive project data
+  - Modified the `WorkloadCalculator` service to handle projects with multiple teams
+  - Added a project-to-team mapping to ensure correct team association
+- **Consequences**:
+  - Resolved API errors related to invalid schema fields
+  - Improved handling of projects that belong to multiple teams
+  - More robust data processing that adapts to Linear API changes
+  - Better alignment with Linear's data model where projects can be associated with multiple teams 

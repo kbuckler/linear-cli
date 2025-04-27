@@ -8,7 +8,7 @@ module LinearCli
         # @param teams [Array<Hash>] Array of team data
         # @param projects [Array<Hash>] Array of project data
         # @return [Hash] Engineer workload data
-        def calculate_engineer_project_workload(issues, teams, _projects)
+        def calculate_engineer_project_workload(issues, teams, projects)
           result = {}
 
           # Ensure issues is an array to avoid nil errors
@@ -26,6 +26,21 @@ module LinearCli
             }
           end
 
+          # Create a project-to-team mapping for faster lookups
+          # Each project can belong to multiple teams
+          project_team_map = {}
+          projects.each do |project|
+            project_id = project['id']
+            project_team_map[project_id] = []
+
+            # Get teams from the project's teams.nodes array
+            next unless project['teams'] && project['teams']['nodes']
+
+            project['teams']['nodes'].each do |team|
+              project_team_map[project_id] << team['id']
+            end
+          end
+
           # Process each issue
           issues.each do |issue|
             # Skip issues without teams or estimates
@@ -33,8 +48,23 @@ module LinearCli
 
             team_id = issue['team']['id']
             issue['team']['name']
-            project_id = issue['project'] ? issue['project']['id'] : 'no_project'
-            project_name = issue['project'] ? issue['project']['name'] : 'No Project'
+
+            # Handle project and determine team association
+            if issue['project']
+              project_id = issue['project']['id']
+              project_name = issue['project']['name']
+
+              # Skip if this project doesn't belong to this team
+              # NOTE: This is a fallback check since the issue already has a team
+              if project_team_map[project_id] && !project_team_map[project_id].empty? &&
+                 !project_team_map[project_id].include?(team_id)
+                next
+              end
+            else
+              project_id = 'no_project'
+              project_name = 'No Project'
+            end
+
             engineer_id = issue['assignee'] ? issue['assignee']['id'] : 'unassigned'
             engineer_name = issue['assignee'] ? issue['assignee']['name'] : 'Unassigned'
             points = issue['estimate'].to_i

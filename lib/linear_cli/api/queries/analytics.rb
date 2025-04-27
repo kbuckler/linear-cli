@@ -58,7 +58,13 @@ module LinearCli
                   completedAt
                   createdAt
                   updatedAt
-                  team {
+                  teams {
+                    nodes {
+                      id
+                      name
+                    }
+                  }
+                  lead {
                     id
                     name
                   }
