@@ -315,3 +315,19 @@
   - Easier maintenance as pagination logic is in one place
   - More consistent pagination behavior across the application
   - Flexible enough to handle different response structures 
+
+## Progress Bar for Network Operations
+
+- **Decision**: Add visual progress bars for all network operations
+- **Context**: Network operations can take time, and users benefit from visual feedback during these operations
+- **Implementation**:
+  - Added the `tty-progressbar` gem for progress bar rendering
+  - Created a `LinearCli::UI::ProgressBar` module to provide consistent progress bar functionality
+  - Implemented a null progress bar for non-TTY and test environments
+  - Added progress bars to API client methods (query, fetch_paginated_data, get_team_id_by_name)
+  - Enhanced pagination with per-page progress visualization
+- **Consequences**:
+  - Improved user experience with visual feedback during network operations
+  - Better indication of operation progress, especially for paginated queries
+  - Consistent progress bar styling across all operations
+  - No impact on non-TTY environments (CI/CD, scripts) 

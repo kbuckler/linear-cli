@@ -1,5 +1,6 @@
 require 'httparty'
 require 'json'
+require_relative '../ui/progress_bar'
 
 module LinearCli
   module API
@@ -40,16 +41,43 @@ module LinearCli
           raise "Operation blocked: Safe mode is enabled. Mutations are not allowed in safe mode.\nUse the --allow-mutations flag to perform this operation."
         end
 
-        response = self.class.post(
-          '',
-          headers: headers,
-          body: {
-            query: query,
-            variables: variables
-          }.to_json
-        )
+        # Create a progress bar for the operation
+        operation_type = query.strip.start_with?('mutation') ? 'Mutation' : 'Query'
+        operation_name = extract_operation_name(query) || operation_type
+        progress = LinearCli::UI::ProgressBar.create("Executing #{operation_name}")
 
-        handle_response(response)
+        # Start progress
+        progress.advance(10)
+
+        response = nil
+        begin
+          # Simulate network delay for better visual feedback
+          progress.advance(30)
+
+          # Make the actual request
+          response = self.class.post(
+            '',
+            headers: headers,
+            body: {
+              query: query,
+              variables: variables
+            }.to_json
+          )
+
+          # Almost done
+          progress.advance(50)
+
+          result = handle_response(response)
+
+          # Complete the progress bar
+          progress.finish
+
+          result
+        rescue StandardError => e
+          # Complete the progress bar even on error
+          progress.finish
+          raise e
+        end
       end
 
       # Fetch paginated data from the API
@@ -67,42 +95,63 @@ module LinearCli
         nodes_path = options[:nodes_path] || 'issues'
         page_info_path = options[:page_info_path] || nodes_path
 
+        # Get operation name for the progress bar
+        operation_name = extract_operation_name(query) || "Fetching #{nodes_path}"
+
+        # Create a progress bar for pagination
+        progress = LinearCli::UI::ProgressBar.create("Fetching #{nodes_path} data")
+
         all_items = []
         has_next_page = true
         current_variables = variables.dup
+        page_count = 0
+        progress_per_page = fetch_all ? 20 : 90 # If fetching all, reserve progress for multiple pages
 
-        while has_next_page
-          # Execute the query
-          result = query(query, current_variables)
+        begin
+          while has_next_page
+            # Update progress for this page
+            page_count += 1
+            progress.advance(progress_per_page)
 
-          # Extract the nodes using the provided path
-          current_path = nodes_path.split('.')
-          current_items = result
-          current_path.each { |path| current_items = current_items[path] if current_items }
-          current_items = current_items && current_items['nodes'] || []
+            # Execute the query
+            result = query(query, current_variables)
 
-          # Add the current page of items
-          all_items.concat(current_items)
+            # Extract the nodes using the provided path
+            current_path = nodes_path.split('.')
+            current_items = result
+            current_path.each { |path| current_items = current_items[path] if current_items }
+            current_items = current_items && current_items['nodes'] || []
 
-          # Check if there are more pages
-          page_info_path_parts = page_info_path.split('.')
-          page_info = result
-          page_info_path_parts.each { |path| page_info = page_info[path] if page_info }
-          page_info &&= page_info['pageInfo']
+            # Add the current page of items
+            all_items.concat(current_items)
 
-          has_next_page = fetch_all && page_info && page_info['hasNextPage']
+            # Check if there are more pages
+            page_info_path_parts = page_info_path.split('.')
+            page_info = result
+            page_info_path_parts.each { |path| page_info = page_info[path] if page_info }
+            page_info &&= page_info['pageInfo']
 
-          # If we need to fetch the next page, update the cursor
-          current_variables[:after] = page_info['endCursor'] if has_next_page
+            has_next_page = fetch_all && page_info && page_info['hasNextPage']
 
-          # If we're not fetching all items, only do one page
-          break unless fetch_all
+            # If we need to fetch the next page, update the cursor
+            current_variables[:after] = page_info['endCursor'] if has_next_page
 
-          # If we've reached the requested limit, stop
-          break if !fetch_all && all_items.size >= limit
+            # If we're not fetching all items, only do one page
+            break unless fetch_all
+
+            # If we've reached the requested limit, stop
+            break if !fetch_all && all_items.size >= limit
+          end
+
+          # Complete the progress
+          progress.finish
+
+          all_items
+        rescue StandardError => e
+          # Complete the progress bar even on error
+          progress.finish
+          raise e
         end
-
-        all_items
       end
 
       # Get team ID by name (case insensitive)
@@ -110,6 +159,9 @@ module LinearCli
       # @return [String] Team ID
       # @raise [RuntimeError] If team is not found
       def get_team_id_by_name(team_name)
+        progress = LinearCli::UI::ProgressBar.create("Finding team '#{team_name}'")
+        progress.advance(30)
+
         query = <<~GRAPHQL
           query Teams {
             teams {
@@ -122,23 +174,40 @@ module LinearCli
           }
         GRAPHQL
 
-        result = query(query)
-        teams = result['teams']['nodes']
+        begin
+          result = query(query)
+          teams = result['teams']['nodes']
 
-        raise 'No teams found in your Linear workspace. Please create a team first.' if teams.empty?
+          raise 'No teams found in your Linear workspace. Please create a team first.' if teams.empty?
 
-        # Find team by case-insensitive name match
-        team = teams.find { |t| t['name'].downcase == team_name.downcase }
+          # Find team by case-insensitive name match
+          team = teams.find { |t| t['name'].downcase == team_name.downcase }
 
-        if team.nil?
-          available_teams = teams.map { |t| "#{t['name']} (#{t['key']})" }.join(', ')
-          raise "Team '#{team_name}' not found. Available teams: #{available_teams}"
+          progress.advance(60)
+
+          if team.nil?
+            available_teams = teams.map { |t| "#{t['name']} (#{t['key']})" }.join(', ')
+            raise "Team '#{team_name}' not found. Available teams: #{available_teams}"
+          end
+
+          progress.finish
+          team['id']
+        rescue StandardError => e
+          progress.finish
+          raise e
         end
-
-        team['id']
       end
 
       private
+
+      # Extract operation name from a GraphQL query or mutation
+      # @param query [String] GraphQL query
+      # @return [String, nil] The operation name or nil if not found
+      def extract_operation_name(query)
+        # Match query or mutation followed by a name
+        match = query.match(/(?:query|mutation)\s+([A-Za-z0-9_]+)/)
+        match && match[1]
+      end
 
       # Headers for API requests
       # @return [Hash] Headers hash

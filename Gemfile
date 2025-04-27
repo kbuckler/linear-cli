@@ -34,3 +34,5 @@ group :development, :test do
   # Documentation
   gem 'yard', '~> 0.9.34'
 end
+
+gem "tty-progressbar", "~> 0.18.3"
