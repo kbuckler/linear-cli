@@ -96,31 +96,85 @@ module LinearCli
       # @option options [Integer] :limit Maximum number of items to fetch
       # @option options [String] :nodes_path Path to nodes in the response (e.g., 'issues')
       # @option options [String] :page_info_path Path to pageInfo in the response (default: same as nodes_path)
+      # @option options [String] :count_query [String] Optional query to get total count
       # @return [Array] Array of data nodes
       def fetch_paginated_data(query, variables, options = {})
         fetch_all = options[:fetch_all] || false
         limit = options[:limit] || 20
         nodes_path = options[:nodes_path] || 'issues'
         page_info_path = options[:page_info_path] || nodes_path
+        count_query = options[:count_query]
+        page_size = variables[:first] || 100
+
+        # Create a progress bar for the count operation if needed
+        total_count = nil
+        total_pages = nil
+
+        if fetch_all && count_query
+          count_progress = LinearCli::UI::ProgressBar.create('Counting total items')
+          count_progress.advance(50)
+
+          begin
+            count_result = self.query(count_query, variables)
+
+            # Extract count from the result
+            count_path = nodes_path.split('.')
+            count_data = count_result
+            # Navigate to the right node
+            count_path.each { |path| count_data = count_data[path] if count_data }
+
+            # Get the totalCount value
+            total_count = count_data && count_data['totalCount']
+            total_pages = total_count ? (total_count.to_f / page_size).ceil : nil
+
+            count_progress.finish
+          rescue StandardError => e
+            count_progress.finish
+            # If count query fails, we'll proceed without total count
+            total_count = nil
+            total_pages = nil
+          end
+        end
 
         # Get operation name for the progress bar
         operation_name = extract_operation_name(query)
-        # Use a more descriptive and properly formatted message
-        progress_message = "Fetching #{nodes_path.capitalize} data"
 
-        # Create a progress bar for pagination
+        # Create progress message with page information if available
+        progress_message = if total_pages && total_pages > 0
+                             "Fetching #{nodes_path.capitalize} (page %<current>d/%<total>d)"
+                           else
+                             "Fetching #{nodes_path.capitalize} data"
+                           end
+
+        # Create the progress bar for pagination
         progress = LinearCli::UI::ProgressBar.create(progress_message)
 
         all_items = []
         has_next_page = true
         current_variables = variables.dup
         page_count = 0
-        progress_per_page = fetch_all ? 20 : 90 # If fetching all, reserve progress for multiple pages
+
+        # If total pages is known, calculate progress per page
+        # Otherwise use a simpler approach for the unknown number of pages
+        progress_per_page = if total_pages && total_pages > 0
+                              100.0 / total_pages
+                            else
+                              fetch_all ? 20 : 90 # If fetching all without count, reserve progress for multiple pages
+                            end
 
         begin
           while has_next_page
             # Update progress for this page
             page_count += 1
+
+            # If we know total pages, update the format string with current/total
+            if total_pages && total_pages > 0
+              progress.update(format: "[:bar] :percent #{progress_message.gsub('%<current>d', page_count.to_s).gsub(
+                '%<total>d', total_pages.to_s
+              )}")
+            end
+
+            # Advance the progress bar
             progress.advance(progress_per_page)
 
             # Execute the query
@@ -151,6 +205,9 @@ module LinearCli
 
             # If we've reached the requested limit, stop
             break if !fetch_all && all_items.size >= limit
+
+            # If we know the total pages and we've reached that number, stop
+            break if total_pages && page_count >= total_pages
           end
 
           # Complete the progress

@@ -63,6 +63,24 @@ module LinearCli
           GRAPHQL
         end
 
+        # Query to get the total count of issues with filters
+        # @return [String] GraphQL query
+        def self.count_issues
+          <<~GRAPHQL
+            query IssuesCount($teamId: ID, $assigneeId: ID, $states: [ID!]) {
+              issues(
+                filter: {
+                  team: { id: { eq: $teamId } }
+                  assignee: { id: { eq: $assigneeId } }
+                  state: { id: { in: $states } }
+                }
+              ) {
+                totalCount
+              }
+            }
+          GRAPHQL
+        end
+
         # Query to get issue details by id
         # @return [String] GraphQL query
         def self.get_issue

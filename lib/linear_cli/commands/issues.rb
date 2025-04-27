@@ -56,7 +56,8 @@ module LinearCli
           {
             fetch_all: options[:all],
             limit: first_page_limit,
-            nodes_path: 'issues'
+            nodes_path: 'issues',
+            count_query: LinearCli::API::Queries::Issues.count_issues
           }
         )
 
