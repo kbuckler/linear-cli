@@ -24,9 +24,9 @@ module LinearCli
 
         This command fetches all teams, projects, and issues from your Linear workspace
         and provides detailed analytics including:
-        - Team and project counts
-        - Issue distribution by status and team
-        - Team completion rates
+        - Complete list of teams
+        - Complete list of projects
+        - Most recent issue information
 
         You can output the report in table format (human-readable) or JSON format (for further processing).
 
@@ -45,6 +45,8 @@ module LinearCli
 
         client = LinearCli::API::Client.new
         data_fetcher = LinearCli::Services::Analytics::DataFetcher.new(client)
+        period_filter = LinearCli::Services::Analytics::PeriodFilter.new
+        workload_calculator = LinearCli::Services::Analytics::WorkloadCalculator.new
 
         # Fetch all required data
         teams_data = data_fetcher.fetch_teams
@@ -62,7 +64,23 @@ module LinearCli
         if format == 'json'
           puts JSON.pretty_generate(report_data)
         else
-          LinearCli::Analytics::Display.display_summary_tables(report_data[:summary])
+          # Display summary
+          puts "\n#{'Summary:'.bold}"
+          puts "Teams: #{teams_data.size}"
+          puts "Projects: #{projects_data.size}"
+          puts "Issues: #{issues_data.size}"
+
+          # Display all teams
+          display_teams_list(teams_data)
+
+          # Display all projects
+          display_projects_list(projects_data)
+
+          # Display most recent issue
+          display_most_recent_issue(issues_data)
+
+          # Display workload summary for each team
+          display_workload_summary(teams_data, data_fetcher, period_filter, workload_calculator)
         end
       end
 
@@ -310,6 +328,144 @@ module LinearCli
         return 'no_project' if name == 'No Project'
 
         nil
+      end
+
+      # Add these new helper methods
+      def display_teams_list(teams_data)
+        puts "\n#{'All Teams:'.bold}"
+
+        if teams_data.empty?
+          puts '  No teams found.'
+          return
+        end
+
+        headers = %w[ID Name Key Description]
+        rows = teams_data.map do |team|
+          [
+            team['id'],
+            team['name'],
+            team['key'],
+            team['description'] || 'No description'
+          ]
+        end
+
+        puts LinearCli::UI::TableRenderer.render_table(headers, rows)
+      end
+
+      def display_projects_list(projects_data)
+        puts "\n#{'All Projects:'.bold}"
+
+        if projects_data.empty?
+          puts '  No projects found.'
+          return
+        end
+
+        headers = %w[ID Name State Team Description]
+        rows = projects_data.map do |project|
+          team_name = if project['teams'] && project['teams']['nodes'] && !project['teams']['nodes'].empty?
+                        project['teams']['nodes'][0]['name']
+                      else
+                        'N/A'
+                      end
+
+          [
+            project['id'],
+            project['name'],
+            project['state'] || 'N/A',
+            team_name,
+            project['description'] || 'No description'
+          ]
+        end
+
+        puts LinearCli::UI::TableRenderer.render_table(headers, rows)
+      end
+
+      def display_most_recent_issue(issues_data)
+        puts "\n#{'Most Recent Issue:'.bold}"
+
+        if issues_data.empty?
+          puts '  No issues found.'
+          return
+        end
+
+        # Sort issues by updated time (newest first)
+        sorted_issues = issues_data.sort_by { |issue| issue['updatedAt'] || '' }.reverse
+        most_recent = sorted_issues.first
+
+        return unless most_recent
+
+        puts "  ID: #{most_recent['id']}"
+        puts "  Title: #{most_recent['title']}"
+        puts "  State: #{most_recent['state']['name'] if most_recent['state']}"
+        puts "  Created: #{most_recent['createdAt']}"
+        puts "  Updated: #{most_recent['updatedAt']}"
+        puts "  Team: #{most_recent['team']['name'] if most_recent['team']}"
+        puts "  Assignee: #{if most_recent['assignee']
+                              most_recent['assignee']['name']
+                            end}"
+        puts '  Description:'
+        puts "    #{(most_recent['description'] || 'No description').gsub("\n", "\n    ")}"
+      end
+
+      # Add this new method
+      def display_workload_summary(teams_data, data_fetcher, period_filter, workload_calculator)
+        puts "\n#{'Team Workload Summaries:'.bold}"
+
+        teams_data.each do |team|
+          team_name = team['name']
+          puts "\n#{'=' * 80}"
+          puts "Team: #{team_name.bold}"
+
+          # Fetch team workload data
+          team_workload = data_fetcher.fetch_team_workload_data(team['id'])
+
+          # Extract issues
+          issues = team_workload['issues']['nodes'] || []
+
+          if issues.empty?
+            puts '  No issues found for this team.'
+            next
+          end
+
+          # Filter to last month's issues only for the summary
+          filtered_issues = period_filter.filter_issues_by_period(issues, 'month')
+
+          if filtered_issues.empty?
+            puts '  No issues found for this team in the past month.'
+            next
+          end
+
+          puts "  Issues in past month: #{filtered_issues.size}"
+
+          # Calculate total points and completed issues
+          total_points = filtered_issues.sum { |issue| issue['estimate'] || 1 }
+          completed_issues = filtered_issues.select { |issue| issue['state'] && issue['state']['name'] == 'Done' }
+          completed_points = completed_issues.sum { |issue| issue['estimate'] || 1 }
+
+          puts "  Total points: #{total_points}"
+          puts "  Completed points: #{completed_points}"
+          puts "  Completion rate: #{completed_issues.size.to_f / filtered_issues.size * 100}%"
+
+          # Show top contributors
+          monthly_data = workload_calculator.calculate_monthly_workload(filtered_issues)
+          sorted_months = monthly_data.keys.sort.last(1)
+
+          if sorted_months.any? && monthly_data[sorted_months.first][:contributors].any?
+            month_data = monthly_data[sorted_months.first]
+
+            puts '  Top contributors:'
+            # Sort contributors by points (highest first)
+            sorted_contributors = month_data[:contributors].sort_by { |_id, contributor| -contributor[:total_points] }
+                                                           .first(3)
+                                                           .map { |_id, contributor| contributor }
+
+            sorted_contributors.each do |contributor|
+              puts "    - #{contributor[:name]}: #{contributor[:total_points]} points, #{contributor[:issues_count]} issues"
+            end
+          end
+        rescue StandardError => e
+          puts "  Error analyzing workload for team '#{team['name']}': #{e.message}"
+        end
       end
     end
   end

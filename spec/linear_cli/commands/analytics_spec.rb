@@ -8,7 +8,23 @@ RSpec.describe LinearCli::Commands::Analytics do
   let(:data_fetcher) { instance_double(LinearCli::Services::Analytics::DataFetcher) }
   let(:period_filter) { instance_double(LinearCli::Services::Analytics::PeriodFilter) }
   let(:monthly_processor) { instance_double(LinearCli::Services::Analytics::MonthlyProcessor) }
-  let(:teams_data) { [{ 'id' => 'team_1', 'name' => 'Engineering' }] }
+  let(:workload_calculator) { instance_double(LinearCli::Services::Analytics::WorkloadCalculator) }
+  let(:teams_data) do
+    [
+      {
+        'id' => 'team_1',
+        'name' => 'Engineering',
+        'key' => 'ENG',
+        'description' => 'Engineering team'
+      },
+      {
+        'id' => 'team_2',
+        'name' => 'Product',
+        'key' => 'PRD',
+        'description' => 'Product team'
+      }
+    ]
+  end
   let(:team_data) do
     {
       'id' => 'team_1',
@@ -19,18 +35,84 @@ RSpec.describe LinearCli::Commands::Analytics do
       'issues' => { 'nodes' => issues_data }
     }
   end
-  let(:projects_data) { [{ 'id' => 'project_1', 'name' => 'Project 1' }] }
-  let(:issues_data) { [{ 'id' => 'issue_1', 'title' => 'Issue 1' }] }
-  let(:all_issues_data) { [{ 'id' => 'issue_1', 'title' => 'Issue 1' }] }
-  let(:filtered_issues_data) { [{ 'id' => 'issue_1', 'title' => 'Issue 1' }] }
-  let(:monthly_reports) { { '2023-01' => { name: 'January 2023', issue_count: 5 } } }
+  let(:projects_data) do
+    [
+      {
+        'id' => 'project_1',
+        'name' => 'Project A',
+        'state' => 'started',
+        'description' => 'First project',
+        'teams' => {
+          'nodes' => [
+            { 'id' => 'team_1', 'name' => 'Engineering' }
+          ]
+        }
+      },
+      {
+        'id' => 'project_2',
+        'name' => 'Project B',
+        'state' => 'completed',
+        'description' => 'Second project',
+        'teams' => {
+          'nodes' => [
+            { 'id' => 'team_2', 'name' => 'Product' }
+          ]
+        }
+      }
+    ]
+  end
+  let(:issues_data) do
+    [
+      {
+        'id' => 'issue_1',
+        'title' => 'Issue 1',
+        'createdAt' => '2023-01-01T00:00:00Z',
+        'updatedAt' => '2023-01-10T00:00:00Z',
+        'state' => {
+          'name' => 'Done'
+        },
+        'team' => {
+          'name' => 'Engineering'
+        },
+        'assignee' => {
+          'name' => 'John Doe'
+        },
+        'description' => 'First issue description'
+      },
+      {
+        'id' => 'issue_2',
+        'title' => 'Issue 2',
+        'createdAt' => '2023-02-01T00:00:00Z',
+        'updatedAt' => '2023-02-10T00:00:00Z',
+        'state' => {
+          'name' => 'In Progress'
+        },
+        'team' => {
+          'name' => 'Product'
+        },
+        'assignee' => nil,
+        'description' => nil
+      }
+    ]
+  end
+  let(:filtered_issues_data) { [issues_data.first] }
+  let(:monthly_reports) { { '2023-01' => { month_name: 'January 2023', issue_count: 5 } } }
   let(:report_data) do
     {
       summary: {
-        teams_count: 1,
+        teams_count: 2,
         projects_count: 2,
-        issues_count: 10
-      }
+        issues_count: 2
+      },
+      teams: teams_data,
+      projects: projects_data,
+      issues: issues_data
+    }
+  end
+  let(:team_workload_data) do
+    {
+      'projects' => { 'nodes' => projects_data },
+      'issues' => { 'nodes' => issues_data }
     }
   end
 
@@ -40,19 +122,37 @@ RSpec.describe LinearCli::Commands::Analytics do
     allow(LinearCli::Services::Analytics::DataFetcher).to receive(:new).and_return(data_fetcher)
     allow(LinearCli::Services::Analytics::PeriodFilter).to receive(:new).and_return(period_filter)
     allow(LinearCli::Services::Analytics::MonthlyProcessor).to receive(:new).and_return(monthly_processor)
+    allow(LinearCli::Services::Analytics::WorkloadCalculator).to receive(:new).and_return(workload_calculator)
 
     # Mock data fetching
     allow(data_fetcher).to receive(:fetch_teams).and_return(teams_data)
     allow(data_fetcher).to receive(:fetch_projects).and_return(projects_data)
     allow(data_fetcher).to receive(:fetch_issues).and_return(issues_data)
     allow(data_fetcher).to receive(:fetch_team_by_name).and_return(teams_data.first)
-    allow(data_fetcher).to receive(:fetch_team_workload_data).and_return(team_data)
+    allow(data_fetcher).to receive(:fetch_team_workload_data).and_return(team_workload_data)
+    allow(data_fetcher).to receive(:fetch_team_data).and_return(team_data)
 
     # Mock period filtering
     allow(period_filter).to receive(:filter_issues_by_period).and_return(filtered_issues_data)
 
     # Mock monthly processing
     allow(monthly_processor).to receive(:process_monthly_team_data).and_return(monthly_reports)
+
+    # Mock workload calculator
+    allow(workload_calculator).to receive(:calculate_monthly_workload).and_return(
+      {
+        '2023-04' => {
+          month_name: 'April 2023',
+          contributors: {
+            'user_1' => {
+              name: 'John Doe',
+              total_points: 10,
+              issues_count: 2
+            }
+          }
+        }
+      }
+    )
 
     # Mock reporting
     allow(LinearCli::Analytics::Reporting).to receive(:generate_report).and_return(report_data)
@@ -61,7 +161,14 @@ RSpec.describe LinearCli::Commands::Analytics do
     # Mock command methods
     allow(command).to receive(:puts)
     allow(command).to receive(:display_team_workload_report)
+    allow(command).to receive(:display_teams_list)
+    allow(command).to receive(:display_projects_list)
+    allow(command).to receive(:display_most_recent_issue)
+    allow(command).to receive(:display_workload_summary)
     allow(command).to receive(:exit)
+
+    # Mock UI components
+    allow(LinearCli::UI::TableRenderer).to receive(:render_table).and_return('Mocked table content')
   end
 
   describe '#report' do
@@ -71,8 +178,13 @@ RSpec.describe LinearCli::Commands::Analytics do
 
         expect(LinearCli::Analytics::Reporting).to have_received(:generate_report)
           .with(teams_data, projects_data, issues_data)
-        expect(LinearCli::Analytics::Display).to have_received(:display_summary_tables)
-          .with(report_data[:summary])
+        # Don't test exact string formatting since it varies with ANSI codes
+        expect(command).to have_received(:puts).at_least(4).times
+        expect(command).to have_received(:display_teams_list).with(teams_data).once
+        expect(command).to have_received(:display_projects_list).with(projects_data).once
+        expect(command).to have_received(:display_most_recent_issue).with(issues_data).once
+        expect(command).to have_received(:display_workload_summary)
+          .with(teams_data, data_fetcher, period_filter, workload_calculator).once
       end
     end
 
@@ -360,6 +472,103 @@ RSpec.describe LinearCli::Commands::Analytics do
 
       it 'executes without raising any errors' do
         expect { command.send(:display_team_workload_report, team_name, monthly_data, project_data, detailed) }.not_to raise_error
+      end
+    end
+  end
+
+  # Add tests for the new display helper methods
+  describe 'new display helper methods' do
+    before do
+      # Allow the private methods to be called directly for testing
+      allow(command).to receive(:display_teams_list).and_call_original
+      allow(command).to receive(:display_projects_list).and_call_original
+      allow(command).to receive(:display_most_recent_issue).and_call_original
+      allow(command).to receive(:display_workload_summary).and_call_original
+    end
+
+    describe '#display_teams_list' do
+      it 'displays teams in a table format' do
+        # Don't test exact string formatting which includes ANSI color codes
+        expect(command).to receive(:puts).at_least(:twice)
+        expect(LinearCli::UI::TableRenderer).to receive(:render_table)
+          .with(%w[ID Name Key Description], kind_of(Array))
+
+        command.send(:display_teams_list, teams_data)
+      end
+
+      it 'handles empty teams data' do
+        # Don't test exact string formatting which includes ANSI color codes
+        expect(command).to receive(:puts).at_least(:twice)
+
+        command.send(:display_teams_list, [])
+      end
+    end
+
+    describe '#display_projects_list' do
+      it 'displays projects in a table format' do
+        # Don't test exact string formatting which includes ANSI color codes
+        expect(command).to receive(:puts).at_least(:twice)
+        expect(LinearCli::UI::TableRenderer).to receive(:render_table)
+          .with(%w[ID Name State Team Description], kind_of(Array))
+
+        command.send(:display_projects_list, projects_data)
+      end
+
+      it 'handles empty projects data' do
+        # Don't test exact string formatting which includes ANSI color codes
+        expect(command).to receive(:puts).at_least(:twice)
+
+        command.send(:display_projects_list, [])
+      end
+    end
+
+    describe '#display_most_recent_issue' do
+      it 'displays details of the most recent issue' do
+        # Don't test exact string formatting which includes ANSI color codes
+        expect(command).to receive(:puts).at_least(9).times
+
+        command.send(:display_most_recent_issue, issues_data)
+      end
+
+      it 'handles empty issues data' do
+        # Don't test exact string formatting which includes ANSI color codes
+        expect(command).to receive(:puts).at_least(:twice)
+
+        command.send(:display_most_recent_issue, [])
+      end
+    end
+
+    describe '#display_workload_summary' do
+      it 'displays workload summary for each team' do
+        # Don't test exact string formatting which includes ANSI color codes
+        expect(command).to receive(:puts).at_least(5).times
+        expect(data_fetcher).to receive(:fetch_team_workload_data).with('team_1')
+        expect(period_filter).to receive(:filter_issues_by_period).with(issues_data, 'month')
+        expect(workload_calculator).to receive(:calculate_monthly_workload).with(filtered_issues_data)
+
+        # We should expect this for each team in teams_data
+        expect(data_fetcher).to receive(:fetch_team_workload_data).with('team_2')
+
+        command.send(:display_workload_summary, teams_data, data_fetcher, period_filter, workload_calculator)
+      end
+
+      it 'handles teams with no issues' do
+        empty_workload_data = { 'projects' => { 'nodes' => [] }, 'issues' => { 'nodes' => [] } }
+        allow(data_fetcher).to receive(:fetch_team_workload_data).and_return(empty_workload_data)
+
+        # Don't test exact string formatting which includes ANSI color codes
+        expect(command).to receive(:puts).at_least(3).times
+
+        command.send(:display_workload_summary, [teams_data.first], data_fetcher, period_filter, workload_calculator)
+      end
+
+      it 'handles teams with issues but none in the past month' do
+        allow(period_filter).to receive(:filter_issues_by_period).and_return([])
+
+        # Don't test exact string formatting which includes ANSI color codes
+        expect(command).to receive(:puts).at_least(3).times
+
+        command.send(:display_workload_summary, [teams_data.first], data_fetcher, period_filter, workload_calculator)
       end
     end
   end
