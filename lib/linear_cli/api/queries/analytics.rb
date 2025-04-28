@@ -127,7 +127,13 @@ module LinearCli
         # @return [String] GraphQL query
         def self.team_workload_data(_team_id)
           <<~GRAPHQL
-            query TeamWorkloadData($teamId: ID!, $projectsFirst: Int, $projectsAfter: String, $issuesFirst: Int, $issuesAfter: String) {
+            query TeamWorkloadData(
+              $teamId: String!,#{' '}
+              $projectsFirst: Int,#{' '}
+              $projectsAfter: String,
+              $issuesFirst: Int,#{' '}
+              $issuesAfter: String
+            ) {
               team(id: $teamId) {
                 id
                 name

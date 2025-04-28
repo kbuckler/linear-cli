@@ -13,6 +13,7 @@ module LinearCli
         def calculate_team_project_workload(issues, team, projects)
           # Ensure issues is an array to avoid nil errors
           issues = [] if issues.nil?
+          projects = [] if projects.nil?
 
           # Initialize team structure
           team_id = team['id']
@@ -42,33 +43,37 @@ module LinearCli
 
           # Process each issue
           issues.each do |issue|
-            # Skip issues without teams
-            next unless issue['team']
+            # We need to determine if this issue belongs to our team
+            # It can be through direct team association or through project
+            issue_belongs_to_team = false
 
-            # Only consider completed issues as contributions
-            next unless issue['completedAt']
+            # Case 1: Issue has team and it matches
+            if issue['team'] && issue['team']['id'] == team_id
+              issue_belongs_to_team = true
+            end
 
-            issue_team_id = issue['team']['id']
+            # Case 2: Issue has project and project belongs to team
+            if !issue_belongs_to_team && issue['project']
+              project_id = issue['project']['id']
+              # Check if this project belongs to our team
+              if project_team_map[project_id] && project_team_map[project_id].include?(team_id)
+                issue_belongs_to_team = true
+              end
+            end
 
-            # Skip if issue doesn't belong to the target team
-            next unless issue_team_id == team_id
+            # Skip issues not related to this team
+            next unless issue_belongs_to_team
 
-            # Handle project and determine team association
+            # Handle project assignment
             if issue['project']
               project_id = issue['project']['id']
               project_name = issue['project']['name']
-
-              # Skip if this project doesn't belong to this team
-              # NOTE: This is a fallback check since the issue already has a team
-              if project_team_map[project_id] && !project_team_map[project_id].empty? &&
-                 !project_team_map[project_id].include?(team_id)
-                next
-              end
             else
               project_id = 'no_project'
               project_name = 'No Project'
             end
 
+            # Handle assignee
             contributor_id = issue['assignee'] ? issue['assignee']['id'] : 'unassigned'
             contributor_name = issue['assignee'] ? issue['assignee']['name'] : 'Unassigned'
 

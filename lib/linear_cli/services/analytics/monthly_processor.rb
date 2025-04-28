@@ -76,17 +76,30 @@ module LinearCli
             month_key = month_date.strftime('%Y-%m')
             month_name = month_date.strftime('%B %Y')
 
-            # Filter issues for this month based on completion date or creation date
+            # For each issue, assign it to a month based on:
+            # 1. completedAt date if available
+            # 2. otherwise, createdAt date
+            # 3. if neither exists, use current month (extremely rare case)
+            month_issues = issues_data.select do |issue|
+              # Use completedAt if available, otherwise fall back to createdAt
+              date_to_check = issue['completedAt'] || issue['createdAt']
+
+              # Skip if no date exists at all (unlikely but possible)
+              next false unless date_to_check
+
+              # Place in current month if parsing fails (shouldn't happen but just in case)
+              begin
+                date_time = Time.parse(date_to_check)
+                # Assign to month/year
+                date_time.strftime('%Y-%m') == month_key
+              rescue StandardError
+                months_ago.zero? # If parsing fails, put in current month
+              end
+            end
+
             monthly_issues[month_key] = {
               name: month_name,
-              issues: issues_data.select do |issue|
-                # Use completedAt if available, otherwise fall back to createdAt
-                date_to_check = issue['completedAt'] || issue['createdAt']
-                next false unless date_to_check
-
-                date_time = Time.parse(date_to_check)
-                date_time.strftime('%Y-%m') == month_key
-              end
+              issues: month_issues
             }
           end
 

@@ -171,6 +171,7 @@ RSpec.describe LinearCli::Services::Analytics::DataFetcher do
   describe '#fetch_team_workload_data' do
     let(:team_id) { 'team_1' }
     let(:query) { 'query TeamWorkloadData' }
+    let(:issue_pagination_query) { 'query TeamIssuesPagination' }
     let(:projects_data) { [{ 'id' => 'project_1', 'name' => 'Project 1' }] }
     let(:issues_data) { [{ 'id' => 'issue_1', 'title' => 'Issue 1' }] }
 
@@ -340,12 +341,12 @@ RSpec.describe LinearCli::Services::Analytics::DataFetcher do
           }
         ).and_return(next_projects_response)
 
-        # Next page of issues
+        # Allow the issue pagination query - this is the key update
+        allow(LinearCli::API::Queries::Analytics).to receive(:team_workload_data).with(team_id).and_return(query)
         allow(client).to receive(:query).with(
-          query,
+          include('query TeamIssuesPagination'),
           {
             teamId: team_id,
-            projectsFirst: 0,
             issuesFirst: 50,
             issuesAfter: 'issue_cursor'
           }

@@ -32,6 +32,15 @@ RSpec.describe LinearCli::Services::Analytics::WorkloadCalculator do
               { 'id' => 'team_1', 'name' => 'Engineering' }
             ]
           }
+        },
+        {
+          'id' => 'project_3',
+          'name' => 'Project C',
+          'teams' => {
+            'nodes' => [
+              { 'id' => 'team_2', 'name' => 'Design' }
+            ]
+          }
         }
       ]
     end
@@ -63,6 +72,7 @@ RSpec.describe LinearCli::Services::Analytics::WorkloadCalculator do
     context 'when issues have valid data' do
       let(:issues) do
         [
+          # Issue with direct team association
           {
             'team' => { 'id' => 'team_1', 'name' => 'Engineering' },
             'project' => { 'id' => 'project_1', 'name' => 'Project A' },
@@ -70,6 +80,7 @@ RSpec.describe LinearCli::Services::Analytics::WorkloadCalculator do
             'estimate' => 5,
             'completedAt' => '2023-01-01'
           },
+          # Issue with direct team association
           {
             'team' => { 'id' => 'team_1', 'name' => 'Engineering' },
             'project' => { 'id' => 'project_2', 'name' => 'Project B' },
@@ -77,12 +88,20 @@ RSpec.describe LinearCli::Services::Analytics::WorkloadCalculator do
             'estimate' => 3,
             'completedAt' => '2023-01-02'
           },
+          # Issue from another team but with project in our team
           {
-            'team' => { 'id' => 'team_2', 'name' => 'Design' },
             'project' => { 'id' => 'project_1', 'name' => 'Project A' },
             'assignee' => { 'id' => 'user_2', 'name' => 'Jane Smith' },
             'estimate' => 8,
             'completedAt' => '2023-01-03'
+          },
+          # Issue with direct team association to another team and project in another team
+          {
+            'team' => { 'id' => 'team_2', 'name' => 'Design' },
+            'project' => { 'id' => 'project_3', 'name' => 'Project C' },
+            'assignee' => { 'id' => 'user_3', 'name' => 'Alice Johnson' },
+            'estimate' => 4,
+            'completedAt' => '2023-01-04'
           }
         ]
       end
@@ -104,13 +123,21 @@ RSpec.describe LinearCli::Services::Analytics::WorkloadCalculator do
         expect(result[:contributors]['user_1'][:total_points]).to eq(8) # 5 + 3
         expect(result[:contributors]['user_1'][:issues_count]).to eq(2) # 2 issues
 
+        # Also include user_2 because they worked on project_1, which belongs to team_1
+        expect(result[:contributors]).to have_key('user_2')
+        expect(result[:contributors]['user_2'][:name]).to eq('Jane Smith')
+        expect(result[:contributors]['user_2'][:total_points]).to eq(8)
+        expect(result[:contributors]['user_2'][:issues_count]).to eq(1)
+
         # Check project data
         project1 = result[:projects]['project_1']
         expect(project1[:name]).to eq('Project A')
-        expect(project1[:total_points]).to eq(5)
-        expect(project1[:issues_count]).to eq(1) # 1 issue
+        expect(project1[:total_points]).to eq(13) # 5 from user_1 + 8 from user_2
+        expect(project1[:issues_count]).to eq(2) # 1 issue from user_1, 1 from user_2
         expect(project1[:contributors]).to have_key('user_1')
-        expect(project1[:contributors]['user_1'][:issues_count]).to eq(1) # 1 issue
+        expect(project1[:contributors]['user_1'][:issues_count]).to eq(1)
+        expect(project1[:contributors]).to have_key('user_2')
+        expect(project1[:contributors]['user_2'][:issues_count]).to eq(1)
 
         # Check percentage calculations
         expect(result[:contributors]['user_1'][:projects]['project_1'][:percentage]).to eq(62.5) # 5/8 * 100
@@ -121,11 +148,13 @@ RSpec.describe LinearCli::Services::Analytics::WorkloadCalculator do
         expect(result[:contributors]['user_1'][:projects]['project_2'][:issues_count]).to eq(1) # 1 issue
       end
 
-      it 'filters out issues from other teams' do
+      it 'filters out issues from unrelated teams and projects' do
         result = workload_calculator.calculate_team_project_workload(issues, team, projects)
 
-        # Should not include user_2 as they're on team_2
-        expect(result[:contributors]).not_to have_key('user_2')
+        # Should not include user_3 as they're on team_2 and project_3 (which is not in team_1)
+        expect(result[:contributors]).not_to have_key('user_3')
+        # Should not include project_3 as it's not in team_1
+        expect(result[:projects]).not_to have_key('project_3')
       end
     end
 

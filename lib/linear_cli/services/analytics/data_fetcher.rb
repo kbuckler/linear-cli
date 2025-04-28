@@ -85,24 +85,18 @@ module LinearCli
         def fetch_team_workload_data(team_id)
           query = LinearCli::API::Queries::Analytics.team_workload_data(team_id)
 
-          # Linear's GraphQL API expects team IDs to be passed without any quotes
-          # So we need to ensure we're providing the ID in the correct format
-          # The API docs indicate that IDs should be passed as strings
-          team_id_str = team_id.to_s
-
-          # Initial variables for pagination of both projects and issues
+          # Initial variables for getting the first page
           variables = {
-            teamId: team_id_str,
+            teamId: team_id,
             projectsFirst: 50,
             issuesFirst: 50
           }
 
           if ENV['LINEAR_CLI_DEBUG'] == 'true'
-            LinearCli::UI::Logger.info("Fetching team workload data for team ID: #{team_id_str}")
+            LinearCli::UI::Logger.info("Fetching team workload data for team ID: #{team_id}")
           end
 
-          # We need to handle two separate pagination streams (projects and issues)
-          # First, get the initial data
+          # Get initial data
           result = @client.query(query, variables)
           return {} unless result && result['team']
 
@@ -120,52 +114,16 @@ module LinearCli
           has_more_issues = issues_page_info['hasNextPage'] || false
           issues_cursor = issues_page_info['endCursor']
 
-          # Continue fetching projects if there are more
-          while has_more_projects
-            variables = {
-              teamId: team_id_str,
-              projectsFirst: 50,
-              projectsAfter: projects_cursor,
-              issuesFirst: 0 # Don't fetch issues in subsequent project pages
-            }
-
-            page_result = @client.query(query, variables)
-            break unless page_result && page_result['team'] &&
-                         page_result['team']['projects'] &&
-                         page_result['team']['projects']['nodes']
-
-            # Add the new projects to our collection
-            new_projects = page_result['team']['projects']['nodes']
-            projects_data.concat(new_projects)
-
-            # Update pagination info
-            projects_page_info = page_result['team']['projects']['pageInfo'] || {}
-            has_more_projects = projects_page_info['hasNextPage'] || false
-            projects_cursor = projects_page_info['endCursor']
+          # Fetch additional project pages if needed
+          if has_more_projects
+            project_pages = fetch_additional_project_pages(team_id, projects_cursor, query)
+            projects_data.concat(project_pages) if project_pages.any?
           end
 
-          # Now continue fetching issues if there are more
-          while has_more_issues
-            variables = {
-              teamId: team_id_str,
-              projectsFirst: 0, # Don't fetch projects in subsequent issue pages
-              issuesFirst: 50,
-              issuesAfter: issues_cursor
-            }
-
-            page_result = @client.query(query, variables)
-            break unless page_result && page_result['team'] &&
-                         page_result['team']['issues'] &&
-                         page_result['team']['issues']['nodes']
-
-            # Add the new issues to our collection
-            new_issues = page_result['team']['issues']['nodes']
-            issues_data.concat(new_issues)
-
-            # Update pagination info
-            issues_page_info = page_result['team']['issues']['pageInfo'] || {}
-            has_more_issues = issues_page_info['hasNextPage'] || false
-            issues_cursor = issues_page_info['endCursor']
+          # Fetch additional issue pages if needed
+          if has_more_issues
+            issue_pages = fetch_additional_issue_pages(team_id, issues_cursor, query)
+            issues_data.concat(issue_pages) if issue_pages.any?
           end
 
           # Reconstruct the team data with all paginated data
@@ -177,6 +135,128 @@ module LinearCli
             'projects' => { 'nodes' => projects_data },
             'issues' => { 'nodes' => issues_data }
           }
+        end
+
+        private
+
+        # Helper method to fetch additional project pages
+        # @param team_id [String] Team ID
+        # @param cursor [String] Pagination cursor
+        # @param query [String] GraphQL query
+        # @return [Array<Hash>] Additional project data
+        def fetch_additional_project_pages(team_id, cursor, query)
+          additional_projects = []
+          next_cursor = cursor
+          has_more = true
+
+          while has_more
+            project_vars = {
+              teamId: team_id,
+              projectsFirst: 50,
+              projectsAfter: next_cursor,
+              issuesFirst: 0 # Don't fetch issues in project pagination
+            }
+
+            # Try to fetch the next page of projects
+            begin
+              page_result = @client.query(query, project_vars)
+
+              break unless page_result &&
+                           page_result['team'] &&
+                           page_result['team']['projects'] &&
+                           page_result['team']['projects']['nodes']
+
+              # Add the new projects to our collection
+              new_projects = page_result['team']['projects']['nodes']
+              additional_projects.concat(new_projects)
+
+              # Update pagination info for projects
+              projects_page_info = page_result['team']['projects']['pageInfo'] || {}
+              has_more = projects_page_info['hasNextPage'] || false
+              next_cursor = projects_page_info['endCursor']
+            rescue StandardError => e
+              LinearCli::UI::Logger.error("Error fetching projects page: #{e.message}")
+              break
+            end
+          end
+
+          additional_projects
+        end
+
+        # Helper method to fetch additional issue pages
+        # @param team_id [String] Team ID
+        # @param cursor [String] Pagination cursor
+        # @param query [String] GraphQL query
+        # @return [Array<Hash>] Additional issue data
+        def fetch_additional_issue_pages(team_id, cursor, query)
+          additional_issues = []
+          next_cursor = cursor
+          has_more = true
+
+          while has_more
+            # For issues, create a new separate query that only fetches issues
+            # This avoids potential conflicts with the nested query structure
+            issue_query = <<~GRAPHQL
+              query TeamIssuesPagination($teamId: String!, $issuesFirst: Int, $issuesAfter: String) {
+                team(id: $teamId) {
+                  issues(first: $issuesFirst, after: $issuesAfter) {
+                    nodes {
+                      id
+                      title
+                      state {
+                        name
+                      }
+                      assignee {
+                        id
+                        name
+                      }
+                      project {
+                        id
+                        name
+                      }
+                      estimate
+                      completedAt
+                      createdAt
+                    }
+                    pageInfo {
+                      hasNextPage
+                      endCursor
+                    }
+                  }
+                }
+              }
+            GRAPHQL
+
+            issue_vars = {
+              teamId: team_id,
+              issuesFirst: 50,
+              issuesAfter: next_cursor
+            }
+
+            # Try to fetch the next page of issues
+            begin
+              page_result = @client.query(issue_query, issue_vars)
+
+              break unless page_result &&
+                           page_result['team'] &&
+                           page_result['team']['issues'] &&
+                           page_result['team']['issues']['nodes']
+
+              # Add the new issues to our collection
+              new_issues = page_result['team']['issues']['nodes']
+              additional_issues.concat(new_issues)
+
+              # Update pagination info for issues
+              issues_page_info = page_result['team']['issues']['pageInfo'] || {}
+              has_more = issues_page_info['hasNextPage'] || false
+              next_cursor = issues_page_info['endCursor']
+            rescue StandardError => e
+              LinearCli::UI::Logger.error("Error fetching issues page: #{e.message}")
+              break
+            end
+          end
+
+          additional_issues
         end
       end
     end
