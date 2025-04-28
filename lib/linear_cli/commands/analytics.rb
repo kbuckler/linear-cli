@@ -112,31 +112,39 @@ module LinearCli
           exit(1)
         end
 
-        # Get all projects
-        projects_data = data_fetcher.fetch_projects
+        puts "Fetching workload data for team '#{team_name}'..."
 
-        # Get all issues
-        all_issues_data = data_fetcher.fetch_issues
+        # Use the optimized data fetching method that starts with team and pulls projects and issues
+        # in a single paginated response
+        team_data = data_fetcher.fetch_team_workload_data(team['id'])
+
+        unless team_data && !team_data.empty?
+          puts "Error: Could not fetch workload data for team '#{team_name}'"
+          exit(1)
+        end
+
+        # Extract projects and issues from the nested response
+        projects_data = team_data['projects']['nodes'] || []
+        issues_data = team_data['issues']['nodes'] || []
+
+        puts "Analyzing #{issues_data.size} issues across #{projects_data.size} projects..."
 
         period_filter = LinearCli::Services::Analytics::PeriodFilter.new
         monthly_processor = LinearCli::Services::Analytics::MonthlyProcessor.new
 
         # Filter issues for the last 6 months
-        issues_data = period_filter.filter_issues_by_period(all_issues_data,
-                                                            'all')
-
-        puts "Analyzing #{issues_data.size} issues from the past 6 months..."
+        filtered_issues_data = period_filter.filter_issues_by_period(issues_data, 'all')
 
         # Group issues by month for the past 6 months and calculate workload for the specific team
         monthly_reports = monthly_processor.process_monthly_team_data(
-          issues_data, team, projects_data
+          filtered_issues_data, team_data, projects_data
         )
 
         # Output based on requested format
         if format == 'json'
           puts JSON.pretty_generate(monthly_reports)
         else
-          display_team_workload_report(monthly_reports, team)
+          display_team_workload_report(monthly_reports, team_data)
         end
       end
 

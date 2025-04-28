@@ -63,6 +63,11 @@
   - Extracted logic into reusable `fetch_paginated_data` method in the API client.
   - Improved count logic to use `totalCount` when available, falling back to node counting.
   - Redesigned loop logic to correctly handle `--all` flag, limits, and cursor management.
+- **Optimized Nested Queries**: Implemented a team-centric data fetching approach for workload analysis.
+  - **Implementation**: Created a query that starts with the team object and pulls all related projects and issues in a single nested query.
+  - **Pagination Handling**: Managed separate pagination for projects and issues to ensure complete data retrieval.
+  - **Performance**: Reduced multiple API calls to a minimum number of optimized requests, improving command execution time.
+  - **Rationale**: More efficient than separate fetches for teams, projects, and issues especially for analytics workloads with large datasets.
 
 ## GraphQL Schema Adaptation
 - **Issue Count**: Adapted count queries when `totalCount` field was found unavailable on `IssueConnection`.

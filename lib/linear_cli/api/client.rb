@@ -95,6 +95,12 @@ module LinearCli
                         "Executing #{operation_type}"
                       end
 
+        # Log query details for debugging
+        if ENV['LINEAR_CLI_DEBUG'] == 'true'
+          LinearCli::UI::Logger.info("GraphQL #{operation_type}: #{operation_name || 'unnamed'}")
+          LinearCli::UI::Logger.info("Variables: #{variables.inspect}")
+        end
+
         LinearCli::UI::Logger.info("#{description}...")
 
         # Make the actual request

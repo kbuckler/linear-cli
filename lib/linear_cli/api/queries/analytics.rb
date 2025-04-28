@@ -120,6 +120,68 @@ module LinearCli
             }
           GRAPHQL
         end
+
+        # GraphQL query to fetch team data with nested projects and issues in a single call
+        # This optimizes data fetching by pulling all related data in one query
+        # @param team_id [String] Team ID to fetch data for
+        # @return [String] GraphQL query
+        def self.team_workload_data(team_id)
+          <<~GRAPHQL
+            query TeamWorkloadData($teamId: ID!, $projectsFirst: Int, $projectsAfter: String, $issuesFirst: Int, $issuesAfter: String) {
+              team(id: $teamId) {
+                id
+                name
+                key
+                description
+                projects(first: $projectsFirst, after: $projectsAfter) {
+                  nodes {
+                    id
+                    name
+                    description
+                    state
+                    teams {
+                      nodes {
+                        id
+                        name
+                      }
+                    }
+                    url
+                    createdAt
+                    updatedAt
+                  }
+                  pageInfo {
+                    hasNextPage
+                    endCursor
+                  }
+                }
+                issues(first: $issuesFirst, after: $issuesAfter) {
+                  nodes {
+                    id
+                    title
+                    state {
+                      name
+                    }
+                    assignee {
+                      id
+                      name
+                    }
+                    project {
+                      id
+                      name
+                    }
+                    estimate
+                    completedAt
+                    createdAt
+                  }
+                  pageInfo {
+                    hasNextPage
+                    endCursor
+                  }
+                }
+              }
+            }
+          GRAPHQL
+        end
       end
     end
   end

@@ -76,6 +76,99 @@ module LinearCli
                                                 })
           result || []
         end
+
+        # Fetch team workload data in a single optimized query
+        # This method uses a nested GraphQL query that starts with team as parent
+        # and fetches all related projects and issues in one paginated response
+        # @param team_id [String] Team ID to fetch data for
+        # @return [Hash] Hash containing team data with nested projects and issues
+        def fetch_team_workload_data(team_id)
+          query = LinearCli::API::Queries::Analytics.team_workload_data(team_id)
+
+          # Initial variables for pagination of both projects and issues
+          variables = {
+            teamId: team_id,
+            projectsFirst: 50,
+            issuesFirst: 50
+          }
+
+          # We need to handle two separate pagination streams (projects and issues)
+          # First, get the initial data
+          result = @client.query(query, variables)
+          return {} unless result && result['team']
+
+          team_data = result['team']
+          projects_data = team_data['projects']['nodes'] || []
+          issues_data = team_data['issues']['nodes'] || []
+
+          # Get projects pagination info
+          projects_page_info = team_data['projects']['pageInfo'] || {}
+          has_more_projects = projects_page_info['hasNextPage'] || false
+          projects_cursor = projects_page_info['endCursor']
+
+          # Get issues pagination info
+          issues_page_info = team_data['issues']['pageInfo'] || {}
+          has_more_issues = issues_page_info['hasNextPage'] || false
+          issues_cursor = issues_page_info['endCursor']
+
+          # Continue fetching projects if there are more
+          while has_more_projects
+            variables = {
+              teamId: team_id,
+              projectsFirst: 50,
+              projectsAfter: projects_cursor,
+              issuesFirst: 0 # Don't fetch issues in subsequent project pages
+            }
+
+            page_result = @client.query(query, variables)
+            break unless page_result && page_result['team'] &&
+                         page_result['team']['projects'] &&
+                         page_result['team']['projects']['nodes']
+
+            # Add the new projects to our collection
+            new_projects = page_result['team']['projects']['nodes']
+            projects_data.concat(new_projects)
+
+            # Update pagination info
+            projects_page_info = page_result['team']['projects']['pageInfo'] || {}
+            has_more_projects = projects_page_info['hasNextPage'] || false
+            projects_cursor = projects_page_info['endCursor']
+          end
+
+          # Now continue fetching issues if there are more
+          while has_more_issues
+            variables = {
+              teamId: team_id,
+              projectsFirst: 0, # Don't fetch projects in subsequent issue pages
+              issuesFirst: 50,
+              issuesAfter: issues_cursor
+            }
+
+            page_result = @client.query(query, variables)
+            break unless page_result && page_result['team'] &&
+                         page_result['team']['issues'] &&
+                         page_result['team']['issues']['nodes']
+
+            # Add the new issues to our collection
+            new_issues = page_result['team']['issues']['nodes']
+            issues_data.concat(new_issues)
+
+            # Update pagination info
+            issues_page_info = page_result['team']['issues']['pageInfo'] || {}
+            has_more_issues = issues_page_info['hasNextPage'] || false
+            issues_cursor = issues_page_info['endCursor']
+          end
+
+          # Reconstruct the team data with all paginated data
+          {
+            'id' => team_data['id'],
+            'name' => team_data['name'],
+            'key' => team_data['key'],
+            'description' => team_data['description'],
+            'projects' => { 'nodes' => projects_data },
+            'issues' => { 'nodes' => issues_data }
+          }
+        end
       end
     end
   end
