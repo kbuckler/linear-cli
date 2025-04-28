@@ -167,4 +167,196 @@ RSpec.describe LinearCli::Services::Analytics::DataFetcher do
       end
     end
   end
+
+  describe '#fetch_team_workload_data' do
+    let(:team_id) { 'team_1' }
+    let(:query) { 'query TeamWorkloadData' }
+    let(:projects_data) { [{ 'id' => 'project_1', 'name' => 'Project 1' }] }
+    let(:issues_data) { [{ 'id' => 'issue_1', 'title' => 'Issue 1' }] }
+
+    # Initial response with team data and first page of projects and issues
+    let(:initial_response) do
+      {
+        'team' => {
+          'id' => team_id,
+          'name' => 'Engineering',
+          'key' => 'ENG',
+          'description' => 'Engineering team',
+          'projects' => {
+            'nodes' => projects_data,
+            'pageInfo' => {
+              'hasNextPage' => false,
+              'endCursor' => 'cursor1'
+            }
+          },
+          'issues' => {
+            'nodes' => issues_data,
+            'pageInfo' => {
+              'hasNextPage' => false,
+              'endCursor' => 'cursor2'
+            }
+          }
+        }
+      }
+    end
+
+    # Expected final result after fetching all pages
+    let(:expected_result) do
+      {
+        'id' => team_id,
+        'name' => 'Engineering',
+        'key' => 'ENG',
+        'description' => 'Engineering team',
+        'projects' => { 'nodes' => projects_data },
+        'issues' => { 'nodes' => issues_data }
+      }
+    end
+
+    before do
+      allow(LinearCli::API::Queries::Analytics).to receive(:team_workload_data).with(team_id).and_return(query)
+
+      # Mock the initial query response
+      allow(client).to receive(:query).with(
+        query,
+        {
+          teamId: team_id,
+          projectsFirst: 50,
+          issuesFirst: 50
+        }
+      ).and_return(initial_response)
+    end
+
+    it 'fetches team workload data from the API' do
+      result = data_fetcher.fetch_team_workload_data(team_id)
+      expect(result).to eq(expected_result)
+    end
+
+    it 'returns an empty hash when the team is not found' do
+      allow(client).to receive(:query).with(
+        query,
+        {
+          teamId: team_id,
+          projectsFirst: 50,
+          issuesFirst: 50
+        }
+      ).and_return({})
+
+      result = data_fetcher.fetch_team_workload_data(team_id)
+      expect(result).to eq({})
+    end
+
+    context 'with pagination for projects and issues' do
+      let(:initial_response_with_pagination) do
+        {
+          'team' => {
+            'id' => team_id,
+            'name' => 'Engineering',
+            'key' => 'ENG',
+            'description' => 'Engineering team',
+            'projects' => {
+              'nodes' => projects_data,
+              'pageInfo' => {
+                'hasNextPage' => true,
+                'endCursor' => 'project_cursor'
+              }
+            },
+            'issues' => {
+              'nodes' => issues_data,
+              'pageInfo' => {
+                'hasNextPage' => true,
+                'endCursor' => 'issue_cursor'
+              }
+            }
+          }
+        }
+      end
+
+      let(:next_projects_response) do
+        {
+          'team' => {
+            'id' => team_id,
+            'name' => 'Engineering',
+            'projects' => {
+              'nodes' => [{ 'id' => 'project_2', 'name' => 'Project 2' }],
+              'pageInfo' => {
+                'hasNextPage' => false,
+                'endCursor' => 'project_cursor_end'
+              }
+            }
+          }
+        }
+      end
+
+      let(:next_issues_response) do
+        {
+          'team' => {
+            'id' => team_id,
+            'name' => 'Engineering',
+            'issues' => {
+              'nodes' => [{ 'id' => 'issue_2', 'title' => 'Issue 2' }],
+              'pageInfo' => {
+                'hasNextPage' => false,
+                'endCursor' => 'issue_cursor_end'
+              }
+            }
+          }
+        }
+      end
+
+      let(:expected_paginated_result) do
+        {
+          'id' => team_id,
+          'name' => 'Engineering',
+          'key' => 'ENG',
+          'description' => 'Engineering team',
+          'projects' => {
+            'nodes' => projects_data + [{ 'id' => 'project_2', 'name' => 'Project 2' }]
+          },
+          'issues' => {
+            'nodes' => issues_data + [{ 'id' => 'issue_2', 'title' => 'Issue 2' }]
+          }
+        }
+      end
+
+      before do
+        # Initial response with pagination indicators
+        allow(client).to receive(:query).with(
+          query,
+          {
+            teamId: team_id,
+            projectsFirst: 50,
+            issuesFirst: 50
+          }
+        ).and_return(initial_response_with_pagination)
+
+        # Next page of projects
+        allow(client).to receive(:query).with(
+          query,
+          {
+            teamId: team_id,
+            projectsFirst: 50,
+            projectsAfter: 'project_cursor',
+            issuesFirst: 0
+          }
+        ).and_return(next_projects_response)
+
+        # Next page of issues
+        allow(client).to receive(:query).with(
+          query,
+          {
+            teamId: team_id,
+            projectsFirst: 0,
+            issuesFirst: 50,
+            issuesAfter: 'issue_cursor'
+          }
+        ).and_return(next_issues_response)
+      end
+
+      it 'fetches all pages of projects and issues' do
+        result = data_fetcher.fetch_team_workload_data(team_id)
+        expect(result['projects']['nodes']).to include(*expected_paginated_result['projects']['nodes'])
+        expect(result['issues']['nodes']).to include(*expected_paginated_result['issues']['nodes'])
+      end
+    end
+  end
 end

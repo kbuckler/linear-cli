@@ -46,7 +46,7 @@ module LinearCli
         # DataFetcher#fetch_projects after retrieving all projects.
         # @param team_id [String, nil] Team ID used for reference only (not used in query)
         # @return [String] GraphQL query
-        def self.list_projects(team_id = nil)
+        def self.list_projects(_team_id = nil)
           <<~GRAPHQL
             query Projects($first: Int, $after: String) {
               projects(
@@ -82,7 +82,7 @@ module LinearCli
         # using the teamId parameter.
         # @param team_id [String, nil] Team ID to filter issues
         # @return [String] GraphQL query
-        def self.list_issues(team_id = nil)
+        def self.list_issues(_team_id = nil)
           <<~GRAPHQL
             query Issues($teamId: ID, $first: Int, $after: String) {
               issues(
@@ -125,9 +125,9 @@ module LinearCli
         # This optimizes data fetching by pulling all related data in one query
         # @param team_id [String] Team ID to fetch data for
         # @return [String] GraphQL query
-        def self.team_workload_data(team_id)
+        def self.team_workload_data(_team_id)
           <<~GRAPHQL
-            query TeamWorkloadData($teamId: ID!, $projectsFirst: Int, $projectsAfter: String, $issuesFirst: Int, $issuesAfter: String) {
+            query TeamWorkloadData($teamId: String!, $projectsFirst: Int, $projectsAfter: String, $issuesFirst: Int, $issuesAfter: String) {
               team(id: $teamId) {
                 id
                 name
