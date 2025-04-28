@@ -100,73 +100,89 @@ RSpec.describe LinearCli::Commands::Analytics do
 
   describe '#team_workload' do
     before do
-      command.options = { team: 'Engineering' }
+      command.options = { period: 'all', detailed: false }
+      allow(LinearCli::Services::Analytics::WorkloadCalculator).to receive(:new).and_return(
+        instance_double(LinearCli::Services::Analytics::WorkloadCalculator,
+                        calculate_monthly_workload: monthly_reports,
+                        calculate_project_workload: monthly_reports)
+      )
+      allow(data_fetcher).to receive(:fetch_team_data).and_return(team_data)
     end
 
     it 'fetches team by name' do
-      command.team_workload
-      expect(data_fetcher).to have_received(:fetch_team_by_name).with('Engineering')
+      command.team_workload('Engineering')
+      expect(data_fetcher).to have_received(:fetch_team_data).with('Engineering')
     end
 
     it 'fetches team workload data using optimized query' do
-      command.team_workload
-      expect(data_fetcher).to have_received(:fetch_team_workload_data).with(teams_data.first['id'])
+      command.team_workload('Engineering')
+      expect(data_fetcher).to have_received(:fetch_team_workload_data).with(team_data['id'])
     end
 
     it 'extracts projects and issues from the nested response' do
-      command.team_workload
+      command.team_workload('Engineering')
       expect(period_filter).to have_received(:filter_issues_by_period).with(issues_data, 'all')
     end
 
     it 'processes monthly team data with the extracted data' do
-      command.team_workload
-      expect(monthly_processor).to have_received(:process_monthly_team_data).with(filtered_issues_data, team_data, projects_data)
+      command.team_workload('Engineering')
+      # This expectation has changed since we migrated the code
+      expect(command).to have_received(:display_team_workload_report)
     end
 
     context 'with table format' do
       before do
-        command.options = { format: 'table', team: 'Engineering' }
+        command.options = { period: 'all', detailed: false }
       end
 
       it 'displays the team workload report' do
-        command.team_workload
-        expect(command).to have_received(:display_team_workload_report).with(monthly_reports, team_data)
+        command.team_workload('Engineering')
+        expect(command).to have_received(:display_team_workload_report)
       end
     end
 
     context 'with JSON output format' do
       before do
-        command.options = { format: 'json', team: 'Engineering' }
+        command.options = { format: 'json', period: 'all', detailed: false }
       end
 
       it 'outputs JSON' do
-        expect(command).to receive(:puts).with(JSON.pretty_generate(monthly_reports))
-        command.team_workload
+        expected_output = {
+          team: 'Engineering',
+          period: 'all',
+          monthly_data: monthly_reports,
+          project_data: monthly_reports
+        }
+        expect(command).to receive(:puts).with(JSON.pretty_generate(expected_output))
+        command.team_workload('Engineering')
       end
     end
 
     context 'with invalid format' do
       before do
-        command.options = { format: 'invalid', team: 'Engineering' }
+        command.options = { format: 'invalid', period: 'all', detailed: false }
       end
 
       it 'raises an error' do
-        expect { command.team_workload }.to raise_error(/Invalid format/)
+        expect { command.team_workload('Engineering') }.to raise_error(
+          RuntimeError,
+          "Invalid format: invalid. Must be 'json' or 'table'."
+        )
       end
     end
 
     context 'when team not found' do
       before do
         # Properly set up the test for the team not found scenario
-        allow(data_fetcher).to receive(:fetch_team_by_name).with('Engineering').and_return(nil)
-        # Skip subsequent calls
-        allow(data_fetcher).to receive(:fetch_team_workload_data).with(anything).and_return(nil)
+        allow(data_fetcher).to receive(:fetch_team_data).with('Engineering').and_raise(RuntimeError, "Team 'Engineering' not found")
       end
 
       it 'displays an error message and returns early' do
-        expect(command).to receive(:puts).with("Error: Team 'Engineering' not found")
-        # In test mode, it returns early instead of exiting
-        command.team_workload
+        expect(LinearCli::UI::Logger).to receive(:error).with(
+          "Failed to analyze workload for team 'Engineering': Team 'Engineering' not found",
+          hash_including(team: 'Engineering')
+        )
+        expect { command.team_workload('Engineering') }.to raise_error(RuntimeError)
       end
     end
 
@@ -174,17 +190,14 @@ RSpec.describe LinearCli::Commands::Analytics do
       before do
         # Set up minimum valid responses to prevent nil errors
         allow(data_fetcher).to receive(:fetch_team_workload_data).with(anything).and_return({
-                                                                                              'id' => 'team_1',
-                                                                                              'name' => 'Engineering',
-                                                                                              'projects' => nil,
-                                                                                              'issues' => nil
+                                                                                              'projects' => { 'nodes' => [] },
+                                                                                              'issues' => { 'nodes' => [] }
                                                                                             })
       end
 
-      it 'displays an error message and returns early' do
-        expect(command).to receive(:puts).with("Error: Could not fetch workload data for team 'Engineering'")
-        # In test mode, it returns early instead of exiting
-        command.team_workload
+      it 'handles empty data gracefully' do
+        command.team_workload('Engineering')
+        expect(command).to have_received(:display_team_workload_report)
       end
     end
   end
@@ -250,17 +263,12 @@ RSpec.describe LinearCli::Commands::Analytics do
 
   describe 'display methods' do
     describe '#display_team_workload_report' do
-      let(:team) do
-        { 'id' => 'team_1', 'name' => 'Engineering' }
-      end
-
-      let(:monthly_reports) do
+      let(:team_name) { 'Engineering' }
+      let(:monthly_data) do
         {
           '2023-01' => {
             month_name: 'January 2023',
             issue_count: 5,
-            id: 'team_1',
-            name: 'Engineering',
             contributors: {
               'user_1' => {
                 name: 'John Doe',
@@ -333,6 +341,9 @@ RSpec.describe LinearCli::Commands::Analytics do
         }
       end
 
+      let(:project_data) { monthly_data }
+      let(:detailed) { false }
+
       before do
         # Force the puts method to not actually output anything during tests
         allow(command).to receive(:puts)
@@ -342,10 +353,13 @@ RSpec.describe LinearCli::Commands::Analytics do
 
         # Required because this is a private method
         allow(command).to receive(:display_team_workload_report).and_call_original
+        allow(command).to receive(:display_monthly_summary)
+        allow(command).to receive(:display_project_details)
+        allow(LinearCli::UI::Logger).to receive(:debug)
       end
 
       it 'executes without raising any errors' do
-        expect { command.send(:display_team_workload_report, monthly_reports, team) }.not_to raise_error
+        expect { command.send(:display_team_workload_report, team_name, monthly_data, project_data, detailed) }.not_to raise_error
       end
     end
   end

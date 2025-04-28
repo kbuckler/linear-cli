@@ -18,6 +18,17 @@ module LinearCli
           teams.find { |team| team['name'].downcase == team_name.downcase }
         end
 
+        # Fetch detailed data for a team by name
+        # @param team_name [String] Name of the team to fetch
+        # @return [Hash] Team data
+        # @raise [RuntimeError] If team not found
+        def fetch_team_data(team_name)
+          team = fetch_team_by_name(team_name)
+          raise "Team '#{team_name}' not found" unless team
+
+          team
+        end
+
         # Fetch teams from the Linear API
         # @return [Array<Hash>] Array of team data
         def fetch_teams

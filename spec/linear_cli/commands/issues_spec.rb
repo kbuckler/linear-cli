@@ -159,7 +159,7 @@ RSpec.describe LinearCli::Commands::Issues do
       end
 
       it 'displays an error message' do
-        expect(LinearCli::UI::Logger).to receive(:error).with('Issue not found: ENG-999')
+        expect(LinearCli::UI::Logger).to receive(:error).with('Issue not found', { issue_id: 'ENG-999' })
         command.view('ENG-999')
       end
     end
@@ -175,7 +175,10 @@ RSpec.describe LinearCli::Commands::Issues do
       end
 
       it 'validates issue ID format but continues on warning' do
-        expect(LinearCli::UI::Logger).to receive(:warn).with(/Warning: Invalid issue ID format/)
+        expect(LinearCli::UI::Logger).to receive(:warn).with(
+          "Warning: Invalid issue ID format: 'invalid-id'. Expected format like 'ABC-123'.",
+          { issue_id: 'invalid-id' }
+        )
         command.view('invalid-id')
       end
     end

@@ -15,38 +15,53 @@ module LinearCli
 
         # Log an informational message
         # @param message [String] The message to log
+        # @param context [Hash] Optional context information to include
         # @return [void]
-        def info(message)
+        def info(message, context = {})
           return if in_test_environment?
 
-          puts "#{timestamp} #{prefix('INFO', :blue)} #{message}"
+          log_message('INFO', message, :blue, context)
         end
 
         # Log a warning message
         # @param message [String] The message to log
+        # @param context [Hash] Optional context information to include
         # @return [void]
-        def warn(message)
+        def warn(message, context = {})
           return if in_test_environment?
 
-          puts "#{timestamp} #{prefix('WARN', :yellow)} #{message}"
+          log_message('WARN', message, :yellow, context)
         end
 
         # Log a success message
         # @param message [String] The message to log
+        # @param context [Hash] Optional context information to include
         # @return [void]
-        def success(message)
+        def success(message, context = {})
           return if in_test_environment?
 
-          puts "#{timestamp} #{prefix('SUCCESS', :green)} #{message}"
+          log_message('SUCCESS', message, :green, context)
         end
 
         # Log an error message
         # @param message [String] The message to log
+        # @param context [Hash] Optional context information to include
         # @return [void]
-        def error(message)
+        def error(message, context = {})
           return if in_test_environment?
 
-          puts "#{timestamp} #{prefix('ERROR', :red)} #{message}"
+          log_message('ERROR', message, :red, context)
+        end
+
+        # Log a debug message (only shown when DEBUG=true)
+        # @param message [String] The message to log
+        # @param context [Hash] Optional context information to include
+        # @return [void]
+        def debug(message, context = {})
+          return if in_test_environment?
+          return unless ENV['LINEAR_CLI_DEBUG'] == 'true'
+
+          log_message('DEBUG', message, :magenta, context)
         end
 
         private
@@ -75,6 +90,23 @@ module LinearCli
           return text unless defined?(Colorize) && $stdout.tty?
 
           text.colorize(color)
+        end
+
+        # Log a message with context information
+        # @param level [String] Log level
+        # @param message [String] The message to log
+        # @param color [Symbol] The color to use
+        # @param context [Hash] Context information to include
+        # @return [void]
+        def log_message(level, message, color, context = {})
+          base_message = "#{timestamp} #{prefix(level, color)} #{message}"
+
+          if context && !context.empty?
+            context_str = context.map { |k, v| "#{k}=#{v}" }.join(', ')
+            puts "#{base_message} (#{context_str})"
+          else
+            puts base_message
+          end
         end
       end
     end

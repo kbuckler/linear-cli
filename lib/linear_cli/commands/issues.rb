@@ -136,11 +136,14 @@ module LinearCli
             LinearCli::Validators::InputValidator.validate_issue_id(sanitized_id)
           end
         rescue ArgumentError => e
-          LinearCli::UI::Logger.warn("Warning: #{e.message}")
+          LinearCli::UI::Logger.warn("Warning: #{e.message}", { issue_id: id })
           # Continue anyway as the API will validate the ID
         end
 
         client = LinearCli::API::Client.new
+
+        # Log issue lookup with context
+        LinearCli::UI::Logger.info('Looking up issue details', { issue_id: sanitized_id })
 
         # Execute the query
         result = client.query(LinearCli::API::Queries::Issues.issue,
@@ -148,9 +151,19 @@ module LinearCli
         issue = result['issue']
 
         if issue.nil?
-          LinearCli::UI::Logger.error("Issue not found: #{id}")
+          LinearCli::UI::Logger.error('Issue not found', { issue_id: id })
           return
         end
+
+        # Log success with issue context
+        context = {
+          issue_id: issue['identifier'],
+          title: issue['title'],
+          status: issue['state']['name'],
+          team: issue['team']['name'],
+          assignee: issue['assignee'] ? issue['assignee']['name'] : 'Unassigned'
+        }
+        LinearCli::UI::Logger.debug('Found issue details', context)
 
         pastel = Pastel.new
         LinearCli::UI::Logger.info(pastel.bold("#{issue['identifier']}: #{issue['title']}"))
@@ -158,14 +171,31 @@ module LinearCli
         LinearCli::UI::Logger.info("Team: #{issue['team']['name']}")
         LinearCli::UI::Logger.info("Assignee: #{issue['assignee'] ? issue['assignee']['name'] : 'Unassigned'}")
         LinearCli::UI::Logger.info("Priority: #{issue['priority'] || 'Not set'}")
-        LinearCli::UI::Logger.info("\nDescription:")
-        LinearCli::UI::Logger.info(issue['description'] || 'No description provided.')
 
+        # Add more context to description
+        if issue['description'] && !issue['description'].empty?
+          desc_length = issue['description'].length
+          LinearCli::UI::Logger.info("\nDescription:", { length: desc_length })
+          LinearCli::UI::Logger.info(issue['description'])
+        else
+          LinearCli::UI::Logger.info("\nDescription:", { length: 0 })
+          LinearCli::UI::Logger.info('No description provided.')
+        end
+
+        # Enhance comments display with more context
         return unless issue['comments'] && !issue['comments']['nodes'].empty?
 
-        LinearCli::UI::Logger.info("\nComments:")
-        issue['comments']['nodes'].each do |comment|
-          LinearCli::UI::Logger.info("#{comment['user']['name']} at #{comment['createdAt']}")
+        comment_count = issue['comments']['nodes'].size
+        LinearCli::UI::Logger.info("\nComments:", { count: comment_count })
+
+        issue['comments']['nodes'].each_with_index do |comment, index|
+          comment_context = {
+            author: comment['user']['name'],
+            created_at: comment['createdAt'],
+            index: index + 1,
+            total: comment_count
+          }
+          LinearCli::UI::Logger.info("#{comment['user']['name']} at #{comment['createdAt']}", comment_context)
           LinearCli::UI::Logger.info(comment['body'])
           LinearCli::UI::Logger.info('---')
         end

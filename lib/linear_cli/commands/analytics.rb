@@ -66,95 +66,73 @@ module LinearCli
         end
       end
 
-      desc 'team_workload',
-           'Generate a monthly report of team workload by project and contributor'
-      long_desc <<-LONGDESC
-        Generates a detailed report of workload for a specific team across projects.
-
-        This command analyzes your Linear workspace data to show how contributors have worked
-        on projects over time. For the specified team, the report shows:
-        - Each contributor who has worked on team projects
-        - The percentage of their total work (measured in story points) spent on each project
-        - Monthly breakdown of contributions going back 6 months
-
-        The report provides insights into:
-        - How contributors are distributing their time across projects
-        - Which projects are receiving the most effort
-        - How team priorities have shifted over time
-        - Resource allocation within the team
-
-        Examples:
-          linear analytics team_workload --team "Engineering"       # Generate workload report for Engineering team
-          linear analytics team_workload --team "Design" --format=json  # Output in JSON format
-      LONGDESC
-      option :format,
-             type: :string,
-             desc: 'Output format (json or table)',
-             default: 'table',
-             required: false
-      option :team,
-             type: :string,
-             desc: 'Team name to analyze',
-             required: true
-      def team_workload
+      desc 'team_workload TEAM_NAME', 'Show workload analysis for a specific team'
+      option :period, type: :string, default: 'all',
+                      desc: 'Time period (month, quarter, year, all)',
+                      enum: %w[month quarter year all]
+      option :detailed, type: :boolean, default: false,
+                        desc: 'Show detailed data per team member'
+      option :format, type: :string, default: 'table',
+                      desc: 'Output format (table or json)',
+                      enum: %w[table json]
+      def team_workload(team_name)
+        # Validate format if provided
         format = options[:format]&.downcase || 'table'
-        team_name = options[:team]
         validate_format(format)
 
         client = LinearCli::API::Client.new
         data_fetcher = LinearCli::Services::Analytics::DataFetcher.new(client)
-
-        # Get the specified team
-        team = data_fetcher.fetch_team_by_name(team_name)
-
-        unless team
-          puts "Error: Team '#{team_name}' not found"
-          exit(1) unless defined?(RSpec)
-          return # Early return in test environment
-        end
-
-        # Make sure we have a team ID
-        team_id = team['id']
-        unless team_id
-          puts "Error: Invalid team data returned for '#{team_name}'"
-          exit(1) unless defined?(RSpec)
-          return # Early return in test environment
-        end
-
-        puts "Fetching workload data for team '#{team_name}'..."
-
-        # Use the optimized data fetching method that starts with team and pulls projects and issues
-        # in a single paginated response
-        team_data = data_fetcher.fetch_team_workload_data(team_id)
-
-        if team_data.nil? || team_data.empty? || !team_data['projects'] || !team_data['issues']
-          puts "Error: Could not fetch workload data for team '#{team_name}'"
-          exit(1) unless defined?(RSpec)
-          return # Early return in test environment
-        end
-
-        # Extract projects and issues from the nested response
-        projects_data = team_data['projects'] && team_data['projects']['nodes'] ? team_data['projects']['nodes'] : []
-        issues_data = team_data['issues'] && team_data['issues']['nodes'] ? team_data['issues']['nodes'] : []
-
-        puts "Analyzing #{issues_data.size} issues across #{projects_data.size} projects..."
-
         period_filter = LinearCli::Services::Analytics::PeriodFilter.new
-        monthly_processor = LinearCli::Services::Analytics::MonthlyProcessor.new
+        workload_calculator = LinearCli::Services::Analytics::WorkloadCalculator.new
 
-        # Filter issues for the last 6 months
-        filtered_issues_data = period_filter.filter_issues_by_period(issues_data, 'all')
+        # Log the start of workload analysis with context
+        LinearCli::UI::Logger.info("Fetching workload data for team '#{team_name}'...",
+                                   { team: team_name, period: options[:period], detailed: options[:detailed] })
 
-        # Group issues by month for the past 6 months and calculate workload for the specific team
-        monthly_reports = monthly_processor.process_monthly_team_data(
-          filtered_issues_data, team_data, projects_data
-        )
+        begin
+          # Fetch team data
+          team_data = data_fetcher.fetch_team_data(team_name)
+          team_id = team_data['id']
 
-        # Output based on requested format
-        if format == 'json'
-          puts JSON.pretty_generate(monthly_reports)
-        else
-          display_team_workload_report(monthly_reports, team_data)
+          # Fetch team workload data (projects and issues)
+          team_workload = data_fetcher.fetch_team_workload_data(team_id)
+
+          # Extract issues and add information about the count
+          issues = team_workload['issues']['nodes'] || []
+          LinearCli::UI::Logger.info("Processing #{issues.size} issues...", { count: issues.size })
+
+          # Filter issues by period
+          filtered_issues = period_filter.filter_issues_by_period(issues, options[:period])
+          LinearCli::UI::Logger.info("Filtered to #{filtered_issues.size} issues for the selected period",
+                                     { period: options[:period], filtered_count: filtered_issues.size })
+
+          # Get projects from the team workload data
+          projects = team_workload['projects']['nodes'] || []
+          LinearCli::UI::Logger.info("Analyzing #{filtered_issues.size} issues across #{projects.size} projects...",
+                                     { issue_count: filtered_issues.size, project_count: projects.size })
+
+          # Calculate workload metrics
+          monthly_data = workload_calculator.calculate_monthly_workload(filtered_issues)
+          project_data = workload_calculator.calculate_project_workload(filtered_issues, projects)
+
+          # Output based on format
+          if format == 'json'
+            # Display JSON output
+            output_data = {
+              team: team_name,
+              period: options[:period],
+              monthly_data: monthly_data,
+              project_data: project_data
+            }
+            puts JSON.pretty_generate(output_data)
+          else
+            # Display the workload report
+            display_team_workload_report(team_name, monthly_data, project_data, options[:detailed])
+          end
+        rescue StandardError => e
+          LinearCli::UI::Logger.error("Failed to analyze workload for team '#{team_name}': #{e.message}",
+                                      { team: team_name, error: e.class.name })
+          raise
         end
       end
 
@@ -166,19 +144,38 @@ module LinearCli
         raise "Invalid format: #{format}. Must be 'json' or 'table'."
       end
 
-      # Display the team workload report for monthly data for a specific team
-      def display_team_workload_report(monthly_reports, team)
+      # Display the workload report
+      # @param team_name [String] Team name
+      # @param monthly_data [Hash] Monthly workload data
+      # @param project_data [Hash] Project workload data
+      # @param detailed [Boolean] Whether to show detailed data
+      def display_team_workload_report(team_name, monthly_data, project_data, detailed)
+        # Log that we're about to display the report
+        LinearCli::UI::Logger.debug('Preparing to display team workload report',
+                                    { team: team_name, detailed_view: detailed })
+
+        # Display monthly summary
+        display_monthly_summary(team_name, monthly_data)
+
+        # Display project details
+        display_project_details(project_data, detailed)
+      end
+
+      # Display the monthly summary for a team
+      # @param team_name [String] Team name
+      # @param monthly_data [Hash] Monthly workload data
+      def display_monthly_summary(team_name, monthly_data)
         puts "\n#{'Monthly Team Workload Report (Past 6 Months)'.bold}"
         puts "\n#{'=' * 80}"
-        puts "Team: #{team['name'].bold}"
+        puts "Team: #{team_name.bold}"
         puts('=' * 80)
 
         # Sort months chronologically (oldest to newest)
-        sorted_months = monthly_reports.keys.sort
+        sorted_months = monthly_data.keys.sort
 
         # Check if team has data in any month
         has_data = sorted_months.any? do |month|
-          monthly_reports[month][:contributors].any?
+          monthly_data[month][:contributors].any?
         end
 
         unless has_data
@@ -191,7 +188,7 @@ module LinearCli
 
         # Collect all contributors who have contributed to this team
         sorted_months.each do |month|
-          monthly_reports[month][:contributors].each do |contributor_id, contributor|
+          monthly_data[month][:contributors].each do |contributor_id, contributor|
             all_contributors[contributor_id] ||= contributor[:name]
           end
         end
@@ -206,9 +203,9 @@ module LinearCli
 
           # Add point totals for each month
           sorted_months.each do |month|
-            if monthly_reports[month][:contributors][contributor_id]
-              points = monthly_reports[month][:contributors][contributor_id][:total_points]
-              issues = monthly_reports[month][:contributors][contributor_id][:issues_count]
+            if monthly_data[month][:contributors][contributor_id]
+              points = monthly_data[month][:contributors][contributor_id][:total_points]
+              issues = monthly_data[month][:contributors][contributor_id][:issues_count]
               monthly_points += points
               monthly_issues += issues
               row << "#{points}p / #{issues}i"
@@ -234,7 +231,7 @@ module LinearCli
         # Create headers with month names
         headers = ['Contributor']
         sorted_months.each do |month|
-          headers << monthly_reports[month][:month_name]
+          headers << monthly_data[month][:month_name]
         end
 
         # Add a total column
@@ -245,18 +242,23 @@ module LinearCli
 
         # Use the centralized table renderer
         puts LinearCli::UI::TableRenderer.render_table(headers, rows)
+      end
 
+      # Display the project details for a team
+      # @param project_data [Hash] Project workload data
+      # @param detailed [Boolean] Whether to show detailed data
+      def display_project_details(project_data, detailed)
         # For each month, show project details
-        sorted_months.each do |month|
-          month_name = monthly_reports[month][:month_name]
+        project_data.each do |month, data|
+          month_name = data[:month_name]
 
           # Skip if no projects for this month
-          next if monthly_reports[month][:projects].empty?
+          next if data[:projects].empty?
 
-          puts "\n#{'Month:'.bold} #{month_name} (#{monthly_reports[month][:issue_count]} issues)"
+          puts "\n#{'Month:'.bold} #{month_name} (#{data[:issue_count]} issues)"
 
           # Display projects for this team in this month
-          monthly_reports[month][:projects].each_value do |project|
+          data[:projects].each_value do |project|
             next if project[:contributors].empty?
 
             puts "  #{'Project:'.bold} #{project[:name]} (#{project[:total_points]} points, #{project[:issues_count]} issues)"
@@ -268,14 +270,14 @@ module LinearCli
 
               # Find the percentage of this project of the contributor's total work
               # We can simplify this by finding the contributor in the main contributor list
-              contributor_id = find_contributor_id_by_name(contributor[:name], monthly_reports[month][:contributors])
+              contributor_id = find_contributor_id_by_name(contributor[:name], data[:contributors])
               project_of_total_percentage = 0
 
               if contributor_id
                 # Get the contributor's total data
-                total_contributor = monthly_reports[month][:contributors][contributor_id]
+                total_contributor = data[:contributors][contributor_id]
                 # Find this project in the contributor's projects
-                project_data = total_contributor[:projects][project_id_from_name(project[:name], monthly_reports[month][:projects])]
+                project_data = total_contributor[:projects][project_id_from_name(project[:name], data[:projects])]
                 if project_data
                   project_of_total_percentage = project_data[:percentage].round(1)
                 end

@@ -97,11 +97,12 @@ module LinearCli
 
         # Log query details for debugging
         if ENV['LINEAR_CLI_DEBUG'] == 'true'
-          LinearCli::UI::Logger.info("GraphQL #{operation_type}: #{operation_name || 'unnamed'}")
-          LinearCli::UI::Logger.info("Variables: #{variables.inspect}")
+          LinearCli::UI::Logger.debug("GraphQL #{operation_type}: #{operation_name || 'unnamed'}",
+                                      { variables: variables.inspect })
         end
 
-        LinearCli::UI::Logger.info("#{description}...")
+        context = { operation: operation_name || operation_type }
+        LinearCli::UI::Logger.info("#{description}...", context)
 
         # Make the actual request
         response = self.class.post(
@@ -118,12 +119,12 @@ module LinearCli
         result = handle_response(response)
 
         # Log completion
-        LinearCli::UI::Logger.info("#{description} completed.")
+        LinearCli::UI::Logger.info("#{description} completed.", context)
 
         result
       rescue StandardError => e
         # Log error
-        LinearCli::UI::Logger.error("#{description} failed: #{e.message}")
+        LinearCli::UI::Logger.error("#{description} failed: #{e.message}", context)
         raise
       end
 
@@ -137,80 +138,106 @@ module LinearCli
       # @option options [String] :page_info_path Path to pageInfo in the response (default: same as nodes_path)
       # @return [Array] Array of data nodes
       def fetch_paginated_data(query, variables, options = {})
+        nodes_path = options[:nodes_path]
+        page_info_path = options[:page_info_path] || nodes_path
         fetch_all = options[:fetch_all] || false
         limit = options[:limit] || DEFAULT_PAGE_LIMIT
-        nodes_path = options[:nodes_path] || 'issues'
-        page_info_path = options[:page_info_path] || nodes_path
-        variables[:first] ||= DEFAULT_PAGE_SIZE
+        data_type = nodes_path.capitalize
+        progress_message = options[:progress_message] || "Fetching #{data_type} data"
 
-        # When fetch_all is true, ignore the limit
-        limit = nil if fetch_all
+        # Create context for logging
+        context = {
+          data_type: data_type,
+          fetch_all: fetch_all,
+          limit: limit
+        }
 
-        # Create a progress logger for the operation
-        progress_message = "Fetching #{nodes_path.capitalize} data"
-
+        has_next_page = true
+        cursor = nil
         all_items = []
-        current_variables = variables.dup
         page_count = 0
-        has_more_pages = true
 
-        while has_more_pages
+        LinearCli::UI::Logger.info("#{progress_message}...", context)
+
+        while has_next_page && (fetch_all || all_items.size < limit)
+          # Update progress on each page
           page_count += 1
+          page_context = context.merge({ page: page_count, items_count: all_items.size })
+          LinearCli::UI::Logger.info("#{progress_message} (page #{page_count})", page_context)
 
-          LinearCli::UI::Logger.info("#{progress_message} (page #{page_count})")
+          # Prepare variables for this page
+          page_variables = variables.clone
+          page_variables[:after] = cursor if cursor
 
-          # Use the query method which already handles mocking and test checks
-          result = query(query, current_variables)
+          # Execute the query for this page
+          result = query(query, page_variables)
 
-          # Extract nodes
-          current_path = nodes_path.split('.')
-          current_data = result
-          current_path.each do |path|
-            current_data = current_data[path] if current_data
+          # Check if the query was successful
+          if result.nil? || result.empty?
+            LinearCli::UI::Logger.warn('No data returned from API.')
+            break
           end
 
-          # Extract items and pageInfo
-          current_items = (current_data && current_data['nodes']) || []
-          page_info_path_parts = page_info_path.split('.')
-          page_info_data = result
-          page_info_path_parts.each do |path|
-            page_info_data = page_info_data[path] if page_info_data
+          # Extract data using the path
+          current_result = result
+          path_parts = nodes_path.split('.')
+          valid_path = true
+
+          path_parts.each do |part|
+            if current_result && current_result[part]
+              current_result = current_result[part]
+            else
+              LinearCli::UI::Logger.warn("Data path '#{nodes_path}' not found in response.")
+              valid_path = false
+              break
+            end
           end
-          page_info = page_info_data && page_info_data['pageInfo']
 
-          # Add current items to the result
-          all_items.concat(current_items)
+          # If path is not valid, break the loop
+          break unless valid_path
 
-          # Determine if we should fetch the next page
-          has_next_page = page_info && page_info['hasNextPage']
+          # Get nodes from the current result
+          if current_result && current_result['nodes']
+            # Add nodes to the collection
+            all_items.concat(current_result['nodes'])
+          else
+            LinearCli::UI::Logger.warn("No 'nodes' found in response at path '#{nodes_path}'.")
+            break
+          end
 
-          # Stop if we shouldn't fetch more pages
-          break unless fetch_all
+          # Check if we have more pages
+          page_info = result
+          page_info_parts = page_info_path.split('.')
 
-          # Stop if we've reached the limit
-          break if limit && all_items.size >= limit
+          page_info_parts.each do |part|
+            if page_info && page_info[part]
+              page_info = page_info[part]
+            else
+              page_info = nil
+              break
+            end
+          end
 
-          # Stop if we've reached the last page
-          break unless has_next_page
-
-          # Get the cursor for the next page
-          end_cursor = page_info['endCursor']
-          current_variables[:after] = end_cursor
-
-          # Continue to next page
-          has_more_pages = true
+          if page_info && page_info['pageInfo'] && page_info['pageInfo']['hasNextPage']
+            has_next_page = page_info['pageInfo']['hasNextPage']
+            cursor = page_info['pageInfo']['endCursor']
+          else
+            has_next_page = false
+          end
         end
 
-        # Complete the progress
+        # Update total count
         if page_count > 1
-          LinearCli::UI::Logger.info("Fetched #{all_items.size} items across #{page_count} pages")
+          LinearCli::UI::Logger.info("Fetched #{all_items.size} items across #{page_count} pages",
+                                     context.merge({ total_items: all_items.size, total_pages: page_count }))
         end
-        LinearCli::UI::Logger.info("#{progress_message} completed.")
+        LinearCli::UI::Logger.info("#{progress_message} completed.",
+                                   context.merge({ total_items: all_items.size }))
 
         all_items
       rescue StandardError => e
         # Log error
-        LinearCli::UI::Logger.error("#{progress_message} failed: #{e.message}")
+        LinearCli::UI::Logger.error("#{progress_message} failed: #{e.message}", context)
         raise
       end
 
@@ -219,7 +246,7 @@ module LinearCli
       # @return [String] Team ID
       # @raise [RuntimeError] If team is not found
       def get_team_id_by_name(team_name)
-        LinearCli::UI::Logger.info("Finding team '#{team_name}'...")
+        LinearCli::UI::Logger.info("Finding team '#{team_name}'...", { team_name: team_name })
 
         query = <<~GRAPHQL
           query Teams {

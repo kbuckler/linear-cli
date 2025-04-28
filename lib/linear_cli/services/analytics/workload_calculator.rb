@@ -275,6 +275,128 @@ module LinearCli
           result
         end
 
+        # Calculate monthly workload data
+        # @param issues [Array<Hash>] Array of issue data
+        # @return [Hash] Monthly workload data organized by month
+        def calculate_monthly_workload(issues)
+          # Ensure issues is an array to avoid nil errors
+          issues = [] if issues.nil?
+
+          # Initialize result structure
+          result = {}
+
+          # Group issues by month based on their completion date
+          grouped_issues = issues.group_by do |issue|
+            if issue['completedAt']
+              Time.parse(issue['completedAt']).strftime('%Y-%m')
+            else
+              'incomplete'
+            end
+          end
+
+          # Process each month's worth of issues
+          grouped_issues.each do |month, month_issues|
+            next if month == 'incomplete' # Skip incomplete issues
+
+            month_name = format_month_name(month)
+            monthly_data = {
+              month_name: month_name,
+              issue_count: month_issues.size,
+              contributors: {},
+              projects: {}
+            }
+
+            # Process each issue in this month
+            month_issues.each do |issue|
+              # Handle project assignment
+              if issue['project']
+                project_id = issue['project']['id']
+                project_name = issue['project']['name']
+              else
+                project_id = 'no_project'
+                project_name = 'No Project'
+              end
+
+              # Handle assignee
+              contributor_id = issue['assignee'] ? issue['assignee']['id'] : 'unassigned'
+              contributor_name = issue['assignee'] ? issue['assignee']['name'] : 'Unassigned'
+
+              # Tasks without estimates should be counted as 1 point of effort
+              points = if issue['estimate'].nil? || issue['estimate'].to_i.zero?
+                         1
+                       else
+                         issue['estimate'].to_i
+                       end
+
+              # Initialize contributor if needed
+              monthly_data[:contributors][contributor_id] ||= {
+                name: contributor_name,
+                total_points: 0,
+                issues_count: 0,
+                projects: {}
+              }
+
+              # Initialize project if needed
+              monthly_data[:projects][project_id] ||= {
+                name: project_name,
+                total_points: 0,
+                issues_count: 0,
+                contributors: {}
+              }
+
+              # Initialize contributor in project if needed
+              monthly_data[:projects][project_id][:contributors][contributor_id] ||= {
+                name: contributor_name,
+                points: 0,
+                issues_count: 0
+              }
+
+              # Initialize project in contributor if needed
+              monthly_data[:contributors][contributor_id][:projects][project_id] ||= {
+                name: project_name,
+                points: 0,
+                issues_count: 0
+              }
+
+              # Update points and issue counts
+              monthly_data[:contributors][contributor_id][:total_points] += points
+              monthly_data[:contributors][contributor_id][:issues_count] += 1
+              monthly_data[:projects][project_id][:total_points] += points
+              monthly_data[:projects][project_id][:issues_count] += 1
+              monthly_data[:projects][project_id][:contributors][contributor_id][:points] += points
+              monthly_data[:projects][project_id][:contributors][contributor_id][:issues_count] += 1
+              monthly_data[:contributors][contributor_id][:projects][project_id][:points] += points
+              monthly_data[:contributors][contributor_id][:projects][project_id][:issues_count] += 1
+            end
+
+            # Calculate percentages
+            monthly_data[:contributors].each_value do |contributor|
+              contributor[:projects].each_value do |project|
+                project[:percentage] = calculate_percentage(project[:points], contributor[:total_points])
+              end
+            end
+
+            monthly_data[:projects].each_value do |project|
+              project[:contributors].each_value do |contributor|
+                contributor[:percentage] = calculate_percentage(contributor[:points], project[:total_points])
+              end
+            end
+
+            result[month] = monthly_data
+          end
+
+          result
+        end
+
+        # Calculate project workload data
+        # @param issues [Array<Hash>] Array of issue data
+        # @param projects [Array<Hash>] Array of project data
+        # @return [Hash] Project workload data
+        def calculate_project_workload(issues, projects)
+          # Use the monthly workload calculation as they share the same structure
+          calculate_monthly_workload(issues)
+        end
+
         private
 
         # Calculate percentage safely handling zero division
@@ -285,6 +407,15 @@ module LinearCli
           return 0.0 if denominator.zero?
 
           ((numerator.to_f / denominator) * 100).round(2)
+        end
+
+        # Format month name from YYYY-MM format
+        # @param month [String] Month in YYYY-MM format
+        # @return [String] Formatted month name (e.g., "January 2023")
+        def format_month_name(month)
+          year, month_num = month.split('-')
+          month_names = %w[January February March April May June July August September October November December]
+          "#{month_names[month_num.to_i - 1]} #{year}"
         end
       end
     end
