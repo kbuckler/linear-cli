@@ -85,12 +85,21 @@ module LinearCli
         def fetch_team_workload_data(team_id)
           query = LinearCli::API::Queries::Analytics.team_workload_data(team_id)
 
+          # Linear's GraphQL API expects team IDs to be passed without any quotes
+          # So we need to ensure we're providing the ID in the correct format
+          # The API docs indicate that IDs should be passed as strings
+          team_id_str = team_id.to_s
+
           # Initial variables for pagination of both projects and issues
           variables = {
-            teamId: team_id,
+            teamId: team_id_str,
             projectsFirst: 50,
             issuesFirst: 50
           }
+
+          if ENV['LINEAR_CLI_DEBUG'] == 'true'
+            LinearCli::UI::Logger.info("Fetching team workload data for team ID: #{team_id_str}")
+          end
 
           # We need to handle two separate pagination streams (projects and issues)
           # First, get the initial data
@@ -114,7 +123,7 @@ module LinearCli
           # Continue fetching projects if there are more
           while has_more_projects
             variables = {
-              teamId: team_id,
+              teamId: team_id_str,
               projectsFirst: 50,
               projectsAfter: projects_cursor,
               issuesFirst: 0 # Don't fetch issues in subsequent project pages
@@ -138,7 +147,7 @@ module LinearCli
           # Now continue fetching issues if there are more
           while has_more_issues
             variables = {
-              teamId: team_id,
+              teamId: team_id_str,
               projectsFirst: 0, # Don't fetch projects in subsequent issue pages
               issuesFirst: 50,
               issuesAfter: issues_cursor
