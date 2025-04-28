@@ -18,7 +18,8 @@ module LinearCli
       def self.validate_issue_id(id)
         unless id.match?(ISSUE_ID_REGEX)
           raise ArgumentError,
-                "Invalid issue ID format: '#{id}'. Expected format like 'ABC-123'."
+                "Invalid issue ID format: '#{id}'. " \
+                "Expected format like 'ABC-123'."
         end
 
         true
@@ -32,7 +33,8 @@ module LinearCli
         priority = priority.to_i
         unless (0..4).include?(priority)
           raise ArgumentError,
-                "Invalid priority value: #{priority}. Expected a number between 0-4."
+                "Invalid priority value: #{priority}. " \
+                'Expected a number between 0-4.'
         end
 
         true

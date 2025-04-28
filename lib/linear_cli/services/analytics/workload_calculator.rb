@@ -56,7 +56,7 @@ module LinearCli
             if !issue_belongs_to_team && issue['project']
               project_id = issue['project']['id']
               # Check if this project belongs to our team
-              if project_team_map[project_id] && project_team_map[project_id].include?(team_id)
+              if project_team_map[project_id]&.include?(team_id)
                 issue_belongs_to_team = true
               end
             end
@@ -392,7 +392,7 @@ module LinearCli
         # @param issues [Array<Hash>] Array of issue data
         # @param projects [Array<Hash>] Array of project data
         # @return [Hash] Project workload data
-        def calculate_project_workload(issues, projects)
+        def calculate_project_workload(issues, _projects)
           # Use the monthly workload calculation as they share the same structure
           calculate_monthly_workload(issues)
         end

@@ -124,8 +124,6 @@ module LinearCli
       puts "\n#{pastel.bold('Analytics & Reporting Commands:')}"
       report_help = 'Generate comprehensive workspace report'
       puts "  linear analytics report      # #{report_help}"
-      cap_help = 'Generate capitalization metrics report'
-      puts "  linear analytics capitalization # #{cap_help}"
     end
   end
 end

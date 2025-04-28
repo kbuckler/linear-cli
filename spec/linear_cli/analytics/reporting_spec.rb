@@ -136,32 +136,6 @@ RSpec.describe LinearCli::Analytics::Reporting do
     end
   end
 
-  describe '.calculate_capitalization_metrics' do
-    it 'identifies capitalized issues by project labels' do
-      result = described_class.calculate_capitalization_metrics(issues, projects)
-
-      # Project A has capitalization label, so its 2 issues should be capitalized
-      expect(result[:capitalized_count]).to eq(2)
-      expect(result[:non_capitalized_count]).to eq(2) # issue3 and issue4 aren't capitalized
-      expect(result[:total_issues]).to eq(4)
-      expect(result[:capitalization_rate]).to eq(50.0)
-    end
-
-    it 'correctly calculates team capitalization metrics' do
-      result = described_class.calculate_capitalization_metrics(issues, projects)
-
-      expect(result[:team_capitalization]['Engineering'][:capitalized]).to eq(2)
-      expect(result[:team_capitalization]['Engineering'][:non_capitalized]).to eq(1)
-      expect(result[:team_capitalization]['Engineering'][:total]).to eq(3)
-      expect(result[:team_capitalization]['Engineering'][:percentage]).to eq(66.67)
-
-      expect(result[:team_capitalization]['Design'][:capitalized]).to eq(0)
-      expect(result[:team_capitalization]['Design'][:non_capitalized]).to eq(1)
-      expect(result[:team_capitalization]['Design'][:total]).to eq(1)
-      expect(result[:team_capitalization]['Design'][:percentage]).to eq(0)
-    end
-  end
-
   describe '.generate_report' do
     it 'generates a complete report with all data sections' do
       report = described_class.generate_report(teams, projects, issues)
@@ -177,7 +151,6 @@ RSpec.describe LinearCli::Analytics::Reporting do
       expect(report[:summary][:issues_by_status]).to be_a(Hash)
       expect(report[:summary][:issues_by_team]).to be_a(Hash)
       expect(report[:summary][:team_completion_rates]).to be_a(Hash)
-      expect(report[:summary][:capitalization_metrics]).to be_a(Hash)
     end
   end
 

@@ -10,7 +10,10 @@ A Ruby command-line tool that allows AI assistants (and humans) to interact dire
 - Filter issues by team, status, assignee, and more
 - View issue details and add comments
 - List teams and projects
-- Generate test data for reporting and analysis
+- Analyze team workload with contributor breakdowns and project allocations
+- Enhanced logging with contextual information for better debugging and monitoring
+- Optimized GraphQL queries with efficient team-centric data fetching
+- Configurable timeouts and robust error handling for API communication
 - Export detailed reports on your Linear workspace with analytics
 - Simple configuration and authentication
 
@@ -75,6 +78,9 @@ linear analytics report
 
 # Export report data in JSON format
 linear analytics report --format json
+
+# Generate team workload insights (last 6 months)
+linear analytics team_workload --team "Engineering"
 ```
 
 By default, the CLI operates in read-only safe mode to prevent accidental data modifications. Use the `--allow-mutations` flag to enable write operations.
@@ -92,25 +98,17 @@ For detailed step-by-step instructions with screenshots, see [How to Obtain a Li
 
 ## Configuration
 
-Linear CLI can be configured using environment variables or a `.env` file. For details on all configuration options, see the [Configuration Guide](docs/CONFIGURATION.md).
+Linear CLI can be configured using environment variables or a `.env` file.
 
-## Data Generation and Reporting
+Key environment variables:
+- `LINEAR_API_KEY`: Your Linear API key (required)
+- `LINEAR_CLI_DEBUG`: Set to "true" to enable debug logging
+- `LINEAR_API_TIMEOUT`: API request timeout in seconds (default: 30)
+- `LINEAR_API_CONNECT_TIMEOUT`: Connection timeout in seconds (default: 10)
 
-Linear CLI provides tools to populate your Linear workspace with test data and generate reports with advanced analytics:
+For details on all configuration options, see the [Configuration Guide](docs/CONFIGURATION.md).
 
-### Generating Test Data
-
-```
-# Create default test data (2 teams, 2 projects per team, 5 issues per project)
-linear generator populate --allow-mutations
-
-# Customize the amount of data generated
-linear generator populate --allow-mutations --teams 3 --projects-per-team 4 --issues-per-project 10
-```
-
-The data generator uses your existing teams and adds test projects and issues to them, making it easy to set up demo environments or test data for reporting.
-
-### Analytics and Reporting
+## Analytics and Reporting
 
 ```
 # View summary tables of your Linear data with analytics
@@ -119,18 +117,21 @@ linear analytics report
 # Export complete data in JSON format for further analysis
 linear analytics report --format json
 
-# Generate team workload report
+# Generate team workload report with contributor insights
 linear analytics team_workload --team "Engineering"
+
+# Generate team workload report for a specific time period
+linear analytics team_workload --team "Engineering" --period month
 ```
 
 The reporting system provides detailed analytics including:
 - Issue distribution by status
 - Issue distribution by team
 - Team completion rates and productivity metrics
-- Overall workspace analytics and insights
-- Team workload insights with contributor breakdowns
+- Team workload insights with monthly contributor breakdowns
+- Project allocation analytics showing how team members divide time across projects
 
-The analytics engine uses a modular architecture for extensibility and is designed to help teams gain valuable insights from their Linear data.
+The analytics engine features optimized team-centric GraphQL queries that improve performance by reducing the number of API calls needed, which is especially beneficial for large workspaces.
 
 ## Development
 
@@ -151,6 +152,9 @@ bundle exec rspec spec/linear_cli/api/client_spec.rb:70
 
 # Run with detailed output
 bundle exec rspec --format doc
+
+# Run the full test suite including RSpec tests and RuboCop
+bundle exec rake full_test
 ```
 
 ### Dependencies
@@ -159,7 +163,6 @@ The project relies on the following key dependencies:
 
 - Thor: CLI framework
 - HTTParty: HTTP client for API requests
-- ActiveSupport: Provides extensions to Ruby's standard library
 - TTY gems: Terminal formatting and display
 - RSpec: Testing framework
 
@@ -186,7 +189,7 @@ after do
 end
 ```
 
-This approach is simpler than using WebMock stubs and avoids issues with HTTP request mocking.
+This approach is simpler than using WebMock stubs and avoids issues with HTTP request mocking. The test environment also prevents real API calls by default for safer testing.
 
 ### Project Architecture
 
@@ -195,13 +198,27 @@ The Linear CLI follows a modular architecture with clear separation of concerns:
 - **Commands**: Thor-based CLI interface (`lib/linear_cli/commands/`)
 - **API**: Client and data models for Linear API interaction (`lib/linear_cli/api/`)
 - **Analytics**: Reporting and data visualization modules (`lib/linear_cli/analytics/`)
-- **Utilities**: Helper functions and shared utilities
+- **Services**: Business logic components (`lib/linear_cli/services/`)
+- **UI**: Display formatting and user interface components (`lib/linear_cli/ui/`)
+- **Validators**: Input validation and sanitization (`lib/linear_cli/validators/`)
+
+For architectural decisions and design patterns, see [DECISIONS.md](DECISIONS.md).
 
 ### Building the Gem
 
 ```
 bundle exec rake build
 ```
+
+## Recent Enhancements
+
+- Optimized team-centric GraphQL queries for improved performance
+- Enhanced logging with structured contextual information
+- Refined team workload analytics with monthly contributor breakdowns
+- Added configurable timeouts for all API requests
+- Improved pagination with adaptive feedback
+- Comprehensive test coverage with automated test safety measures
+- RuboCop integration for code quality enforcement
 
 ## License
 

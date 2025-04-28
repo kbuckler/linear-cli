@@ -197,9 +197,9 @@ module LinearCli
         # Helper method to fetch additional issue pages
         # @param team_id [String] Team ID
         # @param cursor [String] Pagination cursor
-        # @param query [String] GraphQL query
+        # @param _query [String] GraphQL query (unused but kept for API consistency)
         # @return [Array<Hash>] Additional issue data
-        def fetch_additional_issue_pages(team_id, cursor, query)
+        def fetch_additional_issue_pages(team_id, cursor, _query)
           additional_issues = []
           next_cursor = cursor
           has_more = true

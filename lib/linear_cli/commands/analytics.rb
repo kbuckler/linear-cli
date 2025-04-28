@@ -246,10 +246,10 @@ module LinearCli
 
       # Display the project details for a team
       # @param project_data [Hash] Project workload data
-      # @param detailed [Boolean] Whether to show detailed data
-      def display_project_details(project_data, detailed)
+      # @param _detailed [Boolean] Whether to show detailed data (unused but kept for API consistency)
+      def display_project_details(project_data, _detailed)
         # For each month, show project details
-        project_data.each do |month, data|
+        project_data.each_value do |data|
           month_name = data[:month_name]
 
           # Skip if no projects for this month
